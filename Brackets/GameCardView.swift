@@ -10,24 +10,21 @@ import SwiftUI
 struct GameCardView: View {
     let game: Game
     
-    // Accent color (lime green from design)
-    private let accentColor = Color(red: 0.8, green: 1.0, blue: 0.4)
-    
     var body: some View {
         ZStack {
             // Card background
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color(white: 0.12))
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.extraLarge)
+                .fill(AppTheme.Colors.cardBackground)
             
             if game.homeTeam == nil || game.awayTeam == nil {
                 // Show placeholder when team data is missing
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 24))
-                        .foregroundStyle(Color(white: 0.4))
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
                     Text("Datos del partido no disponibles")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color(white: 0.5))
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
                 }
                 .padding()
             } else {
@@ -47,18 +44,18 @@ struct GameCardView: View {
                             // Home score
                             Text(game.homeScore.map { "\($0)" } ?? "0")
                                 .font(.system(size: 36, weight: .heavy))
-                                .foregroundStyle(game.winner?.id == game.homeTeam?.id ? accentColor : Color(white: 0.5))
+                                .foregroundStyle(game.winner?.id == game.homeTeam?.id ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                                 .frame(minWidth: 30)
                             
                             // Separator
                             Text(":")
                                 .font(.system(size: 36, weight: .heavy))
-                                .foregroundStyle(Color(white: 0.3))
+                                .foregroundStyle(AppTheme.Colors.separator)
                             
                             // Away score
                             Text(game.awayScore.map { "\($0)" } ?? "0")
                                 .font(.system(size: 36, weight: .heavy))
-                                .foregroundStyle(game.winner?.id == game.awayTeam?.id ? accentColor : Color(white: 0.5))
+                                .foregroundStyle(game.winner?.id == game.awayTeam?.id ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                                 .frame(minWidth: 30)
                         }
                         
@@ -66,7 +63,7 @@ struct GameCardView: View {
                         if game.isFinished {
                             Text("FINAL")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(Color(white: 0.5))
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
                                 .background(
@@ -98,8 +95,6 @@ struct TeamView: View {
     let team: Team
     let isWinner: Bool
     
-    private let accentColor = Color(red: 0.8, green: 1.0, blue: 0.4)
-    
     var body: some View {
         VStack(spacing: 10) {
             // Team image
@@ -107,7 +102,7 @@ struct TeamView: View {
                 // Border ring for winner
                 if isWinner {
                     Circle()
-                        .stroke(accentColor, lineWidth: 3)
+                        .stroke(AppTheme.Colors.accent, lineWidth: 3)
                         .frame(width: 64, height: 64)
                 }
                 
@@ -129,7 +124,7 @@ struct TeamView: View {
                                     .fill(Color(white: 0.2))
                                     .frame(width: 56, height: 56)
                                 ProgressView()
-                                    .tint(.white)
+                                    .tint(AppTheme.Colors.loading)
                             }
                         @unknown default:
                             defaultTeamImage
@@ -142,8 +137,8 @@ struct TeamView: View {
             
             // Team name
             Text(team.name.uppercased())
-                .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(.white)
+                .font(AppTheme.Typography.smallCaption)
+                .foregroundStyle(AppTheme.Colors.primaryText)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.8)

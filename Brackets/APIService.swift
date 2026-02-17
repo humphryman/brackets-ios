@@ -32,6 +32,62 @@ struct TournamentsResponse: Codable {
     let tournaments: [Tournament]
 }
 
+// Response wrapper for standings
+struct StandingsResponse: Codable {
+    let standings: [TeamStanding]
+}
+
+// Team Standing Model
+struct TeamStanding: Identifiable, Codable {
+    let id: Int
+    let teamName: String
+    let total: Int
+    let wins: Int
+    let losses: Int
+    let pointsFor: Int
+    let pointsAgainst: Int
+    let tie: Int
+    let avg: Int
+    let tieBreaker: String
+    let teamLogo: String?
+    
+    // Computed property for point differential
+    var pointDifferential: Int {
+        pointsFor - pointsAgainst
+    }
+    
+    // Record string (e.g., "5-2")
+    var record: String {
+        "\(wins)-\(losses)"
+    }
+    
+    // Full image URL
+    var fullImageURL: String? {
+        guard let teamLogo = teamLogo else { return nil }
+        
+        if teamLogo.lowercased().hasPrefix("http://") || teamLogo.lowercased().hasPrefix("https://") {
+            return teamLogo
+        }
+        
+        let imagePath = teamLogo.hasPrefix("/") ? String(teamLogo.dropFirst()) : teamLogo
+        return "\(APIConfig.baseURL)/\(imagePath)"
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id = "team_season_id"
+        case teamName = "name"
+        case total
+        case wins = "won"
+        case losses = "lost"
+        case pointsFor = "favor"
+        case pointsAgainst = "against"
+        case tie
+        case avg
+        case tieBreaker = "tie_breaker"
+        case teamLogo = "team_logo"
+    }
+}
+
 actor APIService {
     static let shared = APIService()
     
@@ -191,6 +247,72 @@ actor APIService {
         }
     }
     
+    func fetchStandings(for tournamentId: Int) async throws -> [TeamStanding] {
+        guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/standings.json") else {
+            throw APIError.invalidURL
+        }
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                throw APIError.invalidResponse
+            }
+            
+            // Debug: Print the raw JSON
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📦 Standings JSON Response:")
+                print(jsonString)
+            }
+            
+            let decoder = JSONDecoder()
+            // Note: NOT using .convertFromSnakeCase - relying on explicit CodingKeys in models
+            
+            // Try to decode as wrapped response first
+            if let response = try? decoder.decode(StandingsResponse.self, from: data) {
+                print("✅ Decoded standings as wrapped response")
+                return response.standings
+            }
+            
+            // Fallback: Try to decode as direct array
+            if let standings = try? decoder.decode([TeamStanding].self, from: data) {
+                print("✅ Decoded standings as direct array")
+                return standings
+            }
+            
+            // If neither worked, throw detailed error
+            do {
+                _ = try decoder.decode(StandingsResponse.self, from: data)
+            } catch let decodingError as DecodingError {
+                print("❌ Standings Decoding Error Details:")
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("Key '\(key.stringValue)' not found: \(context.debugDescription)")
+                    print("Coding path: \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("Type mismatch for type \(type): \(context.debugDescription)")
+                    print("Coding path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("Value not found for type \(type): \(context.debugDescription)")
+                    print("Coding path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("Data corrupted: \(context.debugDescription)")
+                    print("Coding path: \(context.codingPath)")
+                @unknown default:
+                    print("Unknown decoding error")
+                }
+                throw APIError.decodingError(decodingError)
+            }
+            
+            throw APIError.invalidResponse
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
+    
     func fetchGames(for tournamentId: Int) async throws -> [Game] {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/games.json") else {
             throw APIError.invalidURL
@@ -287,6 +409,82 @@ actor APIService {
         } catch let error as APIError {
             throw error
         } catch {
+            throw APIError.networkError(error)
+        }
+    }
+
+    func fetchTopStats(for tournamentId: Int) async throws -> [StatCategoryData] {
+        guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/top_stats.json") else {
+            throw APIError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                print("❌ Top Stats: Bad HTTP status")
+                throw APIError.invalidResponse
+            }
+
+            // Print raw JSON — essential for diagnosing key mismatches
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📦 Top Stats Raw JSON:")
+                print(jsonString)
+            }
+
+            // Print top-level keys to identify the exact wrapper key
+            if let topLevel = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                print("🔑 Top-level keys: \(topLevel.keys.sorted())")
+            } else if let topArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                print("🔑 Top level is an array with \(topArray.count) items")
+                if let first = topArray.first {
+                    print("🔑 First item keys: \(first.keys.sorted())")
+                }
+            }
+
+            let decoder = JSONDecoder()
+
+            // Try wrapped: { "top_stats": [...] }
+            if let wrapped = try? decoder.decode(TopStatsResponse.self, from: data) {
+                print("✅ Decoded as wrapped — \(wrapped.stats.count) categories")
+                return wrapped.stats
+            }
+
+            // Try direct array: [...]
+            if let direct = try? decoder.decode([StatCategoryData].self, from: data) {
+                print("✅ Decoded as direct array — \(direct.count) categories")
+                return direct
+            }
+
+            // Print detailed decoding error
+            do {
+                _ = try decoder.decode(TopStatsResponse.self, from: data)
+            } catch let decodingError as DecodingError {
+                print("❌ Top Stats Decoding Error:")
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("  Key '\(key.stringValue)' not found")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .typeMismatch(let type, let context):
+                    print("  Type mismatch for \(type): \(context.debugDescription)")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .valueNotFound(let type, let context):
+                    print("  Value not found for \(type)")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .dataCorrupted(let context):
+                    print("  Data corrupted: \(context.debugDescription)")
+                @unknown default:
+                    print("  Unknown decoding error")
+                }
+                throw APIError.decodingError(decodingError)
+            }
+
+            throw APIError.invalidResponse
+        } catch let error as APIError {
+            throw error
+        } catch {
+            print("❌ Top Stats Network Error: \(error)")
             throw APIError.networkError(error)
         }
     }

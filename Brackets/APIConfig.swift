@@ -7,25 +7,14 @@
 
 import Foundation
 
+/// Legacy API configuration - Use AppConfig.API instead
+/// This file is maintained for backward compatibility
 enum APIConfig {
-    private static var isProduction: Bool {
-        #if DEBUG
-        return false
-        #else
-        return true
-        #endif
-    }
-    
     static var baseURL: String {
-        if isProduction {
-            // TODO: Replace with your production API URL
-            return "https://api.yourapp.com"
-        } else {
-            return "http://127.0.0.1:3000"
-        }
+        AppConfig.API.baseURL
     }
     
     static var apiURL: String {
-        "\(baseURL)/api"
+        AppConfig.API.apiURL
     }
 }

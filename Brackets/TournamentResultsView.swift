@@ -15,7 +15,7 @@ struct TournamentResultsView: View {
     var body: some View {
         ZStack {
             // Background
-            Color.black
+            AppTheme.Colors.background
                 .ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 0) {
@@ -27,30 +27,30 @@ struct TournamentResultsView: View {
                             dismiss()
                         } label: {
                             Circle()
-                                .fill(Color(white: 0.2))
+                                .fill(AppTheme.Colors.cardBackground)
                                 .frame(width: 40, height: 40)
                                 .overlay {
                                     Image(systemName: "arrow.left")
                                         .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AppTheme.Colors.primaryText)
                                 }
                         }
                         
                         Text("Resultados")
-                            .font(.system(size: 42, weight: .heavy))
-                            .foregroundStyle(.white)
+                            .font(AppTheme.Typography.largeTitle)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
                         
                         Spacer()
                     }
                     
                     // Subtitle
                     Text("Historial de partidos")
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundStyle(Color(white: 0.6))
+                        .font(AppTheme.Typography.headline)
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 24)
+                .padding(.horizontal, AppTheme.Layout.extraLarge)
+                .padding(.top, AppTheme.Layout.large)
+                .padding(.bottom, AppTheme.Layout.extraLarge)
                 
                 // Content
                 if viewModel.isLoading {
@@ -58,7 +58,7 @@ struct TournamentResultsView: View {
                     HStack {
                         Spacer()
                         ProgressView()
-                            .tint(.white)
+                            .tint(AppTheme.Colors.loading)
                         Spacer()
                     }
                     Spacer()
@@ -69,9 +69,9 @@ struct TournamentResultsView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.system(size: 48))
-                                .foregroundStyle(.red)
+                                .foregroundStyle(.orange)
                             Text(errorMessage)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppTheme.Colors.primaryText)
                                 .multilineTextAlignment(.center)
                         }
                         .padding()
@@ -85,34 +85,34 @@ struct TournamentResultsView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "sportscourt")
                                 .font(.system(size: 48))
-                                .foregroundStyle(Color(white: 0.4))
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
                             Text("No hay partidos registrados")
-                                .foregroundStyle(Color(white: 0.6))
-                                .font(.system(size: 18))
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
+                                .font(AppTheme.Typography.headline)
                         }
                         Spacer()
                     }
                     Spacer()
                 } else {
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 24, pinnedViews: []) {
+                        LazyVStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge, pinnedViews: []) {
                             ForEach(viewModel.gamesByDate, id: \.date) { section in
-                                VStack(alignment: .leading, spacing: 16) {
+                                VStack(alignment: .leading, spacing: AppTheme.Layout.itemSpacing) {
                                     // Date header
                                     Text(section.date)
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(Color(white: 0.5))
-                                        .padding(.horizontal, 24)
+                                        .font(AppTheme.Typography.bodyBold)
+                                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                                        .padding(.horizontal, AppTheme.Layout.extraLarge)
                                     
                                     // Games for this date
                                     ForEach(section.games) { game in
                                         GameCardView(game: game)
-                                            .padding(.horizontal, 24)
+                                            .padding(.horizontal, AppTheme.Layout.extraLarge)
                                     }
                                 }
                             }
                         }
-                        .padding(.vertical, 16)
+                        .padding(.vertical, AppTheme.Layout.itemSpacing)
                     }
                 }
             }

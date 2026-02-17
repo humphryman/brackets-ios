@@ -13,70 +13,55 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black
+                AppTheme.Colors.background
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
                         // Header
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                             Text("Categorías")
                                 .font(.system(size: 42, weight: .bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppTheme.Colors.primaryText)
                             
                             Text("Selecciona una categoría")
-                                .font(.system(size: 18))
-                                .foregroundStyle(.gray)
+                                .font(AppTheme.Typography.headline)
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
                         }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
+                        .padding(.horizontal, AppTheme.Layout.extraLarge)
+                        .padding(.top, AppTheme.Layout.large)
                         
                         // Gender Selector
                         GenderSelectorView(selectedGender: $viewModel.selectedGender)
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, AppTheme.Layout.extraLarge)
                         
                         // Tournaments List
                         if viewModel.isLoading {
                             ProgressView()
                                 .progressViewStyle(.circular)
-                                .tint(Color(red: 0.8, green: 1.0, blue: 0.4))
+                                .tint(AppTheme.Colors.loading)
                                 .scaleEffect(1.5)
                                 .frame(maxWidth: .infinity)
                                 .padding(.top, 60)
                         } else if let errorMessage = viewModel.errorMessage {
-                            VStack(spacing: 16) {
-                                Image(systemName: "exclamationmark.triangle")
-                                    .font(.system(size: 48))
-                                    .foregroundStyle(.orange)
-                                
-                                Text(errorMessage)
-                                    .font(.body)
-                                    .foregroundStyle(.white)
-                                    .multilineTextAlignment(.center)
-                                
-                                Button("Reintentar") {
-                                    Task {
-                                        await viewModel.loadTournaments()
-                                    }
+                            AppTheme.ErrorView(message: errorMessage) {
+                                Task {
+                                    await viewModel.loadTournaments()
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .tint(Color(red: 0.8, green: 1.0, blue: 0.4))
-                                .foregroundStyle(.black)
                             }
-                            .padding(.horizontal, 24)
                             .padding(.top, 60)
                         } else {
-                            VStack(spacing: 16) {
+                            VStack(spacing: AppTheme.Layout.itemSpacing) {
                                 ForEach(viewModel.filteredTournaments) { tournament in
                                     NavigationLink {
-                                        TournamentResultsView(tournament: tournament)
+                                        TournamentContainerView(tournament: tournament)
                                     } label: {
                                         TournamentCardView(tournament: tournament)
                                     }
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.horizontal, 24)
+                            .padding(.horizontal, AppTheme.Layout.extraLarge)
                         }
                         
                         Spacer(minLength: 40)
@@ -98,19 +83,19 @@ struct GenderSelectorView: View {
         HStack(spacing: 0) {
             ForEach(Gender.allCases, id: \.self) { gender in
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    withAnimation(AppTheme.Animation.spring) {
                         selectedGender = gender
                     }
                 } label: {
                     Text(gender.displayName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(selectedGender == gender ? .black : .gray)
+                        .font(AppTheme.Typography.headline)
+                        .foregroundStyle(selectedGender == gender ? AppTheme.Colors.accentText : AppTheme.Colors.secondaryText)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background {
                             if selectedGender == gender {
                                 RoundedRectangle(cornerRadius: 28)
-                                    .fill(Color(red: 0.8, green: 1.0, blue: 0.4))
+                                    .fill(AppTheme.Colors.accent)
                                     .matchedGeometryEffect(id: "selector", in: animation)
                             }
                         }

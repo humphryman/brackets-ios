@@ -14,6 +14,22 @@ class GamesViewModel {
     var isLoading = false
     var errorMessage: String?
     
+    // Date formatter for parsing the API date strings
+    private let inputDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd" // Adjust this to match your API format
+        formatter.locale = Locale(identifier: "es_MX")
+        return formatter
+    }()
+    
+    // Date formatter for display
+    private let displayDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMMM yyyy" // Day Month Year (e.g., "14 Febrero 2026")
+        formatter.locale = Locale(identifier: "es_MX")
+        return formatter
+    }()
+    
     func loadGames(for tournamentId: Int) async {
         isLoading = true
         errorMessage = nil
@@ -31,9 +47,10 @@ class GamesViewModel {
                 }
             }
             
-            // Store the grouped games directly from API
+            // Store the grouped games with formatted dates
             gamesByDate = gamesResponse.games.map { dateGroup in
-                (date: dateGroup.date, games: dateGroup.games)
+                let formattedDate = formatDate(dateGroup.date)
+                return (date: formattedDate, games: dateGroup.games)
             }
             
             let totalGames = gamesByDate.reduce(0) { $0 + $1.games.count }
@@ -68,5 +85,15 @@ class GamesViewModel {
         }
         
         isLoading = false
+    }
+    
+    // Helper function to format dates from API format to display format
+    private func formatDate(_ dateString: String) -> String {
+        // Try to parse the date string
+        if let date = inputDateFormatter.date(from: dateString) {
+            return displayDateFormatter.string(from: date)
+        }
+        // If parsing fails, return the original string
+        return dateString
     }
 }
