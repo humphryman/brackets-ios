@@ -87,8 +87,13 @@ struct GamesListView: View {
                                         // Games for this date
                                         ForEach(dateGroup.games) { game in
                                             if game.isFinished {
-                                                GameCard(game: game)
-                                                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                                NavigationLink {
+                                                    GameResultView(game: game, tournamentId: tournament.id)
+                                                } label: {
+                                                    GameCard(game: game)
+                                                        .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                                }
+                                                .buttonStyle(.plain)
                                             } else {
                                                 NavigationLink {
                                                     UpcomingGameView(game: game, tournamentId: tournament.id)
