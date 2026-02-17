@@ -56,19 +56,19 @@ struct TournamentContainerView: View {
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                             }
                     }
-                    
+
                     Text(tournament.name)
                         .font(AppTheme.Typography.largeTitle)
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                    
+
                     Spacer()
                 }
                 .padding(.horizontal, AppTheme.Layout.extraLarge)
                 .padding(.top, AppTheme.Layout.large)
                 .padding(.bottom, AppTheme.Layout.itemSpacing)
-                
+
                 // Content based on selected tab
                 ZStack {
                     if selectedTab == .standings {
@@ -79,13 +79,16 @@ struct TournamentContainerView: View {
                         StatsLeadersView(tournament: tournament)
                     }
                 }
-                
-                // Bottom Tab Bar - Matching the design from image
+            }
+
+            // Floating bottom tab bar
+            VStack {
+                Spacer()
                 CustomTabBar(selectedTab: $selectedTab, namespace: animation)
                     .padding(.horizontal, 40)
-                    .padding(.bottom, AppTheme.Layout.large)
-                    .padding(.top, AppTheme.Spacing.medium)
+                    .padding(.bottom, 10)
             }
+            .ignoresSafeArea(edges: .bottom)
         }
         .navigationBarHidden(true)
     }
@@ -127,7 +130,11 @@ struct CustomTabBar: View {
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 40)
-                .fill(Color(white: 0.15))
+                .fill(Color(white: 0.15).opacity(0.6))
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 40)
+                .fill(.ultraThinMaterial)
         )
     }
 }
