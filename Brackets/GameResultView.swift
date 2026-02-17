@@ -378,30 +378,36 @@ struct GameResultView: View {
                 } else {
                     // #1 Leader - hero layout
                     if let top = leaders.first {
-                        HStack(alignment: .top, spacing: 0) {
-                            // Left: name + stat
-                            VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .center, spacing: 12) {
+                            // Player image
+                            playerHeroImage(player: top.player, size: 120)
+
+                            // Name
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text(top.player.playerFirstName)
                                     .font(.system(size: 16))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                                 Text(top.player.playerLastName)
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
-
-                                Text("\(top.value)")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(AppTheme.Colors.accentText)
-                                    .frame(width: 48, height: 48)
-                                    .background(
-                                        Circle()
-                                            .fill(AppTheme.Colors.accent)
-                                    )
-                                    .padding(.top, 4)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
 
-                            // Right: player image
-                            playerHeroImage(player: top.player, size: 120)
+                            Spacer(minLength: 0)
+
+                            // Stat circle with value + short name
+                            VStack(spacing: 2) {
+                                Text("\(top.value)")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundStyle(AppTheme.Colors.accentText)
+                                Text(statLabel)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(AppTheme.Colors.accentText)
+                            }
+                            .frame(width: 52, height: 52)
+                            .background(
+                                Circle()
+                                    .fill(AppTheme.Colors.accent)
+                            )
                         }
                     }
 
