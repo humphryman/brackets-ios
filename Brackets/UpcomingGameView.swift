@@ -343,42 +343,47 @@ struct UpcomingGameView: View {
             let selectedTeam = teams[safeIndex]
             let players = selectedTeam.playerStats.filter { !$0.isTeamEntry }
 
-            VStack(spacing: AppTheme.Spacing.medium) {
+            VStack(spacing: AppTheme.Spacing.large) {
                 Text("Roster")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Team tab selector
-                HStack(spacing: AppTheme.Spacing.small) {
+                // Segmented team tab selector
+                HStack(spacing: 0) {
                     ForEach(Array(teams.enumerated()), id: \.element.id) { index, team in
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 selectedTeamIndex = index
                             }
                         } label: {
-                            Text(team.teamName)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(selectedTeamIndex == index ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
+                            Text(team.teamName.uppercased())
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(selectedTeamIndex == index ? AppTheme.Colors.accentText : Color(white: 0.5))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
                                 .background(
                                     Capsule()
-                                        .fill(selectedTeamIndex == index ? AppTheme.Colors.accent : Color(white: 0.2))
+                                        .fill(selectedTeamIndex == index ? AppTheme.Colors.accent : Color.clear)
                                 )
                         }
                         .buttonStyle(.plain)
                     }
-                    Spacer()
                 }
+                .padding(3)
+                .background(
+                    Capsule()
+                        .fill(Color(white: 0.18))
+                )
 
                 // Player grid
                 let columns = [
-                    GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
-                    GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
-                    GridItem(.flexible(), spacing: AppTheme.Spacing.medium)
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
                 ]
 
-                LazyVGrid(columns: columns, spacing: AppTheme.Spacing.medium) {
+                LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(players) { player in
                         playerCard(player: player)
                     }
@@ -395,8 +400,8 @@ struct UpcomingGameView: View {
 
     @ViewBuilder
     private func playerCard(player: PlayerGameStat) -> some View {
-        VStack(spacing: AppTheme.Spacing.small) {
-            // Player photo or initials
+        VStack(alignment: .leading, spacing: 0) {
+            // Player photo (square, rounded corners)
             if let imageURL = player.fullImageURL, let url = URL(string: imageURL) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -404,36 +409,69 @@ struct UpcomingGameView: View {
                         image
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 56, height: 56)
-                            .clipShape(Circle())
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fill)
+                            .clipped()
                     default:
-                        playerInitialsCircle(name: player.playerName, size: 56)
+                        playerInitialsRect(name: player.playerName)
                     }
                 }
             } else {
-                playerInitialsCircle(name: player.playerName, size: 56)
+                playerInitialsRect(name: player.playerName)
             }
 
-            // Name
-            Text(player.playerShortName.isEmpty ? player.playerName : player.playerShortName)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.primaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            // Name + Number row
+            HStack(alignment: .top, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(player.playerFirstName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .lineLimit(1)
+                    Text(player.playerLastName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .lineLimit(1)
+                    // Position placeholder
+                    Text(positionLabel(for: player))
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .lineLimit(1)
+                }
 
-            // Jersey number
-            if let number = player.playerNumber, number > 0 {
-                Text("#\(number)")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                Spacer(minLength: 0)
+
+                if let number = player.playerNumber, number > 0 {
+                    Text("\(number)")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                }
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, AppTheme.Spacing.medium)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-                .fill(Color(white: 0.15))
-        )
+        .background(Color(white: 0.15))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
+    }
+
+    @ViewBuilder
+    private func playerInitialsRect(name: String) -> some View {
+        Rectangle()
+            .fill(Color(white: 0.22))
+            .aspectRatio(1, contentMode: .fill)
+            .overlay(
+                Text(getInitials(name))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color(white: 0.45))
+            )
+    }
+
+    private func positionLabel(for player: PlayerGameStat) -> String {
+        // Use dynamic stats keys presence as a rough proxy; real position data
+        // would come from the API. For now, show gender or a dash.
+        if let gender = player.playerGender {
+            return gender == "male" ? "Player" : "Player"
+        }
+        return ""
     }
 
     // MARK: - Helpers
