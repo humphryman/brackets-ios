@@ -148,33 +148,11 @@ struct UpcomingGameView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            // Recent form dots (mocked)
-            HStack(spacing: AppTheme.Spacing.large) {
-                formDotsView(teamId: sets.teamAId)
+            // Recent form + record per team
+            HStack(spacing: 0) {
+                teamFormColumn(teamId: sets.teamAId)
                     .frame(maxWidth: .infinity)
-                Spacer().frame(width: 50)
-                formDotsView(teamId: sets.teamBId)
-                    .frame(maxWidth: .infinity)
-            }
-
-            // Win/Loss record (mocked)
-            HStack(spacing: AppTheme.Spacing.large) {
-                let recordA = mockedRecord(teamId: sets.teamAId)
-                let recordB = mockedRecord(teamId: sets.teamBId)
-
-                Text("\(recordA.wins)W - \(recordA.losses)L")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                    .frame(maxWidth: .infinity)
-
-                Text("WIN / LOSS")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color(white: 0.4))
-                    .frame(width: 80)
-
-                Text("\(recordB.wins)W - \(recordB.losses)L")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                teamFormColumn(teamId: sets.teamBId)
                     .frame(maxWidth: .infinity)
             }
 
@@ -546,15 +524,38 @@ struct UpcomingGameView: View {
 
     // MARK: - Mocked Data Helpers
 
-    /// Deterministic form dots based on team ID
-    private func formDotsView(teamId: Int) -> some View {
+    /// Combined form dots + win/loss record column for one team
+    @ViewBuilder
+    private func teamFormColumn(teamId: Int) -> some View {
         let pattern = mockedFormPattern(teamId: teamId)
-        return HStack(spacing: 4) {
-            ForEach(Array(pattern.enumerated()), id: \.offset) { _, isWin in
-                Circle()
-                    .fill(isWin ? AppTheme.Colors.accent : Color(red: 0.8, green: 0.2, blue: 0.2))
-                    .frame(width: 10, height: 10)
+        let wins = pattern.filter { $0 }.count
+        let total = pattern.count
+
+        VStack(spacing: 6) {
+            // W/L circles with letter inside
+            HStack(spacing: 5) {
+                ForEach(Array(pattern.enumerated()), id: \.offset) { _, isWin in
+                    ZStack {
+                        Circle()
+                            .fill(isWin ? AppTheme.Colors.accent : Color(red: 0.8, green: 0.2, blue: 0.2))
+                            .frame(width: 22, height: 22)
+
+                        Text(isWin ? "W" : "L")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(isWin ? AppTheme.Colors.accentText : .white)
+                    }
+                }
             }
+
+            // Record number
+            Text("\(wins)/\(total)")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+
+            // Label
+            Text("WIN / LOSS")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color(white: 0.4))
         }
     }
 
@@ -570,13 +571,6 @@ struct UpcomingGameView: View {
             [true, false, true, false, true]
         ]
         return patterns[seed]
-    }
-
-    /// Returns mocked W/L record based on team ID
-    private func mockedRecord(teamId: Int) -> (wins: Int, losses: Int) {
-        let wins = 3 + (teamId % 4)
-        let losses = 1 + (teamId % 3)
-        return (wins, losses)
     }
 
     /// Returns mocked stat values for a given stat key
