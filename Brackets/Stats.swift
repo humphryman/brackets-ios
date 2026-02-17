@@ -10,63 +10,62 @@ import Foundation
 // MARK: - Response Wrapper
 
 struct TopStatsResponse: Codable {
-    let stats: [StatCategoryData]
+    let topStats: [StatCategory]
 
     enum CodingKeys: String, CodingKey {
-        case stats = "top_stats"
+        case topStats = "top_stats"
     }
 }
 
 // MARK: - Models
 
-struct StatCategoryData: Codable, Identifiable {
-    var id: String { category }
-    let category: String
-    let displayName: String
-    let unit: String
-    let leaders: [PlayerStat]
+struct StatCategory: Codable, Identifiable {
+    var id: String { name }
+    let name: String
+    let stats: [PlayerStatEntry]
+}
+
+struct PlayerStatEntry: Codable, Identifiable {
+    var id: Int { playerSeasonId }
+    let statShortName: String
+    let statName: String
+    let score: Int
+    let teamName: String
+    let playerSeasonId: Int
+    let player: Player
 
     enum CodingKeys: String, CodingKey {
-        case category
-        case displayName = "display_name"
-        case unit
-        case leaders
+        case statShortName = "stat_short_name"
+        case statName = "stat_name"
+        case score
+        case teamName = "team_name"
+        case playerSeasonId = "player_season_id"
+        case player
     }
 }
 
-struct PlayerStat: Identifiable, Codable {
+struct Player: Codable, Identifiable {
     let id: Int
-    let playerName: String
-    let teamName: String
-    let value: Double
-    let teamLogo: String?
+    let firstName: String
+    let lastName: String
+    let dob: String?
+    let position: String?
+    let gender: String
+    let nickname: String
+    let picture: String?
 
     enum CodingKeys: String, CodingKey {
-        case id = "player_id"
-        case playerName = "player_name"
-        case teamName = "team_name"
-        case value
-        case teamLogo = "team_logo"
+        case id
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case dob
+        case position
+        case gender
+        case nickname
+        case picture
     }
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
-        playerName = try container.decode(String.self, forKey: .playerName)
-        teamName = try container.decode(String.self, forKey: .teamName)
-        teamLogo = try container.decodeIfPresent(String.self, forKey: .teamLogo)
-
-        // Handle value as either Double or String from the API
-        if let doubleValue = try? container.decode(Double.self, forKey: .value) {
-            value = doubleValue
-        } else if let stringValue = try? container.decode(String.self, forKey: .value),
-                  let parsed = Double(stringValue) {
-            value = parsed
-        } else {
-            throw DecodingError.keyNotFound(
-                CodingKeys.value,
-                DecodingError.Context(codingPath: container.codingPath, debugDescription: "Could not decode 'value' as Double or String")
-            )
-        }
+    var fullName: String {
+        "\(firstName) \(lastName)"
     }
 }

@@ -413,7 +413,7 @@ actor APIService {
         }
     }
 
-    func fetchTopStats(for tournamentId: Int) async throws -> [StatCategoryData] {
+    func fetchTopStats(for tournamentId: Int) async throws -> [StatCategory] {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/top_stats.json") else {
             throw APIError.invalidURL
         }
@@ -427,33 +427,22 @@ actor APIService {
                 throw APIError.invalidResponse
             }
 
-            // Print raw JSON — essential for diagnosing key mismatches
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("📦 Top Stats Raw JSON:")
                 print(jsonString)
-            }
-
-            // Print top-level keys to identify the exact wrapper key
-            if let topLevel = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("🔑 Top-level keys: \(topLevel.keys.sorted())")
-            } else if let topArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                print("🔑 Top level is an array with \(topArray.count) items")
-                if let first = topArray.first {
-                    print("🔑 First item keys: \(first.keys.sorted())")
-                }
             }
 
             let decoder = JSONDecoder()
 
             // Try wrapped: { "top_stats": [...] }
             if let wrapped = try? decoder.decode(TopStatsResponse.self, from: data) {
-                print("✅ Decoded as wrapped — \(wrapped.stats.count) categories")
-                return wrapped.stats
+                print("✅ Decoded top stats — \(wrapped.topStats.count) categories")
+                return wrapped.topStats
             }
 
             // Try direct array: [...]
-            if let direct = try? decoder.decode([StatCategoryData].self, from: data) {
-                print("✅ Decoded as direct array — \(direct.count) categories")
+            if let direct = try? decoder.decode([StatCategory].self, from: data) {
+                print("✅ Decoded top stats as direct array — \(direct.count) categories")
                 return direct
             }
 
