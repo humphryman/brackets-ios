@@ -86,8 +86,18 @@ struct GamesListView: View {
                                         
                                         // Games for this date
                                         ForEach(dateGroup.games) { game in
-                                            GameCard(game: game)
-                                                .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                            if game.isFinished {
+                                                GameCard(game: game)
+                                                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                            } else {
+                                                NavigationLink {
+                                                    UpcomingGameView(game: game, tournamentId: tournament.id)
+                                                } label: {
+                                                    GameCard(game: game)
+                                                        .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
                                         }
                                     }
                                 }
