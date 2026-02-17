@@ -124,15 +124,15 @@ struct UpcomingGameView: View {
 
                 // VS
                 VStack(spacing: 4) {
-                    Text("VS")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color(white: 0.5))
-
                     if let gameTime = detail.game.gameTime {
                         Text(formatTime(gameTime))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.accent)
                     }
+
+                    Text("VS")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color(white: 0.5))
                 }
 
                 // Team B
@@ -185,19 +185,13 @@ struct UpcomingGameView: View {
 
         VStack(spacing: 0) {
             // Title
-            VStack(spacing: 4) {
-                Text("Key Stats")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("Tournament averages per game")
-                    .font(.system(size: 12))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, AppTheme.Layout.cardPadding)
-            .padding(.top, AppTheme.Layout.cardPadding)
-            .padding(.bottom, AppTheme.Spacing.medium)
+            Text("Key Stats")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppTheme.Layout.cardPadding)
+                .padding(.top, AppTheme.Layout.cardPadding)
+                .padding(.bottom, AppTheme.Spacing.medium)
 
             // Team name headers
             HStack {
@@ -246,31 +240,33 @@ struct UpcomingGameView: View {
     }
 
     private let statBarHeight: CGFloat = 30
-    private let statBarNavyColor = Color(red: 0.12, green: 0.14, blue: 0.30)
+    private let statBarTeamAColor = Color(red: 0.12, green: 0.14, blue: 0.35)
+    private let statBarTeamBColor = AppTheme.Colors.accent
+    private let statBarLoserColor = Color(white: 0.22)
 
     @ViewBuilder
     private func statComparisonRow(label: String, leftValue: Int, rightValue: Int) -> some View {
         let maxVal = max(leftValue, rightValue, 1)
-        let leftIsHigher = leftValue >= rightValue
-        let rightIsHigher = rightValue >= leftValue
+        let leftWins = leftValue > rightValue
+        let rightWins = rightValue > leftValue
 
         HStack(spacing: 6) {
-            // Left bar (grows from left)
+            // Left bar (Team A)
             GeometryReader { geo in
                 let minBarWidth: CGFloat = 50
                 let fraction = CGFloat(leftValue) / CGFloat(maxVal)
                 let barWidth = max(minBarWidth, geo.size.width * fraction)
+                let barColor = leftWins ? statBarTeamAColor : statBarLoserColor
 
                 HStack {
-                    // Bar with value inside
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(leftIsHigher ? AppTheme.Colors.accent : statBarNavyColor)
+                            .fill(barColor)
                             .frame(width: barWidth, height: statBarHeight)
 
                         Text(String(format: "%.1f", Double(leftValue)))
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(leftIsHigher ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
                             .padding(.leading, 10)
                     }
                     Spacer(minLength: 0)
@@ -285,23 +281,23 @@ struct UpcomingGameView: View {
                 .frame(width: 44)
                 .multilineTextAlignment(.center)
 
-            // Right bar (grows from right)
+            // Right bar (Team B)
             GeometryReader { geo in
                 let minBarWidth: CGFloat = 50
                 let fraction = CGFloat(rightValue) / CGFloat(maxVal)
                 let barWidth = max(minBarWidth, geo.size.width * fraction)
+                let barColor = rightWins ? statBarTeamBColor : statBarLoserColor
 
                 HStack {
                     Spacer(minLength: 0)
-                    // Bar with value inside
                     ZStack(alignment: .trailing) {
                         Capsule()
-                            .fill(rightIsHigher ? AppTheme.Colors.accent : statBarNavyColor)
+                            .fill(barColor)
                             .frame(width: barWidth, height: statBarHeight)
 
                         Text(String(format: "%.1f", Double(rightValue)))
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(rightIsHigher ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
+                            .foregroundStyle(rightWins ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
                             .padding(.trailing, 10)
                     }
                 }
