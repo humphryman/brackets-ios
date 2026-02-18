@@ -5,10 +5,26 @@
 
 import SwiftUI
 
+enum TeamDetailTab: String, CaseIterable {
+    case games = "Games"
+    case players = "Players"
+    case stats = "Stats"
+
+    var icon: String {
+        switch self {
+        case .games: return "sportscourt"
+        case .players: return "person.3"
+        case .stats: return "chart.bar"
+        }
+    }
+}
+
 struct TeamDetailView: View {
     let standing: TeamStanding
     let tournamentId: Int
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedTab: TeamDetailTab = .games
+    @Namespace private var tabAnimation
 
     var body: some View {
         ZStack {
@@ -30,6 +46,7 @@ struct TeamDetailView: View {
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                             }
                     }
+                    .zIndex(1)
 
                     Text(standing.teamName)
                         .font(AppTheme.Typography.largeTitle)
@@ -42,17 +59,71 @@ struct TeamDetailView: View {
                 .padding(.horizontal, AppTheme.Layout.extraLarge)
                 .padding(.top, AppTheme.Layout.large)
                 .padding(.bottom, AppTheme.Layout.itemSpacing)
+                .zIndex(1)
 
-                ScrollView {
-                    VStack(spacing: AppTheme.Spacing.large) {
-                        teamHeroCard
-                    }
-                    .padding(.horizontal, AppTheme.Layout.screenPadding)
-                    .padding(.bottom, AppTheme.Layout.large)
+                VStack(spacing: AppTheme.Spacing.large) {
+                    teamHeroCard
+                    tabSelector
                 }
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+
+                selectedTabContent
+                    .padding(.top, AppTheme.Spacing.large)
+                    .frame(maxHeight: .infinity)
             }
         }
         .navigationBarHidden(true)
+    }
+
+    // MARK: - Tab Selector
+
+    private var tabSelector: some View {
+        HStack(spacing: 0) {
+            ForEach(TeamDetailTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedTab = tab
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(tab.rawValue)
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundStyle(selectedTab == tab ? AppTheme.Colors.accentText : Color(white: 0.5))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background {
+                        if selectedTab == tab {
+                            Capsule()
+                                .fill(AppTheme.Colors.accent)
+                                .matchedGeometryEffect(id: "teamTab", in: tabAnimation)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(
+            Capsule()
+                .fill(Color(white: 0.18))
+        )
+    }
+
+    // MARK: - Tab Content
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        switch selectedTab {
+        case .games:
+            TeamGamesTabView()
+        case .players:
+            TeamPlayersTabView()
+        case .stats:
+            TeamStatsTabView()
+        }
     }
 
     // MARK: - Team Hero Card
@@ -146,5 +217,64 @@ struct TeamDetailView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(Color(white: 0.3))
             )
+    }
+}
+
+// MARK: - Tab Views
+
+struct TeamGamesTabView: View {
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.large) {
+            Spacer()
+            Image(systemName: "sportscourt")
+                .font(.system(size: 40))
+                .foregroundStyle(Color(white: 0.3))
+            Text("Team Games")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+            Text("Coming soon")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(white: 0.35))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct TeamPlayersTabView: View {
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.large) {
+            Spacer()
+            Image(systemName: "person.3")
+                .font(.system(size: 40))
+                .foregroundStyle(Color(white: 0.3))
+            Text("Players")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+            Text("Coming soon")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(white: 0.35))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+struct TeamStatsTabView: View {
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.large) {
+            Spacer()
+            Image(systemName: "chart.bar")
+                .font(.system(size: 40))
+                .foregroundStyle(Color(white: 0.3))
+            Text("Team Stats")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+            Text("Coming soon")
+                .font(.system(size: 13))
+                .foregroundStyle(Color(white: 0.35))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
