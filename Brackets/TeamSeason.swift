@@ -17,11 +17,46 @@ struct TeamSeasonDetail: Codable {
     let games: [Game]
     let playerSeasons: [PlayerSeason]
     let upcomingGame: Game?
+    let statLeaders: [String: [StatLeaderEntry]]
 
     enum CodingKeys: String, CodingKey {
         case games
         case playerSeasons = "player_seasons"
         case upcomingGame = "upcoming_game"
+        case statLeaders = "stat_leaders"
+    }
+
+    var statCategories: [String] {
+        Array(statLeaders.keys).sorted()
+    }
+}
+
+struct StatLeaderEntry: Codable, Identifiable {
+    let playerSeasonId: Int
+    let firstName: String
+    let lastName: String
+    let picture: String?
+    let total: Int
+
+    var id: Int { playerSeasonId }
+
+    var fullImageURL: String? {
+        guard let picture = picture else { return nil }
+
+        if picture.lowercased().hasPrefix("http://") || picture.lowercased().hasPrefix("https://") {
+            return picture
+        }
+
+        let imagePath = picture.hasPrefix("/") ? String(picture.dropFirst()) : picture
+        return "\(APIConfig.baseURL)/\(imagePath)"
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case playerSeasonId = "player_season_id"
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case picture
+        case total
     }
 }
 
