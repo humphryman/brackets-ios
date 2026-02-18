@@ -496,6 +496,88 @@ actor APIService {
         }
     }
 
+    func fetchTeamSeason(teamSeasonId: Int) async throws -> TeamSeasonDetail {
+        guard let url = URL(string: "\(APIConfig.apiURL)/team_seasons/\(teamSeasonId).json") else {
+            throw APIError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                throw APIError.invalidResponse
+            }
+
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📦 Team Season JSON Response:")
+                print(jsonString)
+            }
+
+            let decoder = JSONDecoder()
+
+            decoder.dateDecodingStrategy = .custom { decoder in
+                let container = try decoder.singleValueContainer()
+                let dateString = try container.decode(String.self)
+
+                let iso8601Formatter = ISO8601DateFormatter()
+                if let date = iso8601Formatter.date(from: dateString) {
+                    return date
+                }
+
+                let formatters = [
+                    "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+                    "yyyy-MM-dd'T'HH:mm:ssZ",
+                    "yyyy-MM-dd HH:mm:ss",
+                    "yyyy-MM-dd"
+                ]
+
+                for format in formatters {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = format
+                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                    if let date = formatter.date(from: dateString) {
+                        return date
+                    }
+                }
+
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Cannot decode date string: \(dateString)"
+                )
+            }
+
+            do {
+                let teamSeasonResponse = try decoder.decode(TeamSeasonResponse.self, from: data)
+                print("✅ Decoded team season \(teamSeasonId)")
+                return teamSeasonResponse.teamSeason
+            } catch let decodingError as DecodingError {
+                print("❌ Team Season Decoding Error:")
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("  Key '\(key.stringValue)' not found")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .typeMismatch(let type, let context):
+                    print("  Type mismatch for \(type): \(context.debugDescription)")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .valueNotFound(let type, let context):
+                    print("  Value not found for \(type)")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .dataCorrupted(let context):
+                    print("  Data corrupted: \(context.debugDescription)")
+                @unknown default:
+                    print("  Unknown decoding error")
+                }
+                throw APIError.decodingError(decodingError)
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            print("❌ Team Season Network Error: \(error)")
+            throw APIError.networkError(error)
+        }
+    }
+
     func fetchTopStats(for tournamentId: Int) async throws -> [StatCategory] {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/top_stats.json") else {
             throw APIError.invalidURL

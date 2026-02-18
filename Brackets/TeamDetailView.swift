@@ -25,6 +25,9 @@ struct TeamDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: TeamDetailTab = .games
     @Namespace private var tabAnimation
+    @State private var teamSeason: TeamSeasonDetail?
+    @State private var isLoading = false
+    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
@@ -73,6 +76,22 @@ struct TeamDetailView: View {
             }
         }
         .navigationBarHidden(true)
+        .task {
+            await loadTeamSeason()
+        }
+    }
+
+    // MARK: - Data Loading
+
+    private func loadTeamSeason() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            teamSeason = try await APIService.shared.fetchTeamSeason(teamSeasonId: standing.id)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
     }
 
     // MARK: - Tab Selector
@@ -116,13 +135,23 @@ struct TeamDetailView: View {
 
     @ViewBuilder
     private var selectedTabContent: some View {
-        switch selectedTab {
-        case .games:
-            TeamGamesTabView()
-        case .players:
-            TeamPlayersTabView()
-        case .stats:
-            TeamStatsTabView()
+        if isLoading {
+            AppTheme.LoadingView(message: "Loading team data...")
+        } else if let errorMessage = errorMessage {
+            AppTheme.ErrorView(message: errorMessage) {
+                Task {
+                    await loadTeamSeason()
+                }
+            }
+        } else {
+            switch selectedTab {
+            case .games:
+                TeamGamesTabView(games: teamSeason?.games ?? [], tournamentId: tournamentId)
+            case .players:
+                TeamPlayersTabView(players: teamSeason?.playerSeasons ?? [])
+            case .stats:
+                TeamStatsTabView()
+            }
         }
     }
 
@@ -220,45 +249,140 @@ struct TeamDetailView: View {
     }
 }
 
-// MARK: - Tab Views
+// MARK: - Games Tab
 
 struct TeamGamesTabView: View {
+    let games: [Game]
+    let tournamentId: Int
+
     var body: some View {
-        VStack(spacing: AppTheme.Spacing.large) {
-            Spacer()
-            Image(systemName: "sportscourt")
-                .font(.system(size: 40))
-                .foregroundStyle(Color(white: 0.3))
-            Text("Team Games")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.secondaryText)
-            Text("Coming soon")
-                .font(.system(size: 13))
-                .foregroundStyle(Color(white: 0.35))
-            Spacer()
+        if games.isEmpty {
+            AppTheme.EmptyStateView(
+                icon: "sportscourt",
+                message: "No games scheduled"
+            )
+        } else {
+            ScrollView {
+                VStack(spacing: AppTheme.Spacing.medium) {
+                    ForEach(games) { game in
+                        if game.isFinished {
+                            NavigationLink {
+                                GameResultView(game: game, tournamentId: tournamentId)
+                            } label: {
+                                GameCard(game: game)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            NavigationLink {
+                                UpcomingGameView(game: game, tournamentId: tournamentId)
+                            } label: {
+                                GameCard(game: game)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+                .padding(.bottom, AppTheme.Layout.large)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
+// MARK: - Players Tab
+
 struct TeamPlayersTabView: View {
+    let players: [PlayerSeason]
+
+    private let columns = [
+        GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
+        GridItem(.flexible(), spacing: AppTheme.Spacing.medium)
+    ]
+
     var body: some View {
-        VStack(spacing: AppTheme.Spacing.large) {
-            Spacer()
-            Image(systemName: "person.3")
-                .font(.system(size: 40))
-                .foregroundStyle(Color(white: 0.3))
-            Text("Players")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.secondaryText)
-            Text("Coming soon")
-                .font(.system(size: 13))
-                .foregroundStyle(Color(white: 0.35))
-            Spacer()
+        if players.isEmpty {
+            AppTheme.EmptyStateView(
+                icon: "person.3",
+                message: "No players available"
+            )
+        } else {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: AppTheme.Spacing.medium) {
+                    ForEach(players) { player in
+                        playerCard(player: player)
+                    }
+                }
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+                .padding(.bottom, AppTheme.Layout.large)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func playerCard(player: PlayerSeason) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Player photo (square, rounded corners)
+            if let imageURL = player.fullImageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fill)
+                            .clipped()
+                    default:
+                        playerInitialsRect(firstName: player.firstName, lastName: player.lastName)
+                    }
+                }
+            } else {
+                playerInitialsRect(firstName: player.firstName, lastName: player.lastName)
+            }
+
+            // Name + Number row
+            HStack(alignment: .top, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(player.firstName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .lineLimit(1)
+                    Text(player.lastName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                if let number = player.number, number > 0 {
+                    Text("\(number)")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                }
+            }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+        }
+        .background(Color(white: 0.15))
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
+    }
+
+    @ViewBuilder
+    private func playerInitialsRect(firstName: String, lastName: String) -> some View {
+        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        Rectangle()
+            .fill(Color(white: 0.22))
+            .aspectRatio(1, contentMode: .fill)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color(white: 0.45))
+            )
     }
 }
+
+// MARK: - Stats Tab (Placeholder)
 
 struct TeamStatsTabView: View {
     var body: some View {
