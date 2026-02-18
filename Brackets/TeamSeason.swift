@@ -27,7 +27,7 @@ struct TeamSeasonDetail: Codable {
     }
 
     var statCategories: [String] {
-        Array(statLeaders.keys).sorted()
+        statLeaders.keys.filter { !(statLeaders[$0]?.isEmpty ?? true) }.sorted()
     }
 }
 

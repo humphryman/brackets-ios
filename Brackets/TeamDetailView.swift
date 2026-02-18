@@ -511,8 +511,8 @@ struct TeamStatsTabView: View {
                     }
                 }
 
-                // #2-4 runners up
-                let runnersUp = Array(leaders.dropFirst().prefix(3))
+                // #2-5 runners up
+                let runnersUp = Array(leaders.dropFirst().prefix(4))
                 ForEach(runnersUp) { entry in
                     HStack(spacing: 12) {
                         leaderAvatarCircle(entry: entry, size: 44)
