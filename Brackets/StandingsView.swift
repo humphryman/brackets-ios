@@ -47,7 +47,12 @@ struct StandingsView: View {
                         // Standings Cards
                         VStack(spacing: AppTheme.Layout.itemSpacing) {
                             ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
-                                StandingCard(position: index + 1, standing: standing)
+                                NavigationLink {
+                                    TeamDetailView(standing: standing, tournamentId: tournament.id)
+                                } label: {
+                                    StandingCard(position: index + 1, standing: standing)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, AppTheme.Layout.screenPadding)
