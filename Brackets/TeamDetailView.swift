@@ -150,7 +150,7 @@ struct TeamDetailView: View {
             case .players:
                 TeamPlayersTabView(players: teamSeason?.playerSeasons ?? [])
             case .stats:
-                TeamStatsTabView(statLeaders: teamSeason?.statLeaders ?? [:], categories: teamSeason?.statCategories ?? [])
+                TeamStatsTabView(statLeaders: teamSeason?.nonEmptyStatLeaders ?? [])
             }
         }
     }
@@ -386,28 +386,22 @@ struct TeamPlayersTabView: View {
 // MARK: - Stats Tab
 
 struct TeamStatsTabView: View {
-    let statLeaders: [String: [StatLeaderEntry]]
-    let categories: [String]
+    let statLeaders: [StatLeaderCategory]
     @State private var selectedStatIndex: Int = 0
 
     var body: some View {
-        if categories.isEmpty {
+        if statLeaders.isEmpty {
             AppTheme.EmptyStateView(
                 icon: "chart.bar",
                 message: "No stats available"
             )
         } else {
-            let safeStatIndex = min(selectedStatIndex, categories.count - 1)
-            let currentCategory = categories[safeStatIndex]
-            let leaders = statLeaders[currentCategory] ?? []
+            let safeIndex = min(selectedStatIndex, statLeaders.count - 1)
+            let current = statLeaders[safeIndex]
 
             ScrollView {
                 VStack(spacing: AppTheme.Spacing.large) {
-                    statLeadersCard(
-                        category: currentCategory,
-                        leaders: leaders,
-                        safeStatIndex: safeStatIndex
-                    )
+                    statLeadersCard(category: current, safeStatIndex: safeIndex)
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.bottom, AppTheme.Layout.large)
@@ -418,7 +412,7 @@ struct TeamStatsTabView: View {
     // MARK: - Stat Leaders Card
 
     @ViewBuilder
-    private func statLeadersCard(category: String, leaders: [StatLeaderEntry], safeStatIndex: Int) -> some View {
+    private func statLeadersCard(category: StatLeaderCategory, safeStatIndex: Int) -> some View {
         VStack(spacing: AppTheme.Spacing.large) {
             // Title
             Text("Team Stats Leaders")
@@ -430,7 +424,7 @@ struct TeamStatsTabView: View {
             HStack {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedStatIndex = (selectedStatIndex - 1 + categories.count) % categories.count
+                        selectedStatIndex = (selectedStatIndex - 1 + statLeaders.count) % statLeaders.count
                     }
                 } label: {
                     Image(systemName: "chevron.left")
@@ -443,7 +437,7 @@ struct TeamStatsTabView: View {
                 Spacer()
 
                 VStack(spacing: 2) {
-                    Text(category)
+                    Text(category.longName)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.accent)
                     Text("TEAM LEADERS")
@@ -455,7 +449,7 @@ struct TeamStatsTabView: View {
 
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedStatIndex = (selectedStatIndex + 1) % categories.count
+                        selectedStatIndex = (selectedStatIndex + 1) % statLeaders.count
                     }
                 } label: {
                     Image(systemName: "chevron.right")
@@ -469,86 +463,77 @@ struct TeamStatsTabView: View {
 
             Divider().background(Color(white: 0.2))
 
-            // Leaders content or empty state
-            if leaders.isEmpty {
-                Text("No info for this stat.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppTheme.Spacing.huge)
-            } else {
-                // #1 Leader - hero layout
-                if let top = leaders.first {
-                    HStack(alignment: .center, spacing: 12) {
-                        leaderHeroImage(entry: top, size: 120)
+            // #1 Leader - hero layout
+            if let top = category.players.first {
+                HStack(alignment: .center, spacing: 12) {
+                    leaderHeroImage(entry: top, size: 120)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(top.firstName)
-                                .font(.system(size: 16))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                            Text(top.lastName)
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
-
-                        Spacer(minLength: 0)
-
-                        VStack(spacing: 2) {
-                            Text("\(top.total)")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.accentText)
-                            Text(category)
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.accentText)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                        }
-                        .frame(width: 52, height: 52)
-                        .background(
-                            Circle()
-                                .fill(AppTheme.Colors.accent)
-                        )
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(top.firstName)
+                            .font(.system(size: 16))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                        Text(top.lastName)
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
                     }
+
+                    Spacer(minLength: 0)
+
+                    VStack(spacing: 2) {
+                        Text("\(top.total)")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.accentText)
+                        Text(category.shortName)
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.accentText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .frame(width: 52, height: 52)
+                    .background(
+                        Circle()
+                            .fill(AppTheme.Colors.accent)
+                    )
                 }
+            }
 
-                // #2-5 runners up
-                let runnersUp = Array(leaders.dropFirst().prefix(4))
-                ForEach(runnersUp) { entry in
-                    HStack(spacing: 12) {
-                        leaderAvatarCircle(entry: entry, size: 44)
+            // #2-5 runners up
+            let runnersUp = Array(category.players.dropFirst().prefix(4))
+            ForEach(runnersUp) { entry in
+                HStack(spacing: 12) {
+                    leaderAvatarCircle(entry: entry, size: 44)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.firstName)
-                                .font(.system(size: 12))
-                                .foregroundStyle(AppTheme.Colors.secondaryText)
-                            Text(entry.lastName)
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.firstName)
+                            .font(.system(size: 12))
+                            .foregroundStyle(AppTheme.Colors.secondaryText)
+                        Text(entry.lastName)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                    }
 
-                        Spacer()
+                    Spacer()
 
-                        HStack(spacing: 6) {
-                            Text(category)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.4))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(white: 0.18))
-                                )
-                            Text("\(entry.total)")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.accent)
-                        }
+                    HStack(spacing: 6) {
+                        Text(category.shortName)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.4))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(Color(white: 0.18))
+                            )
+                        Text("\(entry.total)")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.accent)
                     }
                 }
             }
 
             // Page indicator dots
             HStack(spacing: 6) {
-                ForEach(Array(categories.enumerated()), id: \.element) { index, _ in
+                ForEach(Array(statLeaders.enumerated()), id: \.element.id) { index, _ in
                     Capsule()
                         .fill(index == safeStatIndex ? AppTheme.Colors.accent : Color(white: 0.25))
                         .frame(width: index == safeStatIndex ? 20 : 8, height: 6)
@@ -568,11 +553,11 @@ struct TeamStatsTabView: View {
                     let horizontal = value.translation.width
                     if horizontal < -30 {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedStatIndex = (selectedStatIndex + 1) % categories.count
+                            selectedStatIndex = (selectedStatIndex + 1) % statLeaders.count
                         }
                     } else if horizontal > 30 {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedStatIndex = (selectedStatIndex - 1 + categories.count) % categories.count
+                            selectedStatIndex = (selectedStatIndex - 1 + statLeaders.count) % statLeaders.count
                         }
                     }
                 }

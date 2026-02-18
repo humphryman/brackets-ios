@@ -17,7 +17,7 @@ struct TeamSeasonDetail: Codable {
     let games: [Game]
     let playerSeasons: [PlayerSeason]
     let upcomingGame: Game?
-    let statLeaders: [String: [StatLeaderEntry]]
+    let statLeaders: [StatLeaderCategory]
 
     enum CodingKeys: String, CodingKey {
         case games
@@ -26,8 +26,22 @@ struct TeamSeasonDetail: Codable {
         case statLeaders = "stat_leaders"
     }
 
-    var statCategories: [String] {
-        statLeaders.keys.filter { !(statLeaders[$0]?.isEmpty ?? true) }.sorted()
+    var nonEmptyStatLeaders: [StatLeaderCategory] {
+        statLeaders.filter { !$0.players.isEmpty }
+    }
+}
+
+struct StatLeaderCategory: Codable, Identifiable {
+    let longName: String
+    let shortName: String
+    let players: [StatLeaderEntry]
+
+    var id: String { shortName }
+
+    enum CodingKeys: String, CodingKey {
+        case longName = "long_name"
+        case shortName = "short_name"
+        case players
     }
 }
 
