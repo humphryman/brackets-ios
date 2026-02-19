@@ -48,7 +48,7 @@ struct StandingsView: View {
                         VStack(spacing: AppTheme.Layout.itemSpacing) {
                             ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
                                 NavigationLink {
-                                    TeamDetailView(standing: standing, tournamentId: tournament.id)
+                                    TeamDetailView(standing: standing, tournamentId: tournament.id, rank: index + 1)
                                 } label: {
                                     StandingCard(position: index + 1, standing: standing)
                                 }

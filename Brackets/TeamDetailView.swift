@@ -22,6 +22,7 @@ enum TeamDetailTab: String, CaseIterable {
 struct TeamDetailView: View {
     let standing: TeamStanding
     let tournamentId: Int
+    var rank: Int = 0
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: TeamDetailTab = .games
     @Namespace private var tabAnimation
@@ -158,94 +159,145 @@ struct TeamDetailView: View {
     // MARK: - Team Hero Card
 
     private var teamHeroCard: some View {
-        ZStack(alignment: .bottom) {
-            // Background team image
-            if let imageURL = standing.fullImageURL, let url = URL(string: imageURL) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 200)
-                            .clipped()
-                    default:
-                        placeholderBackground
-                    }
-                }
-            } else {
-                placeholderBackground
-            }
+        VStack(spacing: 16) {
+            // Top row: Logo + Name + Place badge
+            HStack(spacing: 12) {
+                // Team logo circle
+                teamLogoCircle
 
-            // Gradient overlay for readability
-            LinearGradient(
-                colors: [.clear, Color.black.opacity(0.7)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 120)
+                Text(standing.teamName)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
-            // Team name overlay (top-left)
-            VStack {
-                HStack {
-                    Text(standing.teamName)
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accent)
-                        .shadow(color: .black.opacity(0.6), radius: 4, x: 0, y: 2)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
                 Spacer()
+
+                // Place badge
+                if rank > 0 {
+                    VStack(spacing: 1) {
+                        Text("#\(rank)")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.accent)
+                        Text("PLACE")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.5))
+                    }
+                    .frame(width: 50, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
+                    )
+                }
             }
 
-            // Bottom bar overlay with wins / losses
-            HStack(spacing: 24) {
-                VStack(spacing: 4) {
+            Divider().background(Color(white: 0.15))
+
+            // Wins / Losses boxes
+            HStack(spacing: 12) {
+                // Wins box
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("WINS")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.5))
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.accent)
+                    }
                     Text("\(standing.wins)")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.accent)
-                    Text("Wins")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color(white: 0.6))
                 }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [AppTheme.Colors.accent.opacity(0.06), AppTheme.Colors.accent.opacity(0.02)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .stroke(AppTheme.Colors.accent.opacity(0.15), lineWidth: 1)
+                )
 
-                Rectangle()
-                    .fill(Color(white: 0.4))
-                    .frame(width: 1, height: 40)
-
-                VStack(spacing: 4) {
+                // Losses box
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("LOSSES")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.5))
+                        Spacer()
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                    }
                     Text("\(standing.losses)")
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(Color.red)
-                    Text("Losses")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color(white: 0.6))
                 }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.red.opacity(0.05), Color.red.opacity(0.01)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .stroke(Color.red.opacity(0.12), lineWidth: 1)
+                )
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color.black.opacity(0.6))
+
         }
-        .frame(height: 200)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
-        .overlay(
+        .padding(16)
+        .background(
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+                .fill(Color(white: 0.08))
+                .stroke(Color(white: 1.0).opacity(0.12), lineWidth: 1)
         )
     }
 
-    private var placeholderBackground: some View {
-        Rectangle()
-            .fill(Color(white: 0.15))
-            .frame(maxWidth: .infinity)
-            .frame(height: 200)
+    @ViewBuilder
+    private var teamLogoCircle: some View {
+        if let imageURL = standing.fullImageURL, let url = URL(string: imageURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(AppTheme.Colors.accent, lineWidth: 2))
+                default:
+                    teamInitialsCircle
+                }
+            }
+        } else {
+            teamInitialsCircle
+        }
+    }
+
+    private var teamInitialsCircle: some View {
+        let words = standing.teamName.split(separator: " ")
+        let initials: String = if words.count >= 2 {
+            String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
+        } else {
+            String(standing.teamName.prefix(3)).uppercased()
+        }
+        return Circle()
+            .fill(AppTheme.Colors.accent.opacity(0.15))
+            .frame(width: 64, height: 64)
             .overlay(
-                Image(systemName: "sportscourt")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color(white: 0.3))
+                Text(initials)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.accent)
             )
+            .overlay(Circle().stroke(AppTheme.Colors.accent, lineWidth: 2))
     }
 }
 
@@ -489,7 +541,7 @@ struct TeamStatsTabView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
-                    .frame(width: 52, height: 52)
+                    .frame(width: 64, height: 64)
                     .background(
                         Circle()
                             .fill(AppTheme.Colors.accent)
