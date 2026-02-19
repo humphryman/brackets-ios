@@ -98,7 +98,12 @@ struct StatsLeadersView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: AppTheme.Spacing.medium) {
                     ForEach(Array(category.stats.enumerated()), id: \.element.id) { index, stat in
-                        playerRow(stat: stat, rank: index + 1)
+                        NavigationLink {
+                            PlayerDetailView(stat: stat, tournamentId: tournament.id)
+                        } label: {
+                            playerRow(stat: stat, rank: index + 1)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)

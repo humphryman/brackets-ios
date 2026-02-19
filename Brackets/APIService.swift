@@ -578,6 +578,57 @@ actor APIService {
         }
     }
 
+    func fetchPlayerSeason(playerSeasonId: Int) async throws -> PlayerSeasonDetailResponse {
+        guard let url = URL(string: "\(APIConfig.apiURL)/player_seasons/\(playerSeasonId).json") else {
+            throw APIError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                throw APIError.invalidResponse
+            }
+
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📦 Player Season JSON Response:")
+                print(jsonString)
+            }
+
+            let decoder = JSONDecoder()
+
+            do {
+                let detail = try decoder.decode(PlayerSeasonDetailResponse.self, from: data)
+                print("✅ Decoded player season \(playerSeasonId)")
+                return detail
+            } catch let decodingError as DecodingError {
+                print("❌ Player Season Decoding Error:")
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("  Key '\(key.stringValue)' not found")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .typeMismatch(let type, let context):
+                    print("  Type mismatch for \(type): \(context.debugDescription)")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .valueNotFound(let type, let context):
+                    print("  Value not found for \(type)")
+                    print("  Path: \(context.codingPath.map { $0.stringValue })")
+                case .dataCorrupted(let context):
+                    print("  Data corrupted: \(context.debugDescription)")
+                @unknown default:
+                    print("  Unknown decoding error")
+                }
+                throw APIError.decodingError(decodingError)
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            print("❌ Player Season Network Error: \(error)")
+            throw APIError.networkError(error)
+        }
+    }
+
     func fetchTopStats(for tournamentId: Int) async throws -> [StatCategory] {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/top_stats.json") else {
             throw APIError.invalidURL
