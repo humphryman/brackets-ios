@@ -273,7 +273,8 @@ struct PlayerDetailView: View {
                     Text("Opponent")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color(white: 0.5))
-                        .frame(maxWidth: .infinity, height: headerHeight, alignment: .leading)
+                        .frame(height: headerHeight)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
 
                     Divider().background(Color(white: 0.2))
@@ -290,7 +291,8 @@ struct PlayerDetailView: View {
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                                     .lineLimit(1)
                             }
-                            .frame(maxWidth: .infinity, height: rowHeight, alignment: .leading)
+                            .frame(height: rowHeight)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 12)
 
                             Divider().background(Color(white: 0.15))

@@ -44,12 +44,17 @@ struct StatsLeadersView: View {
 
     // MARK: - Stats Content
 
+    // Height for 5 player rows + title
+    private var carouselHeight: CGFloat {
+        let rowHeight: CGFloat = 44 + AppTheme.Layout.cardPadding * 2  // avatar + card padding
+        let rowSpacing = AppTheme.Spacing.medium
+        let titleArea: CGFloat = 50
+        return titleArea + 5 * rowHeight + 4 * rowSpacing + 10
+    }
+
     private var statsContent: some View {
         VStack(spacing: AppTheme.Spacing.standard) {
-            // Page indicator dots
-            pageIndicator
-
-            // Carousel
+            // Carousel — fixed to 5 player rows
             TabView(selection: $currentPage) {
                 ForEach(Array(activeCategories.enumerated()), id: \.element.id) { index, category in
                     categoryPage(category)
@@ -58,6 +63,12 @@ struct StatsLeadersView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.3), value: currentPage)
+            .frame(height: carouselHeight)
+
+            // Page indicator dots
+            pageIndicator
+
+            Spacer()
         }
     }
 
