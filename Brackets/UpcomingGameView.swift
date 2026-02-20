@@ -220,7 +220,10 @@ struct UpcomingGameView: View {
             // Stat comparison rows with alternating backgrounds
             ForEach(Array(activeStats.enumerated()), id: \.element) { index, statKey in
                 let label = detail.shortNameStats[statKey] ?? statKey.uppercased()
-                let (leftVal, rightVal) = mockedStatValues(statKey: statKey, teamAId: sets.teamAId, teamBId: sets.teamBId)
+                let teamA = detail.game.teamStats.first { $0.id == sets.teamAId }
+                let teamB = detail.game.teamStats.first { $0.id == sets.teamBId }
+                let leftVal = teamA?.totalTeamStats?[statKey] ?? 0
+                let rightVal = teamB?.totalTeamStats?[statKey] ?? 0
 
                 statComparisonRow(label: label, leftValue: leftVal, rightValue: rightVal)
                     .padding(.horizontal, AppTheme.Layout.cardPadding)
@@ -244,7 +247,7 @@ struct UpcomingGameView: View {
     private let statBarLoserColor = Color(white: 0.22)
 
     @ViewBuilder
-    private func statComparisonRow(label: String, leftValue: Int, rightValue: Int) -> some View {
+    private func statComparisonRow(label: String, leftValue: Double, rightValue: Double) -> some View {
         let maxVal = max(leftValue, rightValue, 1)
         let leftWins = leftValue > rightValue
         let rightWins = rightValue > leftValue
@@ -253,7 +256,7 @@ struct UpcomingGameView: View {
             // Left bar (Team A)
             GeometryReader { geo in
                 let minBarWidth: CGFloat = 50
-                let fraction = CGFloat(leftValue) / CGFloat(maxVal)
+                let fraction = leftValue / maxVal
                 let barWidth = max(minBarWidth, geo.size.width * fraction)
                 let barColor = leftWins ? statBarTeamAColor : statBarLoserColor
 
@@ -263,7 +266,7 @@ struct UpcomingGameView: View {
                             .fill(barColor)
                             .frame(width: barWidth, height: statBarHeight)
 
-                        Text(String(format: "%.1f", Double(leftValue)))
+                        Text(String(format: "%.1f", leftValue))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.primaryText)
                             .padding(.leading, 10)
@@ -283,7 +286,7 @@ struct UpcomingGameView: View {
             // Right bar (Team B)
             GeometryReader { geo in
                 let minBarWidth: CGFloat = 50
-                let fraction = CGFloat(rightValue) / CGFloat(maxVal)
+                let fraction = rightValue / maxVal
                 let barWidth = max(minBarWidth, geo.size.width * fraction)
                 let barColor = rightWins ? statBarTeamBColor : statBarLoserColor
 
@@ -294,7 +297,7 @@ struct UpcomingGameView: View {
                             .fill(barColor)
                             .frame(width: barWidth, height: statBarHeight)
 
-                        Text(String(format: "%.1f", Double(rightValue)))
+                        Text(String(format: "%.1f", rightValue))
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(rightWins ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
                             .padding(.trailing, 10)
@@ -554,40 +557,4 @@ struct UpcomingGameView: View {
         }
     }
 
-    /// Returns mocked stat values for a given stat key
-    private func mockedStatValues(statKey: String, teamAId: Int, teamBId: Int) -> (Int, Int) {
-        let baseValues: [String: (Int, Int)] = [
-            "points": (68, 72),
-            "two_pm": (18, 20),
-            "three_pm": (6, 8),
-            "pfs": (14, 12),
-            "as": (15, 13),
-            "blk": (3, 5),
-            "st": (7, 6),
-            "tr": (35, 38),
-            "to": (10, 12),
-            "or": (8, 10),
-            "dr": (22, 25),
-            "fta": (12, 14),
-            "ftm": (9, 11),
-            "minutes": (40, 40),
-            "two_pa": (30, 28),
-            "three_pa": (16, 20),
-            "fga": (52, 48),
-            "fgm": (24, 28),
-            "tfs": (4, 3)
-        ]
-
-        if let base = baseValues[statKey] {
-            // Add small deterministic variance based on team IDs
-            let varA = (teamAId * 3) % 5
-            let varB = (teamBId * 3) % 5
-            return (base.0 + varA, base.1 + varB)
-        }
-
-        // Fallback for unknown stats
-        let a = 10 + (teamAId % 10)
-        let b = 10 + (teamBId % 10)
-        return (a, b)
-    }
 }
