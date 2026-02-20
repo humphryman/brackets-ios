@@ -106,6 +106,7 @@ struct GameDetailTeamStat: Identifiable, Codable {
     let score: Int
     let result: String?
     let teamLogo: String?
+    let lastFiveGames: [Int?]?
     let playerStats: [PlayerGameStat]
 
     enum CodingKeys: String, CodingKey {
@@ -114,6 +115,7 @@ struct GameDetailTeamStat: Identifiable, Codable {
         case score
         case result
         case teamLogo = "team_logo"
+        case lastFiveGames = "last_five_games"
         case playerStats = "player_stats"
     }
 

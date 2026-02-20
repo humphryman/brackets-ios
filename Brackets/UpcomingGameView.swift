@@ -149,9 +149,9 @@ struct UpcomingGameView: View {
 
             // Recent form + record per team
             HStack(spacing: 0) {
-                teamFormColumn(teamId: sets.teamAId)
+                teamFormColumn(lastFive: detail.game.teamStats.first { $0.id == sets.teamAId }?.lastFiveGames)
                     .frame(maxWidth: .infinity)
-                teamFormColumn(teamId: sets.teamBId)
+                teamFormColumn(lastFive: detail.game.teamStats.first { $0.id == sets.teamBId }?.lastFiveGames)
                     .frame(maxWidth: .infinity)
             }
 
@@ -521,29 +521,29 @@ struct UpcomingGameView: View {
 
     /// Combined form dots + win/loss record column for one team
     @ViewBuilder
-    private func teamFormColumn(teamId: Int) -> some View {
-        let pattern = mockedFormPattern(teamId: teamId)
-        let wins = pattern.filter { $0 }.count
-        let total = pattern.count
+    private func teamFormColumn(lastFive: [Int?]?) -> some View {
+        let games = lastFive ?? []
+        let wins = games.compactMap { $0 }.filter { $0 == 1 }.count
+        let losses = games.compactMap { $0 }.filter { $0 == 0 }.count
 
         VStack(spacing: 6) {
             // W/L circles with letter inside
             HStack(spacing: 5) {
-                ForEach(Array(pattern.enumerated()), id: \.offset) { _, isWin in
+                ForEach(Array(games.enumerated()), id: \.offset) { _, result in
                     ZStack {
                         Circle()
-                            .fill(isWin ? AppTheme.Colors.accent : Color(red: 0.8, green: 0.2, blue: 0.2))
+                            .fill(result == 1 ? AppTheme.Colors.accent : result == 0 ? Color(red: 0.8, green: 0.2, blue: 0.2) : Color(white: 0.15))
                             .frame(width: 22, height: 22)
 
-                        Text(isWin ? "W" : "L")
+                        Text(result == 1 ? "W" : result == 0 ? "L" : "-")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(isWin ? AppTheme.Colors.accentText : .white)
+                            .foregroundStyle(result == 1 ? AppTheme.Colors.accentText : result == 0 ? .white : Color(white: 0.4))
                     }
                 }
             }
 
             // Record number
-            Text("\(wins)/\(total)")
+            Text("\(wins)/\(losses)")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
 
@@ -552,20 +552,6 @@ struct UpcomingGameView: View {
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Color(white: 0.4))
         }
-    }
-
-    /// Returns a deterministic W/L pattern (5 games) based on team ID
-    private func mockedFormPattern(teamId: Int) -> [Bool] {
-        let seed = teamId % 6
-        let patterns: [[Bool]] = [
-            [true, true, false, true, true],
-            [true, false, true, true, false],
-            [false, true, true, true, false],
-            [true, true, true, false, true],
-            [false, false, true, true, true],
-            [true, false, true, false, true]
-        ]
-        return patterns[seed]
     }
 
     /// Returns mocked stat values for a given stat key
