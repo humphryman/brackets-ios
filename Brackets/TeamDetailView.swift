@@ -58,11 +58,9 @@ struct TeamDetailView: View {
                 // Header
                 ZStack {
                     // Centered title
-                    Text(standing.teamName)
+                    Text("Team Details")
                         .font(AppTheme.Typography.headline)
                         .foregroundStyle(AppTheme.Colors.primaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
 
                     // Back button — leading
                     HStack {
@@ -211,8 +209,8 @@ struct TeamDetailView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(Color(white: 0.08))
-                .stroke(Color(white: 1.0).opacity(0.12), lineWidth: 1)
+                .fill(Color(white: 0.08).opacity(0.5))
+                .stroke(Color(white: 1.0).opacity(0.10), lineWidth: 1)
         )
     }
 

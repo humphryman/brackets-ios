@@ -23,29 +23,28 @@ struct GameResultView: View {
 
             VStack(spacing: 0) {
                 // Header
-                HStack(alignment: .center, spacing: 12) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Circle()
-                            .fill(AppTheme.Colors.cardBackground)
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.primaryText)
-                            }
-                    }
-
+                ZStack {
                     Text("Game Result")
-                        .font(AppTheme.Typography.largeTitle)
+                        .font(AppTheme.Typography.headline)
                         .foregroundStyle(AppTheme.Colors.primaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
 
-                    Spacer()
+                    HStack {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Circle()
+                                .fill(Color.white.opacity(0.08))
+                                .frame(width: 36, height: 36)
+                                .overlay {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(AppTheme.Colors.primaryText)
+                                }
+                        }
+                        Spacer()
+                    }
                 }
-                .padding(.horizontal, AppTheme.Layout.extraLarge)
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.top, AppTheme.Layout.large)
                 .padding(.bottom, AppTheme.Layout.itemSpacing)
 

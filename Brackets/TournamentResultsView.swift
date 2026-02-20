@@ -22,25 +22,26 @@ struct TournamentResultsView: View {
                 // Header
                 VStack(alignment: .leading, spacing: 8) {
                     // Back button and Title on same line
-                    HStack(alignment: .center, spacing: 12) {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Circle()
-                                .fill(AppTheme.Colors.cardBackground)
-                                .frame(width: 40, height: 40)
-                                .overlay {
-                                    Image(systemName: "arrow.left")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(AppTheme.Colors.primaryText)
-                                }
-                        }
-                        
+                    ZStack {
                         Text("Resultados")
-                            .font(AppTheme.Typography.largeTitle)
+                            .font(AppTheme.Typography.headline)
                             .foregroundStyle(AppTheme.Colors.primaryText)
-                        
-                        Spacer()
+
+                        HStack {
+                            Button {
+                                dismiss()
+                            } label: {
+                                Circle()
+                                    .fill(Color.white.opacity(0.08))
+                                    .frame(width: 36, height: 36)
+                                    .overlay {
+                                        Image(systemName: "chevron.left")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundStyle(AppTheme.Colors.primaryText)
+                                    }
+                            }
+                            Spacer()
+                        }
                     }
                     
                     // Subtitle
