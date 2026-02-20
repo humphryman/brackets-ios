@@ -32,35 +32,57 @@ struct TeamDetailView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+            ZStack {
+                AppTheme.Colors.background
+
+                // Radial glow in top-right corner
+                RadialGradient(
+                    colors: [
+                        AppTheme.Colors.accentGradient.opacity(0.20),
+                        AppTheme.Colors.accentGradient.opacity(0.19),
+                        AppTheme.Colors.accentGradient.opacity(0.15),
+                        AppTheme.Colors.accentGradient.opacity(0.11),
+                        AppTheme.Colors.accentGradient.opacity(0.08),
+                        AppTheme.Colors.accentGradient.opacity(0.04),
+                        AppTheme.Colors.accentGradient.opacity(0.01),
+                        .clear
+                    ],
+                    center: .topTrailing,
+                    startRadius: 0,
+                    endRadius: 550
+                )
+            }
+            .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header
-                HStack(alignment: .center, spacing: 12) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Circle()
-                            .fill(AppTheme.Colors.cardBackground)
-                            .frame(width: 40, height: 40)
-                            .overlay {
-                                Image(systemName: "arrow.left")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.primaryText)
-                            }
-                    }
-                    .zIndex(1)
-
+                ZStack {
+                    // Centered title
                     Text(standing.teamName)
-                        .font(AppTheme.Typography.largeTitle)
+                        .font(AppTheme.Typography.headline)
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
 
-                    Spacer()
+                    // Back button — leading
+                    HStack {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Circle()
+                                .fill(Color.white.opacity(0.08))
+                                .frame(width: 36, height: 36)
+                                .overlay {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(AppTheme.Colors.primaryText)
+                                }
+                        }
+
+                        Spacer()
+                    }
                 }
-                .padding(.horizontal, AppTheme.Layout.extraLarge)
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.top, AppTheme.Layout.large)
                 .padding(.bottom, AppTheme.Layout.itemSpacing)
                 .zIndex(1)
@@ -160,98 +182,31 @@ struct TeamDetailView: View {
 
     private var teamHeroCard: some View {
         VStack(spacing: 16) {
-            // Top row: Logo + Name + Place badge
-            HStack(spacing: 12) {
-                // Team logo circle
+            // Logo + Name
+            HStack(alignment: .center, spacing: 16) {
                 teamLogoCircle
 
-                Text(standing.teamName)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(standing.teamName)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
 
                 Spacer()
-
-                // Place badge
-                if rank > 0 {
-                    VStack(spacing: 1) {
-                        Text("#\(rank)")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(AppTheme.Colors.accent)
-                        Text("PLACE")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.5))
-                    }
-                    .frame(width: 50, height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                }
             }
 
-            Divider().background(Color(white: 0.15))
+            Divider().background(Color(white: 0.2))
 
-            // Wins / Losses boxes
-            HStack(spacing: 12) {
-                // Wins box
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("WINS")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.5))
-                        Spacer()
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.accent)
-                    }
-                    Text("\(standing.wins)")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accent)
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            LinearGradient(
-                                colors: [AppTheme.Colors.accent.opacity(0.06), AppTheme.Colors.accent.opacity(0.02)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .stroke(AppTheme.Colors.accent.opacity(0.15), lineWidth: 1)
-                )
-
-                // Losses box
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("LOSSES")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.5))
-                        Spacer()
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 8, height: 8)
-                    }
-                    Text("\(standing.losses)")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(Color.red)
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.red.opacity(0.05), Color.red.opacity(0.01)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .stroke(Color.red.opacity(0.12), lineWidth: 1)
-                )
+            // Place, Wins, Losses row
+            HStack(spacing: 0) {
+                infoItem(value: rank > 0 ? "#\(rank)" : "-", label: "Place")
+                Spacer()
+                infoItem(value: "\(standing.wins)", label: "Wins")
+                Spacer()
+                infoItem(value: "\(standing.losses)", label: "Losses")
             }
-
         }
         .padding(16)
         .background(
@@ -259,6 +214,18 @@ struct TeamDetailView: View {
                 .fill(Color(white: 0.08))
                 .stroke(Color(white: 1.0).opacity(0.12), lineWidth: 1)
         )
+    }
+
+    private func infoItem(value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+        }
     }
 
     @ViewBuilder

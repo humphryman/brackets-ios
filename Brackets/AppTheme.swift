@@ -26,6 +26,7 @@ struct AppTheme {
         /// Primary accent color - Bright neon green used throughout the app
         /// Hex: #a3ff12 | RGB: (163, 255, 18)
         static let accent = Color(red: 163/255, green: 255/255, blue: 18/255)
+        static let accentGradient = Color(red: 200/255, green: 255/255, blue: 40/255)
         
         /// Background colors
         static let background = Color.black
