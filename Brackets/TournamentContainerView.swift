@@ -14,9 +14,9 @@ enum TournamentTab: String, CaseIterable {
     
     var icon: String {
         switch self {
-        case .standings: return "chart.bar.fill"
-        case .games: return "sportscourt.fill"
-        case .stats: return "star.fill"
+        case .standings: return "list.number"
+        case .games: return "basketball.fill"
+        case .stats: return "chart.bar.fill"
         }
     }
     

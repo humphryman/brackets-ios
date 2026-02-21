@@ -12,7 +12,7 @@ enum TeamDetailTab: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .games: return "sportscourt"
+        case .games: return "basketball"
         case .players: return "person.3"
         case .stats: return "chart.bar"
         }
@@ -169,7 +169,7 @@ struct TeamDetailView: View {
             case .games:
                 TeamGamesTabView(games: teamSeason?.games ?? [], tournamentId: tournamentId)
             case .players:
-                TeamPlayersTabView(players: teamSeason?.playerSeasons ?? [])
+                TeamPlayersTabView(players: teamSeason?.playerSeasons ?? [], tournamentId: tournamentId)
             case .stats:
                 TeamStatsTabView(statLeaders: teamSeason?.nonEmptyStatLeaders ?? [])
             }
@@ -275,7 +275,7 @@ struct TeamGamesTabView: View {
     var body: some View {
         if games.isEmpty {
             AppTheme.EmptyStateView(
-                icon: "sportscourt",
+                icon: "basketball",
                 message: "No games scheduled"
             )
         } else {
@@ -310,6 +310,7 @@ struct TeamGamesTabView: View {
 
 struct TeamPlayersTabView: View {
     let players: [PlayerSeason]
+    let tournamentId: Int
 
     private let columns = [
         GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
@@ -327,7 +328,12 @@ struct TeamPlayersTabView: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: AppTheme.Spacing.medium) {
                     ForEach(players) { player in
-                        playerCard(player: player)
+                        NavigationLink {
+                            PlayerDetailView(playerSeasonId: player.id, tournamentId: tournamentId)
+                        } label: {
+                            playerCard(player: player)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)

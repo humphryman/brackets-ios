@@ -6,12 +6,23 @@
 import SwiftUI
 
 struct PlayerDetailView: View {
-    let stat: PlayerStatEntry
+    let playerSeasonId: Int
     let tournamentId: Int
     @Environment(\.dismiss) private var dismiss
     @State private var detail: PlayerSeasonDetailResponse?
     @State private var isLoading = true
     @State private var errorMessage: String?
+
+    /// Convenience init from a stat entry (used by StatsLeadersView)
+    init(stat: PlayerStatEntry, tournamentId: Int) {
+        self.playerSeasonId = stat.playerSeasonId
+        self.tournamentId = tournamentId
+    }
+
+    init(playerSeasonId: Int, tournamentId: Int) {
+        self.playerSeasonId = playerSeasonId
+        self.tournamentId = tournamentId
+    }
 
     var body: some View {
         ZStack {
@@ -443,7 +454,7 @@ struct PlayerDetailView: View {
         errorMessage = nil
 
         do {
-            detail = try await APIService.shared.fetchPlayerSeason(playerSeasonId: stat.playerSeasonId)
+            detail = try await APIService.shared.fetchPlayerSeason(playerSeasonId: playerSeasonId)
             isLoading = false
         } catch {
             errorMessage = "Failed to load player stats"
