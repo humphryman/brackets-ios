@@ -21,11 +21,11 @@ struct ContentView: View {
                         // Header
                         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
                             Text("Categorías")
-                                .font(.system(size: 42, weight: .bold))
+                                .font(.system(size: 28, weight: .bold))
                                 .foregroundStyle(AppTheme.Colors.primaryText)
-                            
+
                             Text("Selecciona una categoría")
-                                .font(AppTheme.Typography.headline)
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(AppTheme.Colors.secondaryText)
                         }
                         .padding(.horizontal, AppTheme.Layout.extraLarge)
@@ -88,13 +88,13 @@ struct GenderSelectorView: View {
                     }
                 } label: {
                     Text(gender.displayName)
-                        .font(AppTheme.Typography.headline)
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(selectedGender == gender ? AppTheme.Colors.accentText : AppTheme.Colors.secondaryText)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 56)
+                        .frame(height: 40)
                         .background {
                             if selectedGender == gender {
-                                RoundedRectangle(cornerRadius: 28)
+                                RoundedRectangle(cornerRadius: 20)
                                     .fill(AppTheme.Colors.accent)
                                     .matchedGeometryEffect(id: "selector", in: animation)
                             }
@@ -103,7 +103,7 @@ struct GenderSelectorView: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 28)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(Color(white: 0.15))
         )
         .padding(4)

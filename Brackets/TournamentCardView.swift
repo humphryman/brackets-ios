@@ -71,24 +71,8 @@ struct TournamentCardView: View {
                 
                 // Content overlay
                 VStack {
-                    // Top right - Team count badge
-                    HStack {
-                        Spacer()
-                        Text("\(tournament.displayTeamCount) equipos")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 7)
-                            .background(
-                                Capsule()
-                                    .fill(Color(red: 0.8, green: 1.0, blue: 0.4))
-                            )
-                    }
-                    .padding(.top, 16)
-                    .padding(.trailing, 16)
-                    
                     Spacer()
-                    
+
                     // Bottom content
                     HStack(alignment: .bottom) {
                         // Tournament name
@@ -97,17 +81,17 @@ struct TournamentCardView: View {
                             .foregroundStyle(.white)
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
-                        
+
                         Spacer()
-                        
+
                         // Arrow button
                         Circle()
-                            .fill(Color(red: 0.8, green: 1.0, blue: 0.4))
-                            .frame(width: 52, height: 52)
+                            .fill(AppTheme.Colors.accent)
+                            .frame(width: 40, height: 40)
                             .overlay {
                                 Image(systemName: "arrow.right")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(.black)
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(AppTheme.Colors.accentText)
                             }
                     }
                     .padding(.horizontal, 20)
