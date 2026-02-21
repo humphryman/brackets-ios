@@ -28,17 +28,17 @@ enum APIError: Error {
 }
 
 // Response wrapper for when API returns { "tournaments": [...] }
-struct TournamentsResponse: Codable {
+struct TournamentsResponse: Codable, Sendable {
     let tournaments: [Tournament]
 }
 
 // Response wrapper for standings
-struct StandingsResponse: Codable {
+struct StandingsResponse: Codable, Sendable {
     let standings: [TeamStanding]
 }
 
 // Team Standing Model
-struct TeamStanding: Identifiable, Codable {
+struct TeamStanding: Identifiable, Codable, Sendable {
     let id: Int
     let teamName: String
     let total: Int
@@ -88,9 +88,9 @@ struct TeamStanding: Identifiable, Codable {
     }
 }
 
-actor APIService {
+final class APIService: Sendable {
     static let shared = APIService()
-    
+
     private init() {}
     
     func fetchTournaments() async throws -> [Tournament] {

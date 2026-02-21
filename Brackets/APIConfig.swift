@@ -9,12 +9,12 @@ import Foundation
 
 /// Legacy API configuration - Use AppConfig.API instead
 /// This file is maintained for backward compatibility
-enum APIConfig {
-    static var baseURL: String {
+enum APIConfig: Sendable {
+    nonisolated static var baseURL: String {
         AppConfig.API.baseURL
     }
-    
-    static var apiURL: String {
+
+    nonisolated static var apiURL: String {
         AppConfig.API.apiURL
     }
 }

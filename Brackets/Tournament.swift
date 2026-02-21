@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Tournament: Identifiable, Codable {
+struct Tournament: Identifiable, Codable, Sendable {
     let id: Int
     let name: String
     let gender: Gender
@@ -35,7 +35,7 @@ struct Tournament: Identifiable, Codable {
     }
 }
 
-enum Gender: Int, Codable, CaseIterable {
+enum Gender: Int, Codable, CaseIterable, Sendable {
     case male = 0
     case female = 1
     

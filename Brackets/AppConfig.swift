@@ -18,16 +18,16 @@ enum AppConfig {
     
     // MARK: - API Configuration
     
-    enum API {
-        private static var isProduction: Bool {
+    enum API: Sendable {
+        private nonisolated static var isProduction: Bool {
             #if DEBUG
             return false
             #else
             return true
             #endif
         }
-        
-        static var baseURL: String {
+
+        nonisolated static var baseURL: String {
             if isProduction {
                 // TODO: Replace with your production API URL
                 return "https://api.yourapp.com"
@@ -35,11 +35,11 @@ enum AppConfig {
                 return "http://127.0.0.1:3000"
             }
         }
-        
-        static var apiURL: String {
+
+        nonisolated static var apiURL: String {
             "\(baseURL)/api"
         }
-        
+
         // Network timeouts
         static let requestTimeout: TimeInterval = 30
         static let resourceTimeout: TimeInterval = 60

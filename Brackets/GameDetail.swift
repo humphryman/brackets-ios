@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Top-level response
 
-struct GameDetailResponse: Codable {
+struct GameDetailResponse: Codable, Sendable {
     let longNameStats: [String: String]
     let shortNameStats: [String: String]
     let game: GameDetail
@@ -23,7 +23,7 @@ struct GameDetailResponse: Codable {
 
 // MARK: - Game detail
 
-struct GameDetail: Identifiable, Codable {
+struct GameDetail: Identifiable, Codable, Sendable {
     let id: Int
     let played: Bool
     let phase: String?
@@ -46,7 +46,7 @@ struct GameDetail: Identifiable, Codable {
 
 // MARK: - Venue
 
-struct Venue: Codable {
+struct Venue: Codable, Sendable {
     let name: String
     let courtNumber: String?
 
@@ -58,7 +58,7 @@ struct Venue: Codable {
 
 // MARK: - Game Sets (teams + scores)
 
-struct GameSets: Codable {
+struct GameSets: Codable, Sendable {
     let teamAId: Int
     let teamA: String
     let teamALogo: String?
@@ -100,7 +100,7 @@ struct GameSets: Codable {
 
 // MARK: - Team stat (per team, contains player list)
 
-struct GameDetailTeamStat: Identifiable, Codable {
+struct GameDetailTeamStat: Identifiable, Codable, Sendable {
     let id: Int
     let teamName: String
     let score: Int
@@ -131,7 +131,7 @@ struct GameDetailTeamStat: Identifiable, Codable {
 
 // MARK: - Player stat
 
-struct PlayerGameStat: Identifiable, Codable {
+struct PlayerGameStat: Identifiable, Codable, Sendable {
     let id: Int
     let playerName: String
     let playerShortName: String

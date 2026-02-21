@@ -38,9 +38,9 @@ struct TeamDetailView: View {
                 // Radial glow in top-right corner
                 RadialGradient(
                     colors: [
-                        AppTheme.Colors.accentGradient.opacity(0.20),
-                        AppTheme.Colors.accentGradient.opacity(0.19),
-                        AppTheme.Colors.accentGradient.opacity(0.15),
+                        AppTheme.Colors.accentGradient.opacity(0.18),
+                        AppTheme.Colors.accentGradient.opacity(0.16),
+                        AppTheme.Colors.accentGradient.opacity(0.14),
                         AppTheme.Colors.accentGradient.opacity(0.11),
                         AppTheme.Colors.accentGradient.opacity(0.08),
                         AppTheme.Colors.accentGradient.opacity(0.04),

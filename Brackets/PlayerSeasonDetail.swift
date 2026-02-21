@@ -7,7 +7,7 @@ import Foundation
 
 // MARK: - Response
 
-struct PlayerSeasonDetailResponse: Codable {
+struct PlayerSeasonDetailResponse: Codable, Sendable {
     let longNameStats: [String: String]
     let shortNameStats: [String: String]
     let playerSeason: PlayerSeasonInfo
@@ -21,7 +21,7 @@ struct PlayerSeasonDetailResponse: Codable {
 
 // MARK: - Player Season Info
 
-struct PlayerSeasonInfo: Codable {
+struct PlayerSeasonInfo: Codable, Sendable {
     let weight: String?
     let height: String?
     let number: Int?
@@ -69,7 +69,7 @@ struct PlayerSeasonInfo: Codable {
 
 // MARK: - Per-Game Stat
 
-struct PlayerSeasonGameStat: Identifiable, Codable {
+struct PlayerSeasonGameStat: Identifiable, Codable, Sendable {
     let id: Int
     let opponent: String
     let opponentLogo: String?

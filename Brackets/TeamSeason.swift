@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct TeamSeasonResponse: Codable {
+struct TeamSeasonResponse: Codable, Sendable {
     let teamSeason: TeamSeasonDetail
 
     enum CodingKeys: String, CodingKey {
@@ -13,7 +13,7 @@ struct TeamSeasonResponse: Codable {
     }
 }
 
-struct TeamSeasonDetail: Codable {
+struct TeamSeasonDetail: Codable, Sendable {
     let games: [Game]
     let playerSeasons: [PlayerSeason]
     let upcomingGame: Game?
@@ -31,7 +31,7 @@ struct TeamSeasonDetail: Codable {
     }
 }
 
-struct StatLeaderCategory: Codable, Identifiable {
+struct StatLeaderCategory: Codable, Identifiable, Sendable {
     let longName: String
     let shortName: String
     let players: [StatLeaderEntry]
@@ -45,7 +45,7 @@ struct StatLeaderCategory: Codable, Identifiable {
     }
 }
 
-struct StatLeaderEntry: Codable, Identifiable {
+struct StatLeaderEntry: Codable, Identifiable, Sendable {
     let playerSeasonId: Int
     let firstName: String
     let lastName: String
@@ -74,7 +74,7 @@ struct StatLeaderEntry: Codable, Identifiable {
     }
 }
 
-struct PlayerSeason: Identifiable, Codable {
+struct PlayerSeason: Identifiable, Codable, Sendable {
     let id: Int
     let number: Int?
     let player: Player
@@ -93,7 +93,7 @@ struct PlayerSeason: Identifiable, Codable {
         return "\(APIConfig.baseURL)/\(imagePath)"
     }
 
-    struct Player: Codable {
+    struct Player: Codable, Sendable {
         let id: Int
         let firstName: String
         let lastName: String

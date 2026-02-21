@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Game: Identifiable, Codable {
+struct Game: Identifiable, Codable, Sendable {
     let id: Int
     let gameTime: Date?
     let stage: Bool
@@ -85,7 +85,7 @@ struct Game: Identifiable, Codable {
     }
 }
 
-struct TeamStat: Codable {
+struct TeamStat: Codable, Sendable {
     let id: Int
     let score: Int?
     let result: String?
@@ -101,7 +101,7 @@ struct TeamStat: Codable {
     }
 }
 
-struct Team: Codable, Equatable {
+struct Team: Codable, Equatable, Sendable {
     let id: Int
     let name: String
     let image: String?
@@ -118,7 +118,7 @@ struct Team: Codable, Equatable {
     }
 }
 
-enum GameStatus: String, Codable {
+enum GameStatus: String, Codable, Sendable {
     case scheduled = "scheduled"
     case inProgress = "in_progress"
     case finished = "finished"
@@ -126,10 +126,10 @@ enum GameStatus: String, Codable {
 }
 
 // Response wrapper - handles the nested date structure
-struct GamesResponse: Codable {
+struct GamesResponse: Codable, Sendable {
     let games: [DateGroup]
     
-    struct DateGroup: Codable {
+    struct DateGroup: Codable, Sendable {
         let date: String
         let games: [Game]
         

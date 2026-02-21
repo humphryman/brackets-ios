@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Response Wrapper
 
-struct TopStatsResponse: Codable {
+struct TopStatsResponse: Codable, Sendable {
     let topStats: [StatCategory]
 
     enum CodingKeys: String, CodingKey {
@@ -19,13 +19,13 @@ struct TopStatsResponse: Codable {
 
 // MARK: - Models
 
-struct StatCategory: Codable, Identifiable {
+struct StatCategory: Codable, Identifiable, Sendable {
     var id: String { name }
     let name: String
     let stats: [PlayerStatEntry]
 }
 
-struct PlayerStatEntry: Codable, Identifiable {
+struct PlayerStatEntry: Codable, Identifiable, Sendable {
     var id: Int { playerSeasonId }
     let statShortName: String
     let statName: String
@@ -44,7 +44,7 @@ struct PlayerStatEntry: Codable, Identifiable {
     }
 }
 
-struct Player: Codable, Identifiable {
+struct Player: Codable, Identifiable, Sendable {
     let id: Int
     let firstName: String
     let lastName: String
