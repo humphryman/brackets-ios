@@ -10,7 +10,7 @@ import Foundation
 struct Game: Identifiable, Codable, Sendable {
     let id: Int
     let gameTime: Date?
-    let stage: Bool
+    let stage: String?
     let teamStats: [TeamStat]?
     
     // Computed properties for easier access

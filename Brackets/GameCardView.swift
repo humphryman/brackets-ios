@@ -174,7 +174,7 @@ struct TeamView: View {
             game: Game(
                 id: 1,
                 gameTime: Date(),
-                stage: true,
+                stage: nil,
                 teamStats: [
                     TeamStat(id: 1, score: 10, result: "Lost", teamName: "TAZ", teamLogo: nil),
                     TeamStat(id: 2, score: 13, result: "Won", teamName: "LINCES", teamLogo: nil)
@@ -186,7 +186,7 @@ struct TeamView: View {
             game: Game(
                 id: 2,
                 gameTime: Date(),
-                stage: true,
+                stage: nil,
                 teamStats: [
                     TeamStat(id: 3, score: 31, result: "Lost", teamName: "ARAÑAS", teamLogo: nil),
                     TeamStat(id: 1, score: 33, result: "Won", teamName: "TAZ", teamLogo: nil)

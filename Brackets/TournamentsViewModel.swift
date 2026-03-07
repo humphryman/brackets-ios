@@ -16,7 +16,7 @@ class TournamentsViewModel {
     var errorMessage: String?
     
     var filteredTournaments: [Tournament] {
-        tournaments.filter { $0.gender == selectedGender }
+        tournaments.filter { $0.gender == nil || $0.gender == selectedGender }
     }
     
     func loadTournaments() async {

@@ -92,6 +92,38 @@ final class APIService: Sendable {
     static let shared = APIService()
 
     private init() {}
+
+    func fetchCustomers() async throws -> [Customer] {
+        guard let url = URL(string: AppConfig.API.customersAPIURL) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(AppConfig.API.customersAPIToken)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                throw APIError.invalidResponse
+            }
+
+            let decoder = JSONDecoder()
+            do {
+                let customers = try decoder.decode([Customer].self, from: data)
+                print("✅ Decoded \(customers.count) customers")
+                return customers
+            } catch let decodingError {
+                print("❌ Customers Decoding Error: \(decodingError)")
+                throw APIError.decodingError(decodingError)
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.networkError(error)
+        }
+    }
     
     func fetchTournaments() async throws -> [Tournament] {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments.json") else {

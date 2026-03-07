@@ -10,7 +10,7 @@ import Foundation
 struct Tournament: Identifiable, Codable, Sendable {
     let id: Int
     let name: String
-    let gender: Gender
+    let gender: Gender?
     let teamCount: Int?
     let image: String?
     
