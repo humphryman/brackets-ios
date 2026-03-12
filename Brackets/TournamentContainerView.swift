@@ -36,11 +36,11 @@ struct TournamentContainerView: View {
     @Namespace private var animation
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             // Background
             AppTheme.Colors.background
                 .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 // Header with back button and tournament name
                 ZStack {

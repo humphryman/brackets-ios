@@ -17,11 +17,13 @@ struct ContentView: View {
 
     var body: some View {
         if embedded {
-            allTournamentsContent
-                .background(Color.black)
-                .task {
-                    await viewModel.loadTournaments()
-                }
+            ZStack {
+                Color.black.ignoresSafeArea()
+                allTournamentsContent
+            }
+            .task {
+                await viewModel.loadTournaments()
+            }
         } else {
             NavigationStack {
                 ZStack {

@@ -140,26 +140,17 @@ struct LeagueSelectionView: View {
                 .ignoresSafeArea()
                 .opacity(isExpanded ? 1 : 0)
 
-            // Content below the banner/header
+            // Content
             let headerHeight: CGFloat = 64
-            VStack(spacing: 0) {
-                // Reserve space for the banner or header
-                if !isBrowsingTournament {
-                    Color.clear.frame(height: showHeader ? headerHeight : bannerHeight)
+            if showContent {
+                NavigationStack {
+                    ContentView(leagueName: customer.name, embedded: true, sport: customer.sport, isBrowsingTournament: $isBrowsingTournament)
+                        .toolbar(.hidden)
+                        .padding(.top, headerHeight)
                 }
-
-                if showContent {
-                    NavigationStack {
-                        ContentView(leagueName: customer.name, embedded: true, sport: customer.sport, isBrowsingTournament: $isBrowsingTournament)
-                            .toolbar(.hidden)
-                    }
-                    .transition(.opacity.combined(with: .offset(y: 20)))
-                }
-
-                Spacer(minLength: 0)
+                .background(Color.black.ignoresSafeArea())
+                .ignoresSafeArea()
             }
-            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isBrowsingTournament)
-            .animation(.spring(response: 0.5, dampingFraction: 0.85), value: showHeader)
 
             // Animated banner — starts at card position, animates to top, then collapses
             let expandedPadding: CGFloat = 8
