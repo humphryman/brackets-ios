@@ -29,7 +29,7 @@ struct GameDetail: Identifiable, Codable, Sendable {
     let phase: String?
     let round: String?
     let gameTime: Date?
-    let stage: Bool
+    let stage: String?
     let venue: Venue?
     let activeStats: [String]
     let gameSets: GameSets

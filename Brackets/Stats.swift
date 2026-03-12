@@ -50,8 +50,8 @@ struct Player: Codable, Identifiable, Sendable {
     let lastName: String
     let dob: String?
     let position: String?
-    let gender: String
-    let nickname: String
+    let gender: String?
+    let nickname: String?
     let picture: String?
 
     enum CodingKeys: String, CodingKey {
