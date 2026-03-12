@@ -42,10 +42,10 @@ struct TournamentContainerView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header with back button and title
+                // Header with back button and tournament name
                 ZStack {
                     Text(tournament.name)
-                        .font(AppTheme.Typography.headline)
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -66,9 +66,9 @@ struct TournamentContainerView: View {
                         Spacer()
                     }
                 }
-                .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.top, AppTheme.Layout.large)
-                .padding(.bottom, AppTheme.Layout.itemSpacing)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
 
                 // Content based on selected tab
                 ZStack {

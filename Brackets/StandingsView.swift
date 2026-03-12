@@ -31,19 +31,6 @@ struct StandingsView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Header with trophy icon
-                        HStack(spacing: AppTheme.Spacing.medium) {
-                            Image(systemName: "trophy.fill")
-                                .font(AppTheme.Typography.title)
-                                .foregroundStyle(AppTheme.Colors.accent)
-                            
-                            Text("Standings")
-                                .font(AppTheme.Typography.largeTitle)
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
-                        .padding(.horizontal, AppTheme.Layout.screenPadding)
-                        .padding(.top, AppTheme.Layout.large)
-                        
                         // Standings Cards
                         VStack(spacing: AppTheme.Layout.itemSpacing) {
                             ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in

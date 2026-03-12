@@ -7,18 +7,35 @@
 
 import Foundation
 
-struct Tournament: Identifiable, Codable, Sendable {
+struct Tournament: Identifiable, Codable, Sendable, Hashable {
     let id: Int
     let name: String
     let gender: Gender?
     let teamCount: Int?
     let image: String?
-    
+    var startDate: String? = nil
+    var endDate: String? = nil
+    var stage: String? = nil
+
     // Default team count to 0 if not provided
     var displayTeamCount: Int {
         teamCount ?? 0
     }
-    
+
+    var formattedDateRange: String? {
+        guard let start = startDate, let end = endDate else { return nil }
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd"
+        let outputFormatter = DateFormatter()
+        outputFormatter.dateFormat = "MMM yyyy"
+        outputFormatter.locale = Locale(identifier: "es_MX")
+        guard let startParsed = inputFormatter.date(from: start),
+              let endParsed = inputFormatter.date(from: end) else { return nil }
+        let startStr = outputFormatter.string(from: startParsed).capitalized
+        let endStr = outputFormatter.string(from: endParsed).capitalized
+        return "\(startStr) - \(endStr)"
+    }
+
     // Full image URL combining base URL with the path from JSON
     var fullImageURL: String? {
         guard let image = image else { return nil }

@@ -100,7 +100,7 @@ struct StatsLeadersView: View {
                     .foregroundStyle(AppTheme.Colors.accent)
 
                 Text(category.name)
-                    .font(AppTheme.Typography.title)
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
             }
             .padding(.bottom, AppTheme.Spacing.extraSmall)
