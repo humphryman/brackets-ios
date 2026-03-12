@@ -19,6 +19,7 @@ struct LeagueSelectionView: View {
     @State private var loadedImages: [Int: Image] = [:]
     @State private var isBrowsingTournament = false
     @State private var showHeader = false
+    @State private var logoRotation: Double = 0
 
     private let expandSpring = Animation.spring(response: 2.0, dampingFraction: 0.85)
 
@@ -50,7 +51,22 @@ struct LeagueSelectionView: View {
     private var leagueListContent: some View {
         ZStack {
             if isLoading {
-                AppTheme.LoadingView(message: "Cargando ligas...")
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    Image("AppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 80, height: 80)
+                        .rotation3DEffect(
+                            .degrees(logoRotation),
+                            axis: (x: 0, y: 1, z: 0)
+                        )
+                        .onAppear {
+                            withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                                logoRotation = 360
+                            }
+                        }
+                }
             } else if let errorMessage {
                 AppTheme.ErrorView(message: errorMessage) {
                     Task { await loadCustomers() }
