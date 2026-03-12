@@ -437,12 +437,6 @@ struct TeamStatsTabView: View {
     @ViewBuilder
     private func statLeadersCard(category: StatLeaderCategory, safeStatIndex: Int) -> some View {
         VStack(spacing: AppTheme.Spacing.large) {
-            // Title
-            Text("Team Stats Leaders")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(AppTheme.Colors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
             // Category selector with arrows
             HStack {
                 Button {

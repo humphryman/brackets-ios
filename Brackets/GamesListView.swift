@@ -204,19 +204,21 @@ struct GameCard: View {
                 TeamSection(
                     teamName: game.homeTeam?.name ?? "TBD",
                     initials: getInitials(game.homeTeam?.name ?? "TBD"),
-                    isWinner: game.isFinished && game.winner?.id == game.homeTeam?.id
+                    isWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
+                    imageURL: game.homeTeam?.fullImageURL
                 )
                 .frame(maxWidth: .infinity)
-                
+
                 // Center: Score or VS with time
                 CenterSection(game: game)
                     .frame(width: 130)
-                
+
                 // Away Team
                 TeamSection(
                     teamName: game.awayTeam?.name ?? "TBD",
                     initials: getInitials(game.awayTeam?.name ?? "TBD"),
-                    isWinner: game.isFinished && game.winner?.id == game.awayTeam?.id
+                    isWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
+                    imageURL: game.awayTeam?.fullImageURL
                 )
                 .frame(maxWidth: .infinity)
             }
@@ -251,27 +253,37 @@ struct TeamSection: View {
     let teamName: String
     let initials: String
     let isWinner: Bool
-    
+    var imageURL: String? = nil
+
     var body: some View {
         VStack(spacing: AppTheme.Spacing.small) {
-            // Team circle with initials
+            // Team circle with logo or initials
             ZStack {
-                Circle()
-                    .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.15))
-                    .frame(width: 60, height: 60)
-                
+                if let imageURL, let url = URL(string: imageURL) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 60, height: 60)
+                                .clipShape(Circle())
+                        default:
+                            initialsCircle
+                        }
+                    }
+                } else {
+                    initialsCircle
+                }
+
                 // Winner ring
                 if isWinner {
                     Circle()
                         .stroke(AppTheme.Colors.accent, lineWidth: 2)
                         .frame(width: 68, height: 68)
                 }
-                
-                Text(initials)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
             }
-            
+
             // Team Name
             Text(teamName)
                 .font(.system(size: 14, weight: .semibold))
@@ -280,6 +292,17 @@ struct TeamSection: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
         }
+    }
+
+    private var initialsCircle: some View {
+        Circle()
+            .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.15))
+            .frame(width: 60, height: 60)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
+            )
     }
 }
 
