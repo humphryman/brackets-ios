@@ -28,66 +28,74 @@ struct GameCardView: View {
                 }
                 .padding()
             } else {
-                HStack(spacing: 8) {
-                    // Home team (left side)
-                    if let homeTeam = game.homeTeam {
-                        TeamView(
-                            team: homeTeam,
-                            isWinner: game.winner?.id == homeTeam.id
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                    
-                    // Center - Score
-                    VStack(spacing: 8) {
-                        HStack(alignment: .center, spacing: 8) {
-                            // Home score
-                            Text(game.homeScore.map { "\($0)" } ?? "0")
-                                .font(.system(size: 36, weight: .heavy))
-                                .foregroundStyle(game.winner?.id == game.homeTeam?.id ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
-                                .frame(minWidth: 30)
-                            
-                            // Separator
-                            Text(":")
-                                .font(.system(size: 36, weight: .heavy))
-                                .foregroundStyle(AppTheme.Colors.separator)
-                            
-                            // Away score
-                            Text(game.awayScore.map { "\($0)" } ?? "0")
-                                .font(.system(size: 36, weight: .heavy))
-                                .foregroundStyle(game.winner?.id == game.awayTeam?.id ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
-                                .frame(minWidth: 30)
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        // Home team (left side)
+                        if let homeTeam = game.homeTeam {
+                            TeamView(
+                                team: homeTeam,
+                                isWinner: game.winner?.id == homeTeam.id
+                            )
+                            .frame(maxWidth: .infinity)
                         }
-                        
-                        // Status badge
-                        if game.isFinished {
-                            Text("FINAL")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.secondaryText)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(white: 0.2))
-                                )
+
+                        // Center - Score
+                        VStack(spacing: 8) {
+                            HStack(alignment: .center, spacing: 8) {
+                                // Home score
+                                Text(game.homeScore.map { "\($0)" } ?? "0")
+                                    .font(.system(size: 36, weight: .heavy))
+                                    .foregroundStyle(game.winner?.id == game.homeTeam?.id ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+                                    .frame(minWidth: 30)
+
+                                // Separator
+                                Text(":")
+                                    .font(.system(size: 36, weight: .heavy))
+                                    .foregroundStyle(AppTheme.Colors.separator)
+
+                                // Away score
+                                Text(game.awayScore.map { "\($0)" } ?? "0")
+                                    .font(.system(size: 36, weight: .heavy))
+                                    .foregroundStyle(game.winner?.id == game.awayTeam?.id ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
+                                    .frame(minWidth: 30)
+                            }
+
+                            // Status badge
+                            if game.isFinished {
+                                Text("FINAL")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color(white: 0.2))
+                                    )
+                            }
+                        }
+                        .frame(width: 120)
+
+                        // Away team (right side)
+                        if let awayTeam = game.awayTeam {
+                            TeamView(
+                                team: awayTeam,
+                                isWinner: game.winner?.id == awayTeam.id
+                            )
+                            .frame(maxWidth: .infinity)
                         }
                     }
-                    .frame(width: 120)
-                    
-                    // Away team (right side)
-                    if let awayTeam = game.awayTeam {
-                        TeamView(
-                            team: awayTeam,
-                            isWinner: game.winner?.id == awayTeam.id
-                        )
-                        .frame(maxWidth: .infinity)
+
+                    // Venue
+                    if let venue = game.venue {
+                        Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(white: 0.5))
                     }
                 }
                 .padding(.vertical, 20)
                 .padding(.horizontal, 16)
             }
         }
-        .frame(height: 140)
     }
 }
 
@@ -175,18 +183,20 @@ struct TeamView: View {
                 id: 1,
                 gameTime: Date(),
                 stage: nil,
+                venue: nil,
                 teamStats: [
                     TeamStat(id: 1, score: 10, result: "Lost", teamName: "TAZ", teamLogo: nil),
                     TeamStat(id: 2, score: 13, result: "Won", teamName: "LINCES", teamLogo: nil)
                 ]
             )
         )
-        
+
         GameCardView(
             game: Game(
                 id: 2,
                 gameTime: Date(),
                 stage: nil,
+                venue: nil,
                 teamStats: [
                     TeamStat(id: 3, score: 31, result: "Lost", teamName: "ARAÑAS", teamLogo: nil),
                     TeamStat(id: 1, score: 33, result: "Won", teamName: "TAZ", teamLogo: nil)

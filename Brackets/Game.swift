@@ -7,12 +7,13 @@
 
 import Foundation
 
-struct Game: Identifiable, Codable, Sendable {
+struct Game: Identifiable, Sendable {
     let id: Int
     let gameTime: Date?
     let stage: String?
+    let venue: Venue?
     let teamStats: [TeamStat]?
-    
+
     // Computed properties for easier access
     var homeTeam: Team? {
         teamStats?.first.map { Team(id: $0.id, name: $0.teamName, image: $0.teamLogo) }
@@ -81,7 +82,27 @@ struct Game: Identifiable, Codable, Sendable {
         case id
         case gameTime = "game_time"
         case stage
+        case venue
         case teamStats = "team_stats"
+    }
+}
+
+extension Game: Codable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        gameTime = try container.decodeIfPresent(Date.self, forKey: .gameTime)
+        stage = try container.decodeIfPresent(String.self, forKey: .stage)
+        teamStats = try container.decodeIfPresent([TeamStat].self, forKey: .teamStats)
+
+        // venue can be a Venue object or a plain string
+        if let venueObject = try? container.decodeIfPresent(Venue.self, forKey: .venue) {
+            venue = venueObject
+        } else if let venueString = try? container.decodeIfPresent(String.self, forKey: .venue) {
+            venue = Venue(name: venueString, courtNumber: nil)
+        } else {
+            venue = nil
+        }
     }
 }
 

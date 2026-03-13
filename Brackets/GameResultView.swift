@@ -107,6 +107,8 @@ struct GameResultView: View {
         let teams = detail.game.teamStats
         let homeScore = teams.first?.score ?? sets.teamAScore
         let awayScore = teams.count > 1 ? teams[1].score : sets.teamBScore
+        let teamAWon = homeScore > awayScore
+        let teamBWon = awayScore > homeScore
 
         VStack(spacing: AppTheme.Spacing.medium) {
             // Date
@@ -120,7 +122,7 @@ struct GameResultView: View {
             HStack(spacing: 0) {
                 // Team A
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets.teamAFullImageURL, name: sets.teamA, size: 56)
+                    teamLogoCircle(urlString: sets.teamAFullImageURL, name: sets.teamA, size: 56, isWinner: teamAWon)
                     Text(sets.teamA)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
@@ -134,13 +136,13 @@ struct GameResultView: View {
                     HStack(spacing: 8) {
                         Text("\(homeScore)")
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .foregroundStyle(teamAWon ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                         Text("-")
                             .font(.system(size: 18))
                             .foregroundStyle(Color(white: 0.4))
                         Text("\(awayScore)")
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .foregroundStyle(teamBWon ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                     }
                     .fixedSize()
                     .frame(minWidth: 120)
@@ -158,7 +160,7 @@ struct GameResultView: View {
 
                 // Team B
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets.teamBFullImageURL, name: sets.teamB, size: 56)
+                    teamLogoCircle(urlString: sets.teamBFullImageURL, name: sets.teamB, size: 56, isWinner: teamBWon)
                     Text(sets.teamB)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
@@ -500,7 +502,10 @@ struct GameResultView: View {
     }
 
     @ViewBuilder
-    private func teamLogoCircle(urlString: String?, name: String, size: CGFloat) -> some View {
+    private func teamLogoCircle(urlString: String?, name: String, size: CGFloat, isWinner: Bool = false) -> some View {
+        let borderColor = isWinner ? AppTheme.Colors.accent : Color(white: 0.25)
+        let borderWidth: CGFloat = isWinner ? 2 : 1
+
         if let urlString = urlString, let url = URL(string: urlString) {
             AsyncImage(url: url) { phase in
                 switch phase {
@@ -510,18 +515,18 @@ struct GameResultView: View {
                         .scaledToFill()
                         .frame(width: size, height: size)
                         .clipShape(Circle())
-                        .overlay(Circle().stroke(Color(white: 0.25), lineWidth: 1))
+                        .overlay(Circle().stroke(borderColor, lineWidth: borderWidth))
                 default:
-                    initialsCircle(name: name, size: size)
+                    initialsCircle(name: name, size: size, isWinner: isWinner)
                 }
             }
         } else {
-            initialsCircle(name: name, size: size)
+            initialsCircle(name: name, size: size, isWinner: isWinner)
         }
     }
 
     @ViewBuilder
-    private func initialsCircle(name: String, size: CGFloat) -> some View {
+    private func initialsCircle(name: String, size: CGFloat, isWinner: Bool = false) -> some View {
         Circle()
             .fill(Color(white: 0.15))
             .frame(width: size, height: size)
@@ -530,7 +535,7 @@ struct GameResultView: View {
                     .font(.system(size: size * 0.3, weight: .bold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
             )
-            .overlay(Circle().stroke(Color(white: 0.25), lineWidth: 1))
+            .overlay(Circle().stroke(isWinner ? AppTheme.Colors.accent : Color(white: 0.25), lineWidth: isWinner ? 2 : 1))
     }
 
     @ViewBuilder

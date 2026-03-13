@@ -8,9 +8,9 @@
 import SwiftUI
 
 enum GameFilter: String, CaseIterable {
-    case all = "All"
-    case upcoming = "Upcoming"
-    case completed = "Completed"
+    case all = "Todos"
+    case upcoming = "Próximos"
+    case completed = "Resultados"
 }
 
 struct GamesListView: View {
@@ -22,25 +22,29 @@ struct GamesListView: View {
     
     var filteredGames: [GamesResponse.DateGroup] {
         guard let gamesResponse = gamesResponse else { return [] }
-        
+
+        let groups: [GamesResponse.DateGroup]
         switch selectedFilter {
         case .all:
-            return gamesResponse.games
+            groups = gamesResponse.games
         case .upcoming:
-            return gamesResponse.games.map { dateGroup in
+            groups = gamesResponse.games.map { dateGroup in
                 GamesResponse.DateGroup(
                     date: dateGroup.date,
                     games: dateGroup.games.filter { !$0.isFinished }
                 )
             }.filter { !$0.games.isEmpty }
         case .completed:
-            return gamesResponse.games.map { dateGroup in
+            groups = gamesResponse.games.map { dateGroup in
                 GamesResponse.DateGroup(
                     date: dateGroup.date,
                     games: dateGroup.games.filter { $0.isFinished }
                 )
             }.filter { !$0.games.isEmpty }
         }
+
+        // Sort date groups so future dates come first
+        return groups.sorted { $0.date > $1.date }
     }
     
     var body: some View {
@@ -224,9 +228,11 @@ struct GameCard: View {
             }
             
             // Stadium/Location
-            Text("City Stadium")
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(Color(white: 0.5))
+            if let venue = game.venue {
+                Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Color(white: 0.5))
+            }
         }
         .padding(.horizontal, AppTheme.Spacing.large)
         .padding(.vertical, AppTheme.Spacing.large)
