@@ -25,7 +25,7 @@ struct UpcomingGameView: View {
             VStack(spacing: 0) {
                 // Header
                 ZStack {
-                    Text("Upcoming Game")
+                    Text("Juego Próximo")
                         .font(AppTheme.Typography.headline)
                         .foregroundStyle(AppTheme.Colors.primaryText)
 
@@ -124,6 +124,9 @@ struct UpcomingGameView: View {
                 // VS
                 VStack(spacing: 4) {
                     if let gameTime = detail.game.gameTime {
+                        Text(formatShortDate(gameTime))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.secondaryText)
                         Text(formatTime(gameTime))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.accent)
@@ -184,7 +187,7 @@ struct UpcomingGameView: View {
 
         VStack(spacing: 0) {
             // Title
-            Text("Key Stats")
+            Text("Stats")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -514,6 +517,13 @@ struct UpcomingGameView: View {
         return "?"
     }
 
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_MX")
+        formatter.dateFormat = "dd MMM yy"
+        return formatter.string(from: date)
+    }
+
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
@@ -538,7 +548,7 @@ struct UpcomingGameView: View {
                             .fill(result == 1 ? AppTheme.Colors.accent : result == 0 ? Color(red: 0.8, green: 0.2, blue: 0.2) : Color(white: 0.15))
                             .frame(width: 22, height: 22)
 
-                        Text(result == 1 ? "W" : result == 0 ? "L" : "-")
+                        Text(result == 1 ? "V" : result == 0 ? "D" : "-")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(result == 1 ? AppTheme.Colors.accentText : result == 0 ? .white : Color(white: 0.4))
                     }
@@ -551,7 +561,7 @@ struct UpcomingGameView: View {
                 .foregroundStyle(AppTheme.Colors.primaryText)
 
             // Label
-            Text("WIN / LOSS")
+            Text("VICTORIA / DERROTA")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(Color(white: 0.4))
         }

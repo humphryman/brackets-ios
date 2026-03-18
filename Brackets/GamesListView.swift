@@ -324,17 +324,23 @@ struct CenterSection: View {
     var body: some View {
         VStack(spacing: AppTheme.Spacing.small) {
             if game.isFinished {
-                // Single enclosure box with both scores
+                // Date + score
                 VStack(spacing: 4) {
+                    if let gameTime = game.gameTime {
+                        Text(formatShortDate(gameTime))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.4))
+                    }
+
                     HStack(spacing: 8) {
                         Text("\(game.homeScore ?? 0)")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
-                        
+
                         Text("-")
                             .font(.system(size: 16, weight: .regular))
                             .foregroundStyle(Color(white: 0.45))
-                        
+
                         Text("\(game.awayScore ?? 0)")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
@@ -346,26 +352,36 @@ struct CenterSection: View {
                             .fill(Color(white: 0.06))
                             .stroke(Color(white: 0.2), lineWidth: 1)
                     )
-                    
+
                     Text("Final")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color(white: 0.4))
                 }
             } else {
-                // Show VS and time
-                Text("VS")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Color(white: 0.5))
-                
+                // Date + time + VS
                 if let gameTime = game.gameTime {
+                    Text(formatShortDate(gameTime))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(white: 0.4))
                     Text(formatTime(gameTime))
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.accent)
                 }
+
+                Text("VS")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Color(white: 0.5))
             }
         }
     }
-    
+
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_MX")
+        formatter.dateFormat = "dd MMM yy"
+        return formatter.string(from: date)
+    }
+
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"

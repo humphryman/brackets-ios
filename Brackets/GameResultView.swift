@@ -24,7 +24,7 @@ struct GameResultView: View {
             VStack(spacing: 0) {
                 // Header
                 ZStack {
-                    Text("Game Result")
+                    Text("Resultado")
                         .font(AppTheme.Typography.headline)
                         .foregroundStyle(AppTheme.Colors.primaryText)
 
@@ -199,7 +199,7 @@ struct GameResultView: View {
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
-                Text("Player Stats")
+                Text("Stats")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -602,7 +602,8 @@ struct GameResultView: View {
 
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_MX")
         formatter.dateFormat = "MMMM dd, yyyy"
-        return formatter.string(from: date)
+        return formatter.string(from: date).capitalized
     }
 }

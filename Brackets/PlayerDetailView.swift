@@ -54,7 +54,7 @@ struct PlayerDetailView: View {
 
     private var header: some View {
         ZStack {
-            Text("Player Stats")
+            Text("Detalles de Jugador")
                 .font(AppTheme.Typography.headline)
                 .foregroundStyle(AppTheme.Colors.primaryText)
 
@@ -172,7 +172,7 @@ struct PlayerDetailView: View {
         }
 
         return VStack(spacing: 16) {
-            Text("Player Total Stats")
+            Text("Stats Totales")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -269,7 +269,7 @@ struct PlayerDetailView: View {
         let rowHeight: CGFloat = 52
 
         return VStack(spacing: 16) {
-            Text("Stats vs Opponents")
+            Text("Stats")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
