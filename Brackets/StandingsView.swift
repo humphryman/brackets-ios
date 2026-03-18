@@ -88,7 +88,7 @@ struct StandingCard: View {
             Spacer(minLength: AppTheme.Spacing.small)
             
             // Stats: FAV, CON, DIFF
-            HStack(spacing: AppTheme.Spacing.medium) {
+            HStack(spacing: 14) {
                 StatColumn(value: standing.pointsFor, label: "FAV")
                 StatColumn(value: standing.pointsAgainst, label: "CON")
                 DiffColumn(value: standing.pointDifferential)
