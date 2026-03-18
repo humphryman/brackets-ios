@@ -203,45 +203,78 @@ struct FilterButton: View {
 struct GameCard: View {
     let game: Game
     
+    private var isSemifinal: Bool {
+        game.stage?.lowercased().contains("semifinal") == true
+    }
+
+    private var isFinal: Bool {
+        guard let stage = game.stage?.lowercased() else { return false }
+        return stage.contains("final") && !stage.contains("semifinal")
+    }
+
+    private var stageBadgeText: String? {
+        if isSemifinal { return "Semifinal" }
+        if isFinal { return "Final" }
+        return nil
+    }
+
     var body: some View {
-        VStack(spacing: AppTheme.Spacing.standard) {
-            HStack(spacing: AppTheme.Spacing.large) {
-                // Home Team
-                TeamSection(
-                    teamName: game.homeTeam?.name ?? "TBD",
-                    initials: getInitials(game.homeTeam?.name ?? "TBD"),
-                    isWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
-                    imageURL: game.homeTeam?.fullImageURL
-                )
-                .frame(maxWidth: .infinity)
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: AppTheme.Spacing.standard) {
+                if stageBadgeText != nil {
+                    Spacer().frame(height: 9)
+                }
 
-                // Center: Score or VS with time
-                CenterSection(game: game)
-                    .frame(width: 130)
+                HStack(spacing: AppTheme.Spacing.large) {
+                    // Home Team
+                    TeamSection(
+                        teamName: game.homeTeam?.name ?? "TBD",
+                        initials: getInitials(game.homeTeam?.name ?? "TBD"),
+                        isWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
+                        imageURL: game.homeTeam?.fullImageURL,
+                        forceDarkText: isFinal
+                    )
+                    .frame(maxWidth: .infinity)
 
-                // Away Team
-                TeamSection(
-                    teamName: game.awayTeam?.name ?? "TBD",
-                    initials: getInitials(game.awayTeam?.name ?? "TBD"),
-                    isWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
-                    imageURL: game.awayTeam?.fullImageURL
-                )
-                .frame(maxWidth: .infinity)
+                    // Center: Score or VS with time
+                    CenterSection(game: game, forceDarkText: isFinal)
+                        .frame(width: 130)
+
+                    // Away Team
+                    TeamSection(
+                        teamName: game.awayTeam?.name ?? "TBD",
+                        initials: getInitials(game.awayTeam?.name ?? "TBD"),
+                        isWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
+                        imageURL: game.awayTeam?.fullImageURL,
+                        forceDarkText: isFinal
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+
+                // Stadium/Location
+                if let venue = game.venue {
+                    Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(isFinal ? Color.black.opacity(0.6) : Color(white: 0.5))
+                }
             }
-            
-            // Stadium/Location
-            if let venue = game.venue {
-                Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(white: 0.5))
+
+            // Stage badge
+            if let badge = stageBadgeText {
+                Text(badge.uppercased())
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(isFinal ? .white : AppTheme.Colors.accentText)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(isFinal ? Color.black.opacity(0.3) : AppTheme.Colors.accent))
             }
         }
         .padding(.horizontal, AppTheme.Spacing.large)
         .padding(.vertical, AppTheme.Spacing.large)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(Color(white: 0.1))
-                .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+                .fill(isFinal ? AppTheme.Colors.accent : Color(white: 0.1))
+                .stroke(isSemifinal ? AppTheme.Colors.accent.opacity(0.6) : Color(white: 1.0).opacity(isFinal ? 0 : 0.18), lineWidth: isSemifinal ? 1.5 : 1)
         )
     }
     
@@ -262,6 +295,7 @@ struct TeamSection: View {
     let initials: String
     let isWinner: Bool
     var imageURL: String? = nil
+    var forceDarkText: Bool = false
 
     var body: some View {
         VStack(spacing: AppTheme.Spacing.small) {
@@ -295,7 +329,7 @@ struct TeamSection: View {
             // Team Name
             Text(teamName)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.primaryText)
+                .foregroundStyle(forceDarkText ? .black : AppTheme.Colors.primaryText)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
@@ -317,10 +351,11 @@ struct TeamSection: View {
 /// Center section with score or time
 struct CenterSection: View {
     let game: Game
-    
+    var forceDarkText: Bool = false
+
     var homeIsWinner: Bool { game.isFinished && game.winner?.id == game.homeTeam?.id }
     var awayIsWinner: Bool { game.isFinished && game.winner?.id == game.awayTeam?.id }
-    
+
     var body: some View {
         VStack(spacing: AppTheme.Spacing.small) {
             if game.isFinished {
@@ -329,48 +364,48 @@ struct CenterSection: View {
                     if let gameTime = game.gameTime {
                         Text(formatShortDate(gameTime))
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.4))
+                            .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
                     }
 
                     HStack(spacing: 8) {
                         Text("\(game.homeScore ?? 0)")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                            .foregroundStyle(forceDarkText ? .black : (homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText))
 
                         Text("-")
                             .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(Color(white: 0.45))
+                            .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.45))
 
                         Text("\(game.awayScore ?? 0)")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                            .foregroundStyle(forceDarkText ? .black : (awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText))
                     }
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(white: 0.06))
-                            .stroke(Color(white: 0.2), lineWidth: 1)
+                            .fill(forceDarkText ? Color.black.opacity(0.1) : Color(white: 0.06))
+                            .stroke(forceDarkText ? Color.black.opacity(0.2) : Color(white: 0.2), lineWidth: 1)
                     )
 
                     Text("Final")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.4))
+                        .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
                 }
             } else {
                 // Date + time + VS
                 if let gameTime = game.gameTime {
                     Text(formatShortDate(gameTime))
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.4))
+                        .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
                     Text(formatTime(gameTime))
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accent)
+                        .foregroundStyle(forceDarkText ? .black : AppTheme.Colors.accent)
                 }
 
                 Text("VS")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Color(white: 0.5))
+                    .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.5))
             }
         }
     }
