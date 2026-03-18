@@ -45,10 +45,10 @@ struct TournamentContainerView: View {
                 // Header with back button and tournament name
                 ZStack {
                     Text(tournament.name)
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.6)
 
                     HStack {
                         Button {
@@ -68,7 +68,7 @@ struct TournamentContainerView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
-                .padding(.bottom, 8)
+                .padding(.bottom, 16)
 
                 // Content based on selected tab
                 ZStack {

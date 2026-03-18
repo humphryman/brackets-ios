@@ -186,24 +186,25 @@ struct LeagueSelectionView: View {
 
             // Header bar — back button + title matching first screen style
             if showContent && !isBrowsingTournament {
-                HStack(alignment: .center, spacing: 12) {
-                    Button {
-                        dismissCustomer()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(12)
-                            .background(Circle().fill(.black.opacity(0.15)))
-                    }
-
+                ZStack {
                     Text(customer.name)
                         .font(.system(size: 28, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
 
-                    Spacer()
+                    HStack {
+                        Button {
+                            dismissCustomer()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .padding(12)
+                                .background(Circle().fill(.black.opacity(0.15)))
+                        }
+                        Spacer()
+                    }
                 }
                 .padding(.horizontal, AppTheme.Layout.extraLarge)
                 .padding(.top, 10)
