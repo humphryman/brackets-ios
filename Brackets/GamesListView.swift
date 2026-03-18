@@ -318,10 +318,10 @@ struct TeamSection: View {
                     initialsCircle
                 }
 
-                // Winner ring
-                if isWinner {
+                // Winner ring / Final border
+                if isWinner || forceDarkText {
                     Circle()
-                        .stroke(AppTheme.Colors.accent, lineWidth: 2)
+                        .stroke(forceDarkText ? Color.black : AppTheme.Colors.accent, lineWidth: 2)
                         .frame(width: 68, height: 68)
                 }
             }
@@ -338,12 +338,12 @@ struct TeamSection: View {
 
     private var initialsCircle: some View {
         Circle()
-            .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.15))
+            .fill(isWinner ? (forceDarkText ? Color.black : AppTheme.Colors.accent) : Color(white: 0.15))
             .frame(width: 60, height: 60)
             .overlay(
                 Text(initials)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
+                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : (forceDarkText ? .black : AppTheme.Colors.primaryText))
             )
     }
 }
