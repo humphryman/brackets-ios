@@ -6,8 +6,8 @@
 import SwiftUI
 
 enum TeamDetailTab: String, CaseIterable {
-    case games = "Games"
-    case players = "Players"
+    case games = "Juegos"
+    case players = "Jugadores"
     case stats = "Stats"
 
     var icon: String {
@@ -58,7 +58,7 @@ struct TeamDetailView: View {
                 // Header
                 ZStack {
                     // Centered title
-                    Text("Team Details")
+                    Text("Detalle de Equipo")
                         .font(AppTheme.Typography.headline)
                         .foregroundStyle(AppTheme.Colors.primaryText)
 
@@ -199,11 +199,11 @@ struct TeamDetailView: View {
 
             // Place, Wins, Losses row
             HStack(spacing: 0) {
-                infoItem(value: rank > 0 ? "#\(rank)" : "-", label: "Place")
+                infoItem(value: rank > 0 ? "#\(rank)" : "-", label: "Posición")
                 Spacer()
-                infoItem(value: "\(standing.wins)", label: "Wins")
+                infoItem(value: "\(standing.wins)", label: "Victorias")
                 Spacer()
-                infoItem(value: "\(standing.losses)", label: "Losses")
+                infoItem(value: "\(standing.losses)", label: "Derrotas")
             }
         }
         .padding(16)

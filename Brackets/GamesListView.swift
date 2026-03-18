@@ -141,14 +141,16 @@ struct GamesListView: View {
     }
     
     private func formatDateHeader(_ dateString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        
-        if let date = formatter.date(from: dateString) {
+        let parser = DateFormatter()
+        parser.dateFormat = "yyyy-MM-dd"
+
+        if let date = parser.date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "es_MX")
             formatter.dateFormat = "MMMM dd, yyyy"
-            return formatter.string(from: date)
+            return formatter.string(from: date).capitalized
         }
-        
+
         return dateString
     }
 }
