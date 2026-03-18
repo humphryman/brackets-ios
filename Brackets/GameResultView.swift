@@ -104,9 +104,9 @@ struct GameResultView: View {
     @ViewBuilder
     private func scoreCard(detail: GameDetailResponse) -> some View {
         let sets = detail.game.gameSets
-        let teams = detail.game.teamStats
-        let homeScore = teams.first?.score ?? sets.teamAScore
-        let awayScore = teams.count > 1 ? teams[1].score : sets.teamBScore
+        let teams = detail.game.teamStats ?? []
+        let homeScore = teams.first?.score ?? sets?.teamAScore ?? 0
+        let awayScore = teams.count > 1 ? (teams[1].score ?? 0) : (sets?.teamBScore ?? 0)
         let teamAWon = homeScore > awayScore
         let teamBWon = awayScore > homeScore
 
@@ -122,8 +122,8 @@ struct GameResultView: View {
             HStack(spacing: 0) {
                 // Team A
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets.teamAFullImageURL, name: sets.teamA, size: 56, isWinner: teamAWon)
-                    Text(sets.teamA)
+                    teamLogoCircle(urlString: sets?.teamAFullImageURL, name: sets?.teamA ?? "TBD", size: 56, isWinner: teamAWon)
+                    Text(sets?.teamA ?? "TBD")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
@@ -160,8 +160,8 @@ struct GameResultView: View {
 
                 // Team B
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets.teamBFullImageURL, name: sets.teamB, size: 56, isWinner: teamBWon)
-                    Text(sets.teamB)
+                    teamLogoCircle(urlString: sets?.teamBFullImageURL, name: sets?.teamB ?? "TBD", size: 56, isWinner: teamBWon)
+                    Text(sets?.teamB ?? "TBD")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
@@ -189,13 +189,13 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func playerStatsCard(detail: GameDetailResponse) -> some View {
-        let teams = detail.game.teamStats
-        let activeStats = detail.game.activeStats
+        let teams = detail.game.teamStats ?? []
+        let activeStats = detail.game.activeStats ?? []
 
         if teams.count >= 2 {
             let safeIndex = min(selectedTeamIndex, teams.count - 1)
             let selectedTeam = teams[safeIndex]
-            let players = selectedTeam.playerStats.filter { !$0.isTeamEntry }
+            let players = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
@@ -310,7 +310,7 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func gameStatsLeadersCard(detail: GameDetailResponse) -> some View {
-        let activeStats = detail.game.activeStats
+        let activeStats = detail.game.activeStats ?? []
 
         if !activeStats.isEmpty {
             let safeStatIndex = min(selectedStatIndex, activeStats.count - 1)
@@ -489,7 +489,7 @@ struct GameResultView: View {
     }
 
     private func rankedPlayers(for statKey: String, detail: GameDetailResponse) -> [RankedPlayer] {
-        let allPlayers = detail.game.teamStats.flatMap { $0.playerStats }
+        let allPlayers = (detail.game.teamStats ?? []).flatMap { $0.playerStats ?? [] }
             .filter { !$0.isTeamEntry }
 
         let ranked = allPlayers.compactMap { player -> RankedPlayer? in

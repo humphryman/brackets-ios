@@ -28,14 +28,14 @@ enum AppConfig {
         }
 
         /// Mutable base URL — set when the user picks a league
-        nonisolated(unsafe) static var baseURL: String = "https://demo.getbrackets.app"
+        nonisolated(unsafe) static var baseURL: String = "https://getbrackets.app"
 
         nonisolated static var apiURL: String {
             "\(baseURL)/api"
         }
 
         // Customers (league list) API
-        static let customersAPIURL: String = "https://demo.getbrackets.app/api/v1/customers"
+        static let customersAPIURL: String = "https://getbrackets.app/api/v1/customers"
         static let customersAPIToken = "96cd10d4e7a3d0be2babc010c30dbb725f82f788978f2ec9a02e5cc4ef167657"
 
         // Network timeouts

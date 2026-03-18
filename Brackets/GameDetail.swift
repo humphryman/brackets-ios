@@ -25,15 +25,15 @@ struct GameDetailResponse: Codable, Sendable {
 
 struct GameDetail: Identifiable, Codable, Sendable {
     let id: Int
-    let played: Bool
+    let played: Bool?
     let phase: String?
     let round: String?
     let gameTime: Date?
     let stage: String?
     let venue: Venue?
-    let activeStats: [String]
-    let gameSets: GameSets
-    let teamStats: [GameDetailTeamStat]
+    let activeStats: [String]?
+    let gameSets: GameSets?
+    let teamStats: [GameDetailTeamStat]?
 
     enum CodingKeys: String, CodingKey {
         case id, played, phase, round, stage, venue
@@ -62,12 +62,12 @@ struct GameSets: Codable, Sendable {
     let teamAId: Int
     let teamA: String
     let teamALogo: String?
-    let teamAScore: Int
+    let teamAScore: Int?
     let teamAScores: [Int]?
     let teamBId: Int
     let teamB: String
     let teamBLogo: String?
-    let teamBScore: Int
+    let teamBScore: Int?
     let teamBScores: [Int]?
 
     enum CodingKeys: String, CodingKey {
@@ -103,12 +103,12 @@ struct GameSets: Codable, Sendable {
 struct GameDetailTeamStat: Identifiable, Codable, Sendable {
     let id: Int
     let teamName: String
-    let score: Int
+    let score: Int?
     let result: String?
     let teamLogo: String?
     let lastFiveGames: [Int?]?
     let totalTeamStats: [String: Double]?
-    let playerStats: [PlayerGameStat]
+    let playerStats: [PlayerGameStat]?
 
     enum CodingKeys: String, CodingKey {
         case id
