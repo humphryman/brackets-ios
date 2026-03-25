@@ -22,15 +22,18 @@ class TournamentsViewModel {
     func loadTournaments() async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             tournaments = try await APIService.shared.fetchTournaments()
+        } catch APIError.invalidResponse {
+            // Server returns non-200 for customers with no tournaments
+            tournaments = []
         } catch let error as APIError {
             errorMessage = error.localizedDescription
         } catch {
             errorMessage = "An unexpected error occurred"
         }
-        
+
         isLoading = false
     }
 }

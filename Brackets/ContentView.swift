@@ -76,6 +76,16 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.tournaments.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "trophy")
+                    .font(.system(size: 40))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                Text("No hay categorías disponibles")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
                 VStack(spacing: 16) {
@@ -218,6 +228,17 @@ struct ContentView: View {
                     await viewModel.loadTournaments()
                 }
             }
+            .padding(.top, 60)
+        } else if viewModel.filteredTournaments.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "trophy")
+                    .font(.system(size: 40))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                Text("No hay categorías disponibles")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+            .frame(maxWidth: .infinity)
             .padding(.top, 60)
         } else {
             VStack(spacing: AppTheme.Layout.itemSpacing) {
