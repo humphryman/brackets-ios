@@ -9,10 +9,10 @@ import SwiftUI
 
 struct StandingsView: View {
     let tournament: Tournament
-    @State private var standings: [TeamStanding] = []
+    @State private var result: StandingsResult?
     @State private var isLoading = false
     @State private var errorMessage: String?
-    
+
     var body: some View {
         ZStack {
             if isLoading {
@@ -23,7 +23,7 @@ struct StandingsView: View {
                         await loadStandings()
                     }
                 }
-            } else if standings.isEmpty {
+            } else if result == nil || result!.isEmpty {
                 AppTheme.EmptyStateView(
                     icon: "chart.bar",
                     message: "No standings available"
@@ -31,20 +31,24 @@ struct StandingsView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Standings Cards
-                        VStack(spacing: AppTheme.Layout.itemSpacing) {
-                            ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
-                                NavigationLink {
-                                    TeamDetailView(standing: standing, tournamentId: tournament.id, rank: index + 1)
-                                } label: {
-                                    StandingCard(position: index + 1, standing: standing)
+                        switch result! {
+                        case .flat(let standings):
+                            standingsList(standings)
+                        case .groups(let groups):
+                            ForEach(groups) { group in
+                                VStack(alignment: .leading, spacing: AppTheme.Layout.itemSpacing) {
+                                    Text(group.name.capitalized)
+                                        .font(AppTheme.Typography.bodyBold)
+                                        .foregroundStyle(AppTheme.Colors.primaryText)
+                                        .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                        .padding(.top, AppTheme.Spacing.medium)
+
+                                    standingsList(group.standings)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
-                        .padding(.horizontal, AppTheme.Layout.screenPadding)
-                        .padding(.bottom, AppTheme.Layout.large)
                     }
+                    .padding(.bottom, AppTheme.Layout.large)
                 }
             }
         }
@@ -52,13 +56,28 @@ struct StandingsView: View {
             await loadStandings()
         }
     }
-    
+
+    @ViewBuilder
+    private func standingsList(_ standings: [TeamStanding]) -> some View {
+        VStack(spacing: AppTheme.Layout.itemSpacing) {
+            ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
+                NavigationLink {
+                    TeamDetailView(standing: standing, tournamentId: tournament.id, rank: index + 1)
+                } label: {
+                    StandingCard(position: index + 1, standing: standing)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, AppTheme.Layout.screenPadding)
+    }
+
     private func loadStandings() async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            standings = try await APIService.shared.fetchStandings(for: tournament.id)
+            result = try await APIService.shared.fetchStandings(for: tournament.id)
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription

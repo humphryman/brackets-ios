@@ -34,7 +34,34 @@ struct TournamentsResponse: Codable, Sendable {
 
 // Response wrapper for standings
 struct StandingsResponse: Codable, Sendable {
+    let standings: [TeamStanding]?
+    let groupStandings: [GroupStanding]?
+
+    enum CodingKeys: String, CodingKey {
+        case standings
+        case groupStandings = "group_standings"
+    }
+}
+
+// Group Standing Model
+struct GroupStanding: Identifiable, Codable, Sendable {
+    let name: String
     let standings: [TeamStanding]
+
+    var id: String { name }
+}
+
+// Result type for standings endpoint
+enum StandingsResult: Sendable {
+    case flat([TeamStanding])
+    case groups([GroupStanding])
+
+    var isEmpty: Bool {
+        switch self {
+        case .flat(let standings): return standings.isEmpty
+        case .groups(let groups): return groups.isEmpty
+        }
+    }
 }
 
 // Team Standing Model
@@ -279,40 +306,50 @@ final class APIService: Sendable {
         }
     }
     
-    func fetchStandings(for tournamentId: Int) async throws -> [TeamStanding] {
+    func fetchStandings(for tournamentId: Int) async throws -> StandingsResult {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/standings.json") else {
             throw APIError.invalidURL
         }
-        
+
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
-            
+
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
                 throw APIError.invalidResponse
             }
-            
+
             // Debug: Print the raw JSON
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("📦 Standings JSON Response:")
                 print(jsonString)
             }
-            
+
             let decoder = JSONDecoder()
-            // Note: NOT using .convertFromSnakeCase - relying on explicit CodingKeys in models
-            
+
             // Try to decode as wrapped response first
             if let response = try? decoder.decode(StandingsResponse.self, from: data) {
-                print("✅ Decoded standings as wrapped response")
-                return response.standings
+                if let groups = response.groupStandings, !groups.isEmpty {
+                    // Single group named "DEFAULT" means no real groups — treat as flat
+                    if groups.count == 1, groups[0].name.uppercased() == "DEFAULT" {
+                        print("✅ Decoded standings as flat (single DEFAULT group)")
+                        return .flat(groups[0].standings)
+                    }
+                    print("✅ Decoded standings as group standings")
+                    return .groups(groups)
+                }
+                if let standings = response.standings, !standings.isEmpty {
+                    print("✅ Decoded standings as wrapped response")
+                    return .flat(standings)
+                }
             }
-            
+
             // Fallback: Try to decode as direct array
             if let standings = try? decoder.decode([TeamStanding].self, from: data) {
                 print("✅ Decoded standings as direct array")
-                return standings
+                return .flat(standings)
             }
-            
+
             // If neither worked, throw detailed error
             do {
                 _ = try decoder.decode(StandingsResponse.self, from: data)
@@ -336,7 +373,7 @@ final class APIService: Sendable {
                 }
                 throw APIError.decodingError(decodingError)
             }
-            
+
             throw APIError.invalidResponse
         } catch let error as APIError {
             throw error
