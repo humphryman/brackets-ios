@@ -160,14 +160,7 @@ struct UpcomingGameView: View {
 
             // Venue info
             if let venue = detail.game.venue {
-                HStack(spacing: 6) {
-                    Image(systemName: "mappin.and.ellipse")
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.Colors.accent)
-                    Text(venue.name + (venue.courtNumber.map { " - Court \($0)" } ?? ""))
-                        .font(.system(size: 13))
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
-                }
+                VenueLabel(venue: venue)
             }
         }
         .padding(AppTheme.Layout.cardPadding)

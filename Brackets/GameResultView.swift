@@ -172,9 +172,7 @@ struct GameResultView: View {
 
             // Venue
             if let venue = detail.game.venue {
-                Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
-                    .font(.system(size: 13))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                VenueLabel(venue: venue)
             }
         }
         .padding(AppTheme.Layout.cardPadding)

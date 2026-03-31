@@ -23,7 +23,7 @@ struct GameDetailResponse: Codable, Sendable {
 
 // MARK: - Game detail
 
-struct GameDetail: Identifiable, Codable, Sendable {
+struct GameDetail: Identifiable, Sendable {
     let id: Int
     let played: Bool?
     let phase: String?
@@ -44,15 +44,109 @@ struct GameDetail: Identifiable, Codable, Sendable {
     }
 }
 
+extension GameDetail: Codable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        played = try container.decodeIfPresent(Bool.self, forKey: .played)
+        phase = try container.decodeIfPresent(String.self, forKey: .phase)
+        round = try container.decodeIfPresent(String.self, forKey: .round)
+        gameTime = try container.decodeIfPresent(Date.self, forKey: .gameTime)
+        stage = try container.decodeIfPresent(String.self, forKey: .stage)
+        venue = try container.decodeIfPresent(Venue.self, forKey: .venue)
+        activeStats = try container.decodeIfPresent([String].self, forKey: .activeStats)
+        teamStats = try container.decodeIfPresent([GameDetailTeamStat].self, forKey: .teamStats)
+
+        // game_sets can be a GameSets object or an empty array []
+        if let sets = try? container.decodeIfPresent(GameSets.self, forKey: .gameSets) {
+            gameSets = sets
+        } else {
+            gameSets = nil
+        }
+    }
+}
+
 // MARK: - Venue
 
-struct Venue: Codable, Sendable {
+struct Venue: Sendable {
     let name: String
     let courtNumber: String?
+    let lat: Double?
+    let lng: Double?
 
     enum CodingKeys: String, CodingKey {
         case name
         case courtNumber = "court_number"
+        case court
+        case lat
+        case lng
+    }
+
+    init(name: String, courtNumber: String?, lat: Double?, lng: Double?) {
+        self.name = name
+        self.courtNumber = courtNumber
+        self.lat = lat
+        self.lng = lng
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        name = try container.decode(String.self, forKey: .name)
+        // court can come as "court_number" or "court"
+        if let val = try? container.decodeIfPresent(String.self, forKey: .courtNumber) {
+            courtNumber = val
+        } else if let val = try? container.decodeIfPresent(String.self, forKey: .court) {
+            courtNumber = val
+        } else if let val = try? container.decodeIfPresent(Int.self, forKey: .court) {
+            courtNumber = String(val)
+        } else if let val = try? container.decodeIfPresent(Int.self, forKey: .courtNumber) {
+            courtNumber = String(val)
+        } else {
+            courtNumber = nil
+        }
+
+        // lat/lng can come as Double or String from the API
+        if let val = try? container.decodeIfPresent(Double.self, forKey: .lat) {
+            lat = val
+        } else if let str = try? container.decodeIfPresent(String.self, forKey: .lat) {
+            lat = Double(str)
+        } else {
+            lat = nil
+        }
+
+        if let val = try? container.decodeIfPresent(Double.self, forKey: .lng) {
+            lng = val
+        } else if let str = try? container.decodeIfPresent(String.self, forKey: .lng) {
+            lng = Double(str)
+        } else {
+            lng = nil
+        }
+    }
+
+    var hasCoordinates: Bool {
+        lat != nil && lng != nil
+    }
+
+    var mapsURL: URL? {
+        guard let lat = lat, let lng = lng else { return nil }
+        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return URL(string: "maps://?q=\(encodedName)&ll=\(lat),\(lng)")
+    }
+
+    var googleMapsURL: URL? {
+        guard let lat = lat, let lng = lng else { return nil }
+        let encodedName = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        return URL(string: "https://www.google.com/maps/search/?api=1&query=\(lat),\(lng)&query_place_id=\(encodedName)")
+    }
+}
+
+extension Venue: Codable {
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(courtNumber, forKey: .courtNumber)
+        try container.encodeIfPresent(lat, forKey: .lat)
+        try container.encodeIfPresent(lng, forKey: .lng)
     }
 }
 
@@ -184,5 +278,41 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         // Decode dynamic_stats: { "points": null, "tr": 0, ... }
         let statsContainer = try container.decode([String: Int?].self, forKey: .dynamicStats)
         dynamicStats = statsContainer
+    }
+}
+
+// MARK: - Venue Label (reusable, tappable when coordinates available)
+
+import SwiftUI
+
+struct VenueLabel: View {
+    let venue: Venue
+    @Environment(\.openURL) private var openURL
+
+    private var venueText: String {
+        venue.name + (venue.courtNumber.map { " - \($0)" } ?? "")
+    }
+
+    var body: some View {
+        if let mapsURL = venue.googleMapsURL {
+            Button {
+                openURL(mapsURL)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.Colors.accent)
+                    Text(venueText)
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppTheme.Colors.accent)
+                        .underline()
+                }
+            }
+            .buttonStyle(.plain)
+        } else {
+            Text(venueText)
+                .font(.system(size: 13))
+                .foregroundStyle(Color(white: 0.5))
+        }
     }
 }

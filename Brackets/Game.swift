@@ -99,7 +99,7 @@ extension Game: Codable {
         if let venueObject = try? container.decodeIfPresent(Venue.self, forKey: .venue) {
             venue = venueObject
         } else if let venueString = try? container.decodeIfPresent(String.self, forKey: .venue) {
-            venue = Venue(name: venueString, courtNumber: nil)
+            venue = Venue(name: venueString, courtNumber: nil, lat: nil, lng: nil)
         } else {
             venue = nil
         }

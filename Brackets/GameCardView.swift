@@ -87,9 +87,7 @@ struct GameCardView: View {
 
                     // Venue
                     if let venue = game.venue {
-                        Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color(white: 0.5))
+                        VenueLabel(venue: venue)
                     }
                 }
                 .padding(.vertical, 20)
