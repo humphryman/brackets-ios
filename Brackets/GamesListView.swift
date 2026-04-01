@@ -68,8 +68,8 @@ struct GamesListView: View {
             } else if let _ = gamesResponse {
                 if filteredGames.isEmpty {
                     AppTheme.EmptyStateView(
-                        icon: "sportscourt",
-                        message: selectedFilter == .all ? "No games scheduled" : "No \(selectedFilter.rawValue.lowercased()) games"
+                        icon: "basketball",
+                        message: "No hay juegos agendados."
                     )
                 } else {
                     VStack(spacing: 0) {
@@ -135,7 +135,7 @@ struct GamesListView: View {
             } else {
                 AppTheme.EmptyStateView(
                     icon: "sportscourt",
-                    message: "No games available"
+                    message: "No hay juegos agendados."
                 )
             }
         }
@@ -466,7 +466,7 @@ struct CenterSection: View {
 
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = "h:mm a"
         return formatter.string(from: date)
     }
 }

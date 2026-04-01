@@ -31,7 +31,7 @@ struct StatsLeadersView: View {
             } else if activeCategories.isEmpty {
                 AppTheme.EmptyStateView(
                     icon: "chart.bar.xaxis",
-                    message: "No stats available"
+                    message: "No hay estadisticas disponibles."
                 )
             } else {
                 statsContent

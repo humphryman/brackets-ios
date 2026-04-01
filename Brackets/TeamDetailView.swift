@@ -276,7 +276,7 @@ struct TeamGamesTabView: View {
         if games.isEmpty {
             AppTheme.EmptyStateView(
                 icon: "basketball",
-                message: "No games scheduled"
+                message: "No hay juegos agendados."
             )
         } else {
             ScrollViewReader { proxy in
@@ -342,7 +342,7 @@ struct TeamPlayersTabView: View {
         if players.isEmpty {
             AppTheme.EmptyStateView(
                 icon: "person.3",
-                message: "No players available"
+                message: "No hay jugadores en equipo."
             )
         } else {
             ScrollView {
@@ -436,7 +436,7 @@ struct TeamStatsTabView: View {
         if statLeaders.isEmpty {
             AppTheme.EmptyStateView(
                 icon: "chart.bar",
-                message: "No stats available"
+                message: "No hay estadisticas disponibles."
             )
         } else {
             let safeIndex = min(selectedStatIndex, statLeaders.count - 1)
