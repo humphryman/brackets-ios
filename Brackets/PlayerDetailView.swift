@@ -129,9 +129,9 @@ struct PlayerDetailView: View {
                 Spacer()
                 infoItem(value: formatDOB(player.dob), label: "Nacimiento")
                 Spacer()
-                infoItem(value: player.position ?? "-", label: "Posición")
+                infoItem(value: player.position?.isEmpty == false ? player.position! : "-", label: "Posición")
                 Spacer()
-                infoItem(value: info.height ?? "-", label: "Estatura")
+                infoItem(value: info.height?.isEmpty == false ? info.height! : "-", label: "Estatura")
             }
         }
         .padding(16)
