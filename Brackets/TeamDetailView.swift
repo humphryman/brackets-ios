@@ -167,7 +167,7 @@ struct TeamDetailView: View {
         } else {
             switch selectedTab {
             case .games:
-                TeamGamesTabView(games: teamSeason?.games ?? [], tournamentId: tournamentId)
+                TeamGamesTabView(games: teamSeason?.allGames ?? [], tournamentId: tournamentId)
             case .players:
                 TeamPlayersTabView(players: teamSeason?.playerSeasons ?? [], tournamentId: tournamentId)
             case .stats:
@@ -279,28 +279,48 @@ struct TeamGamesTabView: View {
                 message: "No games scheduled"
             )
         } else {
-            ScrollView {
-                VStack(spacing: AppTheme.Spacing.medium) {
-                    ForEach(games) { game in
-                        if game.isFinished {
-                            NavigationLink {
-                                GameResultView(game: game, tournamentId: tournamentId)
-                            } label: {
-                                GameCard(game: game)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: AppTheme.Spacing.medium) {
+                        ForEach(games) { game in
+                            if game.isFinished {
+                                NavigationLink {
+                                    GameResultView(game: game, tournamentId: tournamentId)
+                                } label: {
+                                    GameCard(game: game)
+                                }
+                                .buttonStyle(.plain)
+                                .id(game.id)
+                            } else {
+                                NavigationLink {
+                                    UpcomingGameView(game: game, tournamentId: tournamentId)
+                                } label: {
+                                    GameCard(game: game)
+                                }
+                                .buttonStyle(.plain)
+                                .id(game.id)
                             }
-                            .buttonStyle(.plain)
-                        } else {
-                            NavigationLink {
-                                UpcomingGameView(game: game, tournamentId: tournamentId)
-                            } label: {
-                                GameCard(game: game)
+                        }
+                    }
+                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    .padding(.bottom, AppTheme.Layout.large)
+                }
+                .onAppear {
+                    // Find the nearest future game (closest to today)
+                    let now = Date()
+                    let nearestUpcoming = games
+                        .filter { !$0.isFinished && ($0.gameTime ?? .distantPast) >= now }
+                        .min { ($0.gameTime ?? .distantFuture) < ($1.gameTime ?? .distantFuture) }
+
+                    let targetId = nearestUpcoming?.id ?? games.first?.id
+                    if let targetId {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            withAnimation {
+                                proxy.scrollTo(targetId, anchor: .top)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
-                .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.bottom, AppTheme.Layout.large)
             }
         }
     }

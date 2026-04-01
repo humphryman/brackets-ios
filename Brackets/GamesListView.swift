@@ -435,8 +435,8 @@ struct CenterSection: View {
             } else {
                 // Date + time + VS
                 if let gameTime = game.gameTime {
-                    Text(formatShortDate(gameTime))
-                        .font(.system(size: 11, weight: .semibold))
+                    Text(formatFullDate(gameTime))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
                     Text(formatTime(gameTime))
                         .font(.system(size: 16, weight: .bold))
@@ -455,6 +455,13 @@ struct CenterSection: View {
         formatter.locale = Locale(identifier: "es_MX")
         formatter.dateFormat = "dd MMM yy"
         return formatter.string(from: date)
+    }
+
+    private func formatFullDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_MX")
+        formatter.dateFormat = "dd MMMM yyyy"
+        return formatter.string(from: date).capitalized
     }
 
     private func formatTime(_ date: Date) -> String {

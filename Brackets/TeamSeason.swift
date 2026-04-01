@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct TeamSeasonResponse: Codable, Sendable {
+struct TeamSeasonResponse: Decodable, Sendable {
     let teamSeason: TeamSeasonDetail
 
     enum CodingKeys: String, CodingKey {
@@ -13,17 +13,37 @@ struct TeamSeasonResponse: Codable, Sendable {
     }
 }
 
-struct TeamSeasonDetail: Codable, Sendable {
+struct TeamSeasonDetail: Decodable, Sendable {
     let games: [Game]
     let playerSeasons: [PlayerSeason]
-    let upcomingGame: Game?
+    let upcomingGames: [Game]
     let statLeaders: [StatLeaderCategory]
 
     enum CodingKeys: String, CodingKey {
         case games
         case playerSeasons = "player_seasons"
-        case upcomingGame = "upcoming_game"
+        case upcomingGames = "upcoming_games"
         case statLeaders = "stat_leaders"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        games = try container.decodeIfPresent([Game].self, forKey: .games) ?? []
+        playerSeasons = try container.decodeIfPresent([PlayerSeason].self, forKey: .playerSeasons) ?? []
+        statLeaders = try container.decodeIfPresent([StatLeaderCategory].self, forKey: .statLeaders) ?? []
+
+        // upcoming_games can be an array or a single object (upcoming_game)
+        if let arr = try? container.decodeIfPresent([Game].self, forKey: .upcomingGames) {
+            upcomingGames = arr
+        } else {
+            upcomingGames = []
+        }
+    }
+
+    /// All games combined (played + upcoming), newest date on top
+    var allGames: [Game] {
+        let combined = games + upcomingGames
+        return combined.sorted { ($0.gameTime ?? .distantPast) > ($1.gameTime ?? .distantPast) }
     }
 
     var nonEmptyStatLeaders: [StatLeaderCategory] {
