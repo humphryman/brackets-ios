@@ -7,6 +7,14 @@
 
 import SwiftUI
 
+private extension DateFormatter {
+    static let yyyyMMdd: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+}
+
 enum GameFilter: String, CaseIterable {
     case all = "Todos"
     case upcoming = "Próximos"
@@ -72,46 +80,55 @@ struct GamesListView: View {
                             .padding(.bottom, AppTheme.Spacing.large)
                         
                         // Games List
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
-                                ForEach(filteredGames, id: \.date) { dateGroup in
-                                    VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                                        // Date Header with calendar icon
-                                        HStack(spacing: 8) {
-                                            Image(systemName: "calendar")
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundStyle(AppTheme.Colors.accent)
-                                            
-                                            Text(formatDateHeader(dateGroup.date))
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundStyle(AppTheme.Colors.primaryText)
-                                        }
-                                        .padding(.horizontal, AppTheme.Layout.screenPadding)
-                                        
-                                        // Games for this date
-                                        ForEach(dateGroup.games) { game in
-                                            if game.isFinished {
-                                                NavigationLink {
-                                                    GameResultView(game: game, tournamentId: tournament.id)
-                                                } label: {
-                                                    GameCard(game: game)
-                                                        .padding(.horizontal, AppTheme.Layout.screenPadding)
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
+                                    ForEach(filteredGames, id: \.date) { dateGroup in
+                                        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                                            // Date Header with calendar icon
+                                            HStack(spacing: 8) {
+                                                Image(systemName: "calendar")
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                    .foregroundStyle(AppTheme.Colors.accent)
+
+                                                Text(formatDateHeader(dateGroup.date))
+                                                    .font(.system(size: 16, weight: .bold))
+                                                    .foregroundStyle(AppTheme.Colors.primaryText)
+                                            }
+                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+
+                                            // Games for this date
+                                            ForEach(dateGroup.games) { game in
+                                                if game.isFinished {
+                                                    NavigationLink {
+                                                        GameResultView(game: game, tournamentId: tournament.id)
+                                                    } label: {
+                                                        GameCard(game: game)
+                                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                } else {
+                                                    NavigationLink {
+                                                        UpcomingGameView(game: game, tournamentId: tournament.id)
+                                                    } label: {
+                                                        GameCard(game: game)
+                                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                                    }
+                                                    .buttonStyle(.plain)
                                                 }
-                                                .buttonStyle(.plain)
-                                            } else {
-                                                NavigationLink {
-                                                    UpcomingGameView(game: game, tournamentId: tournament.id)
-                                                } label: {
-                                                    GameCard(game: game)
-                                                        .padding(.horizontal, AppTheme.Layout.screenPadding)
-                                                }
-                                                .buttonStyle(.plain)
                                             }
                                         }
+                                        .id(dateGroup.date)
                                     }
                                 }
+                                .padding(.bottom, AppTheme.Layout.large)
                             }
-                            .padding(.bottom, AppTheme.Layout.large)
+                            .onChange(of: selectedFilter) {
+                                scrollToInitialPosition(proxy: proxy)
+                            }
+                            .onAppear {
+                                scrollToInitialPosition(proxy: proxy)
+                            }
                         }
                     }
                 }
@@ -140,6 +157,29 @@ struct GamesListView: View {
         }
     }
     
+    private func scrollToInitialPosition(proxy: ScrollViewProxy) {
+        let targetDate: String?
+
+        if selectedFilter == .completed {
+            targetDate = filteredGames.first?.date
+        } else {
+            let today = DateFormatter.yyyyMMdd.string(from: Date())
+            targetDate = filteredGames
+                .map(\.date)
+                .filter { $0 >= today }
+                .sorted()
+                .first
+        }
+
+        if let targetDate {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation {
+                    proxy.scrollTo(targetDate, anchor: .top)
+                }
+            }
+        }
+    }
+
     private func formatDateHeader(_ dateString: String) -> String {
         let parser = DateFormatter()
         parser.dateFormat = "yyyy-MM-dd"
