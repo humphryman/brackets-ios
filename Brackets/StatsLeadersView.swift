@@ -17,7 +17,7 @@ struct StatsLeadersView: View {
 
     // Filter out categories with no stats
     private var activeCategories: [StatCategory] {
-        categories.filter { !$0.stats.isEmpty }
+        categories.filter { $0.name != nil && !$0.stats.isEmpty }
     }
 
     var body: some View {
@@ -99,7 +99,7 @@ struct StatsLeadersView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(AppTheme.Colors.accent)
 
-                Text(category.name)
+                Text(category.name ?? "")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
             }

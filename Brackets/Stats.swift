@@ -20,8 +20,8 @@ struct TopStatsResponse: Codable, Sendable {
 // MARK: - Models
 
 struct StatCategory: Codable, Identifiable, Sendable {
-    var id: String { name }
-    let name: String
+    var id: String { name ?? "unknown" }
+    let name: String?
     let stats: [PlayerStatEntry]
 }
 
