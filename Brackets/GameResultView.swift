@@ -105,8 +105,16 @@ struct GameResultView: View {
     private func scoreCard(detail: GameDetailResponse) -> some View {
         let sets = detail.game.gameSets
         let teams = detail.game.teamStats ?? []
-        let homeScore = teams.first?.score ?? sets?.teamAScore ?? 0
-        let awayScore = teams.count > 1 ? (teams[1].score ?? 0) : (sets?.teamBScore ?? 0)
+        let teamA = teams.count > 0 ? teams[0] : nil
+        let teamB = teams.count > 1 ? teams[1] : nil
+
+        let teamAName = sets?.teamA ?? teamA?.teamName ?? "TBD"
+        let teamBName = sets?.teamB ?? teamB?.teamName ?? "TBD"
+        let teamALogoURL = sets?.teamAFullImageURL ?? teamA?.fullImageURL
+        let teamBLogoURL = sets?.teamBFullImageURL ?? teamB?.fullImageURL
+
+        let homeScore = teamA?.score ?? sets?.teamAScore ?? 0
+        let awayScore = teamB?.score ?? sets?.teamBScore ?? 0
         let teamAWon = homeScore > awayScore
         let teamBWon = awayScore > homeScore
 
@@ -122,8 +130,8 @@ struct GameResultView: View {
             HStack(spacing: 0) {
                 // Team A
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets?.teamAFullImageURL, name: sets?.teamA ?? "TBD", size: 56, isWinner: teamAWon)
-                    Text(sets?.teamA ?? "TBD")
+                    teamLogoCircle(urlString: teamALogoURL, name: teamAName, size: 56, isWinner: teamAWon)
+                    Text(teamAName)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
@@ -160,8 +168,8 @@ struct GameResultView: View {
 
                 // Team B
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets?.teamBFullImageURL, name: sets?.teamB ?? "TBD", size: 56, isWinner: teamBWon)
-                    Text(sets?.teamB ?? "TBD")
+                    teamLogoCircle(urlString: teamBLogoURL, name: teamBName, size: 56, isWinner: teamBWon)
+                    Text(teamBName)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
