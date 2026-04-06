@@ -203,6 +203,7 @@ struct GameDetailTeamStat: Identifiable, Codable, Sendable {
     let lastFiveGames: [Int?]?
     let totalTeamStats: [String: Double]?
     let playerStats: [PlayerGameStat]?
+    let gamesPlayed: Int?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -213,6 +214,20 @@ struct GameDetailTeamStat: Identifiable, Codable, Sendable {
         case lastFiveGames = "last_five_games"
         case totalTeamStats = "total_team_stats"
         case playerStats = "player_stats"
+        case gamesPlayed = "games_played"
+    }
+
+    /// Average stats per game
+    var averageTeamStats: [String: Double]? {
+        guard let totals = totalTeamStats, let gp = effectiveGamesPlayed, gp > 0 else { return totalTeamStats }
+        return totals.mapValues { $0 / Double(gp) }
+    }
+
+    /// Games played from API or derived from last five games
+    var effectiveGamesPlayed: Int? {
+        if let gp = gamesPlayed { return gp }
+        // Fallback: count non-nil entries in lastFiveGames as minimum
+        return lastFiveGames?.compactMap({ $0 }).count
     }
 
     var fullImageURL: String? {

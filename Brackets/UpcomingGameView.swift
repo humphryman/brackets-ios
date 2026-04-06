@@ -105,15 +105,26 @@ struct UpcomingGameView: View {
     @ViewBuilder
     private func teamMatchupCard(detail: GameDetailResponse) -> some View {
         let sets = detail.game.gameSets
+        let teams = detail.game.teamStats ?? []
+        let teamA = teams.count > 0 ? teams[0] : nil
+        let teamB = teams.count > 1 ? teams[1] : nil
+
+        // Use gameSets if available, otherwise fall back to teamStats
+        let teamAName = sets?.teamA ?? teamA?.teamName ?? "TBD"
+        let teamBName = sets?.teamB ?? teamB?.teamName ?? "TBD"
+        let teamALogoURL = sets?.teamAFullImageURL ?? teamA?.fullImageURL
+        let teamBLogoURL = sets?.teamBFullImageURL ?? teamB?.fullImageURL
+        let teamAId = sets?.teamAId ?? teamA?.id
+        let teamBId = sets?.teamBId ?? teamB?.id
 
         VStack(spacing: AppTheme.Spacing.large) {
             // Team logos side by side
             HStack(spacing: AppTheme.Spacing.large) {
                 // Team A
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets?.teamAFullImageURL, name: sets?.teamA ?? "TBD", size: 72)
+                    teamLogoCircle(urlString: teamALogoURL, name: teamAName, size: 72)
 
-                    Text(sets?.teamA ?? "TBD")
+                    Text(teamAName)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
@@ -139,9 +150,9 @@ struct UpcomingGameView: View {
 
                 // Team B
                 VStack(spacing: AppTheme.Spacing.small) {
-                    teamLogoCircle(urlString: sets?.teamBFullImageURL, name: sets?.teamB ?? "TBD", size: 72)
+                    teamLogoCircle(urlString: teamBLogoURL, name: teamBName, size: 72)
 
-                    Text(sets?.teamB ?? "TBD")
+                    Text(teamBName)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .multilineTextAlignment(.center)
@@ -152,9 +163,9 @@ struct UpcomingGameView: View {
 
             // Recent form + record per team
             HStack(spacing: 0) {
-                teamFormColumn(lastFive: (detail.game.teamStats ?? []).first { $0.id == sets?.teamAId }?.lastFiveGames)
+                teamFormColumn(lastFive: teams.first { $0.id == teamAId }?.lastFiveGames)
                     .frame(maxWidth: .infinity)
-                teamFormColumn(lastFive: (detail.game.teamStats ?? []).first { $0.id == sets?.teamBId }?.lastFiveGames)
+                teamFormColumn(lastFive: teams.first { $0.id == teamBId }?.lastFiveGames)
                     .frame(maxWidth: .infinity)
             }
 
@@ -176,6 +187,16 @@ struct UpcomingGameView: View {
     @ViewBuilder
     private func keyStatsCard(detail: GameDetailResponse) -> some View {
         let sets = detail.game.gameSets
+        let teams = detail.game.teamStats ?? []
+        let teamAStat = teams.count > 0 ? teams[0] : nil
+        let teamBStat = teams.count > 1 ? teams[1] : nil
+
+        let teamAName = sets?.teamA ?? teamAStat?.teamName ?? "TBD"
+        let teamBName = sets?.teamB ?? teamBStat?.teamName ?? "TBD"
+        let teamALogoURL = sets?.teamAFullImageURL ?? teamAStat?.fullImageURL
+        let teamBLogoURL = sets?.teamBFullImageURL ?? teamBStat?.fullImageURL
+        let teamAId = sets?.teamAId ?? teamAStat?.id
+        let teamBId = sets?.teamBId ?? teamBStat?.id
         let activeStats = detail.game.activeStats ?? []
 
         VStack(spacing: 0) {
@@ -191,8 +212,8 @@ struct UpcomingGameView: View {
             // Team name headers
             HStack {
                 HStack(spacing: 6) {
-                    teamLogoCircle(urlString: sets?.teamAFullImageURL, name: sets?.teamA ?? "TBD", size: 24)
-                    Text(sets?.teamA ?? "TBD")
+                    teamLogoCircle(urlString: teamALogoURL, name: teamAName, size: 24)
+                    Text(teamAName)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
@@ -202,11 +223,11 @@ struct UpcomingGameView: View {
                 Spacer()
 
                 HStack(spacing: 6) {
-                    Text(sets?.teamB ?? "TBD")
+                    Text(teamBName)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
-                    teamLogoCircle(urlString: sets?.teamBFullImageURL, name: sets?.teamB ?? "TBD", size: 24)
+                    teamLogoCircle(urlString: teamBLogoURL, name: teamBName, size: 24)
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -216,10 +237,10 @@ struct UpcomingGameView: View {
             // Stat comparison rows with alternating backgrounds
             ForEach(Array(activeStats.enumerated()), id: \.element) { index, statKey in
                 let label = detail.shortNameStats[statKey] ?? statKey.uppercased()
-                let teamA = (detail.game.teamStats ?? []).first { $0.id == sets?.teamAId }
-                let teamB = (detail.game.teamStats ?? []).first { $0.id == sets?.teamBId }
-                let leftVal = teamA?.totalTeamStats?[statKey] ?? 0
-                let rightVal = teamB?.totalTeamStats?[statKey] ?? 0
+                let tA = teams.first { $0.id == teamAId }
+                let tB = teams.first { $0.id == teamBId }
+                let leftVal = tA?.averageTeamStats?[statKey] ?? 0
+                let rightVal = tB?.averageTeamStats?[statKey] ?? 0
 
                 statComparisonRow(label: label, leftValue: leftVal, rightValue: rightVal)
                     .padding(.horizontal, AppTheme.Layout.cardPadding)

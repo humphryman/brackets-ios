@@ -11,20 +11,23 @@ enum TournamentTab: String, CaseIterable {
     case standings = "Standings"
     case games = "Games"
     case stats = "Stats Leaders"
-    
+    case bracket = "Bracket"
+
     var icon: String {
         switch self {
         case .standings: return "list.number"
         case .games: return "basketball.fill"
         case .stats: return "chart.bar.fill"
+        case .bracket: return "trophy"
         }
     }
-    
+
     var displayName: String {
         switch self {
         case .standings: return "Standings"
         case .games: return "Games"
         case .stats: return "Stats"
+        case .bracket: return "Bracket"
         }
     }
 }
@@ -34,7 +37,16 @@ struct TournamentContainerView: View {
     @State private var selectedTab: TournamentTab = .standings
     @Environment(\.dismiss) private var dismiss
     @Namespace private var animation
-    
+
+    private var availableTabs: [TournamentTab] {
+        var tabs: [TournamentTab] = [.standings]
+        if tournament.isPlayoffs {
+            tabs.append(.bracket)
+        }
+        tabs.append(contentsOf: [.games, .stats])
+        return tabs
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             // Background
@@ -72,12 +84,15 @@ struct TournamentContainerView: View {
 
                 // Content based on selected tab
                 ZStack {
-                    if selectedTab == .standings {
+                    switch selectedTab {
+                    case .standings:
                         StandingsView(tournament: tournament)
-                    } else if selectedTab == .games {
+                    case .games:
                         GamesListView(tournament: tournament)
-                    } else if selectedTab == .stats {
+                    case .stats:
                         StatsLeadersView(tournament: tournament)
+                    case .bracket:
+                        BracketView(tournament: tournament)
                     }
                 }
             }
@@ -85,7 +100,7 @@ struct TournamentContainerView: View {
             // Floating bottom tab bar
             VStack {
                 Spacer()
-                CustomTabBar(selectedTab: $selectedTab, namespace: animation)
+                CustomTabBar(selectedTab: $selectedTab, tabs: availableTabs, namespace: animation)
                     .padding(.horizontal, 40)
                     .padding(.bottom, 10)
             }
@@ -97,35 +112,19 @@ struct TournamentContainerView: View {
 
 struct CustomTabBar: View {
     @Binding var selectedTab: TournamentTab
+    var tabs: [TournamentTab] = [.standings, .games, .stats]
     let namespace: Namespace.ID
-    
+
     var body: some View {
         HStack(spacing: 12) {
-            // First Tab (Home/Standings) - Circle
-            TabButton(
-                tab: .standings,
-                isSelected: selectedTab == .standings,
-                namespace: namespace
-            ) {
-                selectedTab = .standings
-            }
-            
-            // Second Tab (Games/Progress) - Elongated Pill (always selected in design)
-            TabButton(
-                tab: .games,
-                isSelected: selectedTab == .games,
-                namespace: namespace
-            ) {
-                selectedTab = .games
-            }
-            
-            // Third Tab (Stats) - Circle
-            TabButton(
-                tab: .stats,
-                isSelected: selectedTab == .stats,
-                namespace: namespace
-            ) {
-                selectedTab = .stats
+            ForEach(tabs, id: \.self) { tab in
+                TabButton(
+                    tab: tab,
+                    isSelected: selectedTab == tab,
+                    namespace: namespace
+                ) {
+                    selectedTab = tab
+                }
             }
         }
         .padding(8)
@@ -137,6 +136,7 @@ struct CustomTabBar: View {
             RoundedRectangle(cornerRadius: 40)
                 .fill(.ultraThinMaterial)
         )
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 

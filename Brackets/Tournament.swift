@@ -16,6 +16,11 @@ struct Tournament: Identifiable, Codable, Sendable, Hashable {
     var startDate: String? = nil
     var endDate: String? = nil
     var stage: String? = nil
+    var bracketType: String? = nil
+
+    var isPlayoffs: Bool {
+        stage?.lowercased() == "playoffs"
+    }
 
     // Default team count to 0 if not provided
     var displayTeamCount: Int {
