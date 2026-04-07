@@ -243,16 +243,25 @@ struct FilterButton: View {
 struct GameCard: View {
     let game: Game
     
+    private var isQuarterfinal: Bool {
+        game.stage?.lowercased().contains("cuartos") == true
+    }
+
     private var isSemifinal: Bool {
         game.stage?.lowercased().contains("semifinal") == true
     }
 
     private var isFinal: Bool {
         guard let stage = game.stage?.lowercased() else { return false }
-        return stage.contains("final") && !stage.contains("semifinal")
+        return stage == "final"
+    }
+
+    private var isPlayoffGame: Bool {
+        isQuarterfinal || isSemifinal || isFinal
     }
 
     private var stageBadgeText: String? {
+        if isQuarterfinal { return "Cuartos de Final" }
         if isSemifinal { return "Semifinal" }
         if isFinal { return "Final" }
         return nil
@@ -262,7 +271,7 @@ struct GameCard: View {
         ZStack(alignment: .topTrailing) {
             VStack(spacing: AppTheme.Spacing.standard) {
                 if stageBadgeText != nil {
-                    Spacer().frame(height: 9)
+                    Spacer().frame(height: 16)
                 }
 
                 HStack(spacing: AppTheme.Spacing.large) {
@@ -307,6 +316,7 @@ struct GameCard: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(Capsule().fill(isFinal ? Color.black.opacity(0.3) : AppTheme.Colors.accent))
+                    .padding(.trailing, 10)
             }
         }
         .padding(.horizontal, AppTheme.Spacing.large)
@@ -314,7 +324,7 @@ struct GameCard: View {
         .background(
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
                 .fill(isFinal ? AppTheme.Colors.accent : Color(white: 0.1))
-                .stroke(isSemifinal ? AppTheme.Colors.accent.opacity(0.6) : Color(white: 1.0).opacity(isFinal ? 0 : 0.18), lineWidth: isSemifinal ? 1.5 : 1)
+                .stroke((isQuarterfinal || isSemifinal) ? AppTheme.Colors.accent.opacity(0.6) : Color(white: 1.0).opacity(isFinal ? 0 : 0.18), lineWidth: (isQuarterfinal || isSemifinal) ? 1.5 : 1)
         )
     }
     
