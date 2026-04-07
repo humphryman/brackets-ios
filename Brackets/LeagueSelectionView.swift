@@ -80,7 +80,7 @@ struct LeagueSelectionView: View {
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundStyle(AppTheme.Colors.primaryText)
 
-                            Text("Selecciona una liga para ver sus torneos")
+                            Text("Selecciona una liga para ver sus categorias.")
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundStyle(AppTheme.Colors.secondaryText)
                         }
