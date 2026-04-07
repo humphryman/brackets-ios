@@ -153,9 +153,14 @@ struct TabButton: View {
             }
         }) {
             HStack(spacing: 8) {
-                Image(systemName: tab.icon)
-                    .font(.system(size: 20, weight: .semibold))
-                
+                if tab == .bracket {
+                    BracketIcon()
+                        .frame(width: 20, height: 20)
+                } else {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 20, weight: .semibold))
+                }
+
                 // Show label only when selected
                 if isSelected {
                     Text(tab.displayName)
@@ -193,3 +198,51 @@ struct TabButton: View {
     )
 }
 
+// MARK: - Custom Bracket Icon
+
+struct BracketIcon: View {
+    var body: some View {
+        Canvas { context, size in
+            let w = size.width
+            let h = size.height
+            let lineWidth: CGFloat = 2
+
+            var path = Path()
+
+            // Top branch
+            // Top-left horizontal
+            path.move(to: CGPoint(x: 0, y: h * 0.1))
+            path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.1))
+            // Vertical down to mid-top
+            path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.35))
+            // Bottom-left horizontal (of top pair)
+            path.move(to: CGPoint(x: 0, y: h * 0.35))
+            path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.35))
+            // Connector from mid of top pair to right
+            path.move(to: CGPoint(x: w * 0.35, y: h * 0.225))
+            path.addLine(to: CGPoint(x: w * 0.65, y: h * 0.225))
+
+            // Bottom branch
+            // Top-left horizontal (of bottom pair)
+            path.move(to: CGPoint(x: 0, y: h * 0.65))
+            path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.65))
+            // Vertical down
+            path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.9))
+            // Bottom-left horizontal
+            path.move(to: CGPoint(x: 0, y: h * 0.9))
+            path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.9))
+            // Connector from mid of bottom pair to right
+            path.move(to: CGPoint(x: w * 0.35, y: h * 0.775))
+            path.addLine(to: CGPoint(x: w * 0.65, y: h * 0.775))
+
+            // Final vertical connector
+            path.move(to: CGPoint(x: w * 0.65, y: h * 0.225))
+            path.addLine(to: CGPoint(x: w * 0.65, y: h * 0.775))
+            // Final horizontal to right
+            path.move(to: CGPoint(x: w * 0.65, y: h * 0.5))
+            path.addLine(to: CGPoint(x: w, y: h * 0.5))
+
+            context.stroke(path, with: .foreground, lineWidth: lineWidth)
+        }
+    }
+}

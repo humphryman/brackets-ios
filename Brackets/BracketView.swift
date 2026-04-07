@@ -44,7 +44,7 @@ struct BracketView: View {
 
     // MARK: - Layout Constants
 
-    private let matchupCardWidth: CGFloat = 140
+    private let matchupCardWidth: CGFloat = 180
     private let matchupCardHeight: CGFloat = 110
     private let connectorWidth: CGFloat = 36
     private let teamLogoSize: CGFloat = 40
@@ -99,7 +99,8 @@ struct BracketView: View {
                     Text(round.name.uppercased())
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Color(white: 0.45))
-                        .frame(width: roundColumnWidth, alignment: .leading)
+                        .frame(width: matchupCardWidth, alignment: .center)
+                        .padding(.trailing, index < rounds.count - 1 ? connectorWidth : 0)
                 }
             }
             .padding(.bottom, 20)
@@ -186,35 +187,31 @@ struct BracketView: View {
     }
 
     private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            // Team logo + name
-            VStack(spacing: 3) {
-                if let team = team {
-                    teamLogoView(team: team)
-                } else {
-                    placeholderLogo()
-                }
-
-                Text(team?.name ?? "TBD")
-                    .font(.system(size: 11, weight: isWinner ? .bold : .medium))
-                    .foregroundStyle(team != nil ? (isWinner ? AppTheme.Colors.primaryText : Color(white: 0.5)) : Color(white: 0.25))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(width: teamLogoSize + 10)
+        HStack(spacing: 6) {
+            // Team logo
+            if let team = team {
+                teamLogoView(team: team, isWinner: isWinner)
+            } else {
+                placeholderLogo()
             }
 
-            Spacer(minLength: 2)
+            // Team name — fills all available space
+            Text(team?.name ?? "TBD")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(team != nil ? (isWinner ? AppTheme.Colors.primaryText : Color(white: 0.5)) : Color(white: 0.25))
+                .lineLimit(2)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             // Score
             Text(score.map { "\($0)" } ?? "-")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(isWinner ? AppTheme.Colors.accent : (score != nil ? AppTheme.Colors.primaryText : Color(white: 0.3)))
-                .frame(width: 24, height: 24)
+                .frame(width: 28, height: 28)
                 .background(
                     RoundedRectangle(cornerRadius: 5)
                         .fill(isWinner ? AppTheme.Colors.accent.opacity(0.2) : Color(white: 0.15))
                 )
-                .padding(.top, 8)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -223,7 +220,10 @@ struct BracketView: View {
     // MARK: - Team Logo
 
     @ViewBuilder
-    private func teamLogoView(team: Team) -> some View {
+    private func teamLogoView(team: Team, isWinner: Bool = false) -> some View {
+        let borderColor = isWinner ? AppTheme.Colors.accent : Color(white: 0.2)
+        let borderWidth: CGFloat = isWinner ? 2.5 : 1
+
         if let imageURL = team.fullImageURL, let url = URL(string: imageURL) {
             AsyncImage(url: url) { phase in
                 switch phase {
@@ -235,18 +235,18 @@ struct BracketView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(white: 0.2), lineWidth: 1)
+                                .stroke(borderColor, lineWidth: borderWidth)
                         )
                 default:
-                    logoPlaceholderWithInitials(name: team.name)
+                    logoPlaceholderWithInitials(name: team.name, isWinner: isWinner)
                 }
             }
         } else {
-            logoPlaceholderWithInitials(name: team.name)
+            logoPlaceholderWithInitials(name: team.name, isWinner: isWinner)
         }
     }
 
-    private func logoPlaceholderWithInitials(name: String) -> some View {
+    private func logoPlaceholderWithInitials(name: String, isWinner: Bool = false) -> some View {
         let words = name.split(separator: " ")
         let initials: String = if words.count >= 2 {
             String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
@@ -263,7 +263,7 @@ struct BracketView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(white: 0.2), lineWidth: 1)
+                    .stroke(isWinner ? AppTheme.Colors.accent : Color(white: 0.2), lineWidth: isWinner ? 2.5 : 1)
             )
     }
 
@@ -406,13 +406,96 @@ struct BracketView: View {
             }
         }
 
-        // Semis and Finals from actual games
-        let laterRounds = buildStageRounds([
+        // Build later rounds, propagating winners from previous rounds
+        let allStages: [(stage: String, name: String, expectedMatchups: Int)] = [
             ("Semifinal", "Semifinal", 2),
             ("Final", "Final", 1)
-        ])
+        ]
 
-        return [BracketRound(name: "Cuartos de Final", matchups: qfMatchups)] + laterRounds
+        var allRounds: [BracketRound] = [BracketRound(name: "Cuartos de Final", matchups: qfMatchups)]
+        var previousMatchups = qfMatchups
+
+        for (stage, name, expectedMatchups) in allStages {
+            let round = buildRoundWithWinners(
+                stage: stage,
+                name: name,
+                expectedMatchups: expectedMatchups,
+                previousMatchups: previousMatchups
+            )
+            allRounds.append(round)
+            previousMatchups = round.matchups
+        }
+
+        return allRounds
+    }
+
+    /// Build a round, filling placeholders with winners from the previous round
+    private func buildRoundWithWinners(stage: String, name: String, expectedMatchups: Int, previousMatchups: [BracketMatchup]) -> BracketRound {
+        let stageGames = gamesForStage(stage)
+
+        // Get winners from previous round (in order, paired)
+        var winners: [Team?] = []
+        for i in stride(from: 0, to: previousMatchups.count, by: 2) {
+            let m1 = previousMatchups[i]
+            let m2 = i + 1 < previousMatchups.count ? previousMatchups[i + 1] : nil
+
+            // Winner of matchup 1
+            if m1.homeIsWinner, let team = m1.homeTeam {
+                winners.append(team)
+            } else if m1.awayIsWinner, let team = m1.awayTeam {
+                winners.append(team)
+            } else {
+                winners.append(nil)
+            }
+
+            // Winner of matchup 2
+            if let m2 = m2 {
+                if m2.homeIsWinner, let team = m2.homeTeam {
+                    winners.append(team)
+                } else if m2.awayIsWinner, let team = m2.awayTeam {
+                    winners.append(team)
+                } else {
+                    winners.append(nil)
+                }
+            }
+        }
+
+        var matchups: [BracketMatchup] = []
+
+        for i in 0..<expectedMatchups {
+            let homeWinner = i * 2 < winners.count ? winners[i * 2] : nil
+            let awayWinner = i * 2 + 1 < winners.count ? winners[i * 2 + 1] : nil
+
+            // Try to find actual game for this matchup
+            let game = findGame(teamA: homeWinner, teamB: awayWinner, in: stageGames)
+
+            if let game = game {
+                matchups.append(BracketMatchup(
+                    homeTeam: game.homeTeam,
+                    homeScore: game.homeScore,
+                    homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
+                    awayTeam: game.awayTeam,
+                    awayScore: game.awayScore,
+                    awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
+                    hasGame: true,
+                    game: game
+                ))
+            } else {
+                // No game yet — show winners from previous round
+                matchups.append(BracketMatchup(
+                    homeTeam: homeWinner,
+                    homeScore: nil,
+                    homeIsWinner: false,
+                    awayTeam: awayWinner,
+                    awayScore: nil,
+                    awayIsWinner: false,
+                    hasGame: false,
+                    game: nil
+                ))
+            }
+        }
+
+        return BracketRound(name: name, matchups: matchups)
     }
 
     /// Convert a standing (by seed/position) to a Team
@@ -458,37 +541,47 @@ struct BracketView: View {
         }
     }
 
-    /// Build rounds from stage definitions, using actual game data
+    /// Build rounds from stage definitions, propagating winners between rounds
     private func buildStageRounds(_ stages: [(stage: String, name: String, expectedMatchups: Int)]) -> [BracketRound] {
         var rounds: [BracketRound] = []
+        var previousMatchups: [BracketMatchup] = []
+
         for (stage, name, expectedMatchups) in stages {
-            let stageGames = gamesForStage(stage)
-
-            var matchups: [BracketMatchup] = []
-            for game in stageGames {
-                matchups.append(BracketMatchup(
-                    homeTeam: game.homeTeam,
-                    homeScore: game.homeScore,
-                    homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
-                    awayTeam: game.awayTeam,
-                    awayScore: game.awayScore,
-                    awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
-                    hasGame: true,
-                    game: game
-                ))
+            let round: BracketRound
+            if previousMatchups.isEmpty {
+                // First round — build from game data only
+                let stageGames = gamesForStage(stage)
+                var matchups: [BracketMatchup] = []
+                for game in stageGames {
+                    matchups.append(BracketMatchup(
+                        homeTeam: game.homeTeam,
+                        homeScore: game.homeScore,
+                        homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
+                        awayTeam: game.awayTeam,
+                        awayScore: game.awayScore,
+                        awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
+                        hasGame: true,
+                        game: game
+                    ))
+                }
+                while matchups.count < expectedMatchups {
+                    matchups.append(BracketMatchup(
+                        homeTeam: nil, homeScore: nil, homeIsWinner: false,
+                        awayTeam: nil, awayScore: nil, awayIsWinner: false,
+                        hasGame: false, game: nil
+                    ))
+                }
+                round = BracketRound(name: name, matchups: matchups)
+            } else {
+                // Later rounds — propagate winners
+                round = buildRoundWithWinners(
+                    stage: stage, name: name,
+                    expectedMatchups: expectedMatchups,
+                    previousMatchups: previousMatchups
+                )
             }
-
-            // Fill remaining with placeholder matchups
-            while matchups.count < expectedMatchups {
-                matchups.append(BracketMatchup(
-                    homeTeam: nil, homeScore: nil, homeIsWinner: false,
-                    awayTeam: nil, awayScore: nil, awayIsWinner: false,
-                    hasGame: false,
-                    game: nil
-                ))
-            }
-
-            rounds.append(BracketRound(name: name, matchups: matchups))
+            rounds.append(round)
+            previousMatchups = round.matchups
         }
         return rounds
     }
