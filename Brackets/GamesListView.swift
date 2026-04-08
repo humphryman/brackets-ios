@@ -11,6 +11,7 @@ private extension DateFormatter {
     static let yyyyMMdd: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = AppConfig.DateTime.apiTimeZone
         return f
     }()
 }
@@ -183,10 +184,12 @@ struct GamesListView: View {
     private func formatDateHeader(_ dateString: String) -> String {
         let parser = DateFormatter()
         parser.dateFormat = "yyyy-MM-dd"
+        parser.timeZone = AppConfig.DateTime.apiTimeZone
 
         if let date = parser.date(from: dateString) {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "es_MX")
+            formatter.timeZone = AppConfig.DateTime.apiTimeZone
             formatter.dateFormat = "MMMM dd, yyyy"
             return formatter.string(from: date).capitalized
         }
@@ -463,6 +466,7 @@ struct CenterSection: View {
     private func formatShortDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_MX")
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "dd MMM yy"
         return formatter.string(from: date)
     }
@@ -470,12 +474,14 @@ struct CenterSection: View {
     private func formatFullDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_MX")
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "dd MMMM yyyy"
         return formatter.string(from: date).capitalized
     }
 
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "h:mm a"
         return formatter.string(from: date)
     }

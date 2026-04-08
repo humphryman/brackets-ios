@@ -245,25 +245,24 @@ final class APIService: Sendable {
                 let container = try decoder.singleValueContainer()
                 let dateString = try container.decode(String.self)
                 
-                // Try ISO8601 first
-                let iso8601Formatter = ISO8601DateFormatter()
-                if let date = iso8601Formatter.date(from: dateString) {
-                    return date
-                }
-                
-                // Try common formats
-                let formatters = [
-                    "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-                    "yyyy-MM-dd'T'HH:mm:ssZ",
+                // Strip timezone offset — always interpret as API timezone
+                let cleanedDateString = dateString
+                    .replacingOccurrences(of: #"[+-]\d{2}:\d{2}$"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(of: #"Z$"#, with: "", options: .regularExpression)
+
+                let formats = [
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                    "yyyy-MM-dd'T'HH:mm:ss",
                     "yyyy-MM-dd HH:mm:ss",
                     "yyyy-MM-dd"
                 ]
-                
-                for format in formatters {
+
+                for format in formats {
                     let formatter = DateFormatter()
                     formatter.dateFormat = format
                     formatter.locale = Locale(identifier: "en_US_POSIX")
-                    if let date = formatter.date(from: dateString) {
+                    formatter.timeZone = AppConfig.DateTime.apiTimeZone
+                    if let date = formatter.date(from: cleanedDateString) {
                         return date
                     }
                 }
@@ -409,25 +408,24 @@ final class APIService: Sendable {
                 let container = try decoder.singleValueContainer()
                 let dateString = try container.decode(String.self)
                 
-                // Try ISO8601 first
-                let iso8601Formatter = ISO8601DateFormatter()
-                if let date = iso8601Formatter.date(from: dateString) {
-                    return date
-                }
-                
-                // Try common formats
-                let formatters = [
-                    "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-                    "yyyy-MM-dd'T'HH:mm:ssZ",
+                // Strip timezone offset — always interpret as API timezone
+                let cleanedDateString = dateString
+                    .replacingOccurrences(of: #"[+-]\d{2}:\d{2}$"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(of: #"Z$"#, with: "", options: .regularExpression)
+
+                let formats = [
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                    "yyyy-MM-dd'T'HH:mm:ss",
                     "yyyy-MM-dd HH:mm:ss",
                     "yyyy-MM-dd"
                 ]
-                
-                for format in formatters {
+
+                for format in formats {
                     let formatter = DateFormatter()
                     formatter.dateFormat = format
                     formatter.locale = Locale(identifier: "en_US_POSIX")
-                    if let date = formatter.date(from: dateString) {
+                    formatter.timeZone = AppConfig.DateTime.apiTimeZone
+                    if let date = formatter.date(from: cleanedDateString) {
                         return date
                     }
                 }
@@ -507,23 +505,24 @@ final class APIService: Sendable {
                 let container = try decoder.singleValueContainer()
                 let dateString = try container.decode(String.self)
 
-                let iso8601Formatter = ISO8601DateFormatter()
-                if let date = iso8601Formatter.date(from: dateString) {
-                    return date
-                }
+                // Strip timezone offset — always interpret as API timezone
+                let cleanedDateString = dateString
+                    .replacingOccurrences(of: #"[+-]\d{2}:\d{2}$"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(of: #"Z$"#, with: "", options: .regularExpression)
 
-                let formatters = [
-                    "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-                    "yyyy-MM-dd'T'HH:mm:ssZ",
+                let formats = [
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                    "yyyy-MM-dd'T'HH:mm:ss",
                     "yyyy-MM-dd HH:mm:ss",
                     "yyyy-MM-dd"
                 ]
 
-                for format in formatters {
+                for format in formats {
                     let formatter = DateFormatter()
                     formatter.dateFormat = format
                     formatter.locale = Locale(identifier: "en_US_POSIX")
-                    if let date = formatter.date(from: dateString) {
+                    formatter.timeZone = AppConfig.DateTime.apiTimeZone
+                    if let date = formatter.date(from: cleanedDateString) {
                         return date
                     }
                 }
@@ -589,23 +588,24 @@ final class APIService: Sendable {
                 let container = try decoder.singleValueContainer()
                 let dateString = try container.decode(String.self)
 
-                let iso8601Formatter = ISO8601DateFormatter()
-                if let date = iso8601Formatter.date(from: dateString) {
-                    return date
-                }
+                // Strip timezone offset — always interpret as API timezone
+                let cleanedDateString = dateString
+                    .replacingOccurrences(of: #"[+-]\d{2}:\d{2}$"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(of: #"Z$"#, with: "", options: .regularExpression)
 
-                let formatters = [
-                    "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
-                    "yyyy-MM-dd'T'HH:mm:ssZ",
+                let formats = [
+                    "yyyy-MM-dd'T'HH:mm:ss.SSS",
+                    "yyyy-MM-dd'T'HH:mm:ss",
                     "yyyy-MM-dd HH:mm:ss",
                     "yyyy-MM-dd"
                 ]
 
-                for format in formatters {
+                for format in formats {
                     let formatter = DateFormatter()
                     formatter.dateFormat = format
                     formatter.locale = Locale(identifier: "en_US_POSIX")
-                    if let date = formatter.date(from: dateString) {
+                    formatter.timeZone = AppConfig.DateTime.apiTimeZone
+                    if let date = formatter.date(from: cleanedDateString) {
                         return date
                     }
                 }

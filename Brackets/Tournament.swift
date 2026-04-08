@@ -31,9 +31,11 @@ struct Tournament: Identifiable, Codable, Sendable, Hashable {
         guard let start = startDate, let end = endDate else { return nil }
         let inputFormatter = DateFormatter()
         inputFormatter.dateFormat = "yyyy-MM-dd"
+        inputFormatter.timeZone = AppConfig.DateTime.apiTimeZone
         let outputFormatter = DateFormatter()
         outputFormatter.dateFormat = "MMM yyyy"
         outputFormatter.locale = Locale(identifier: "es_MX")
+        outputFormatter.timeZone = AppConfig.DateTime.apiTimeZone
         guard let startParsed = inputFormatter.date(from: start),
               let endParsed = inputFormatter.date(from: end) else { return nil }
         let startStr = outputFormatter.string(from: startParsed).capitalized

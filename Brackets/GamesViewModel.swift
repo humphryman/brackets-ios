@@ -25,8 +25,9 @@ class GamesViewModel {
     // Date formatter for display
     private let displayDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d MMMM yyyy" // Day Month Year (e.g., "14 Febrero 2026")
+        formatter.dateFormat = "d MMMM yyyy"
         formatter.locale = Locale(identifier: "es_MX")
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         return formatter
     }()
     

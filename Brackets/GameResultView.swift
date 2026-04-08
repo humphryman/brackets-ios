@@ -609,6 +609,7 @@ struct GameResultView: View {
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_MX")
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "MMMM dd, yyyy"
         return formatter.string(from: date).capitalized
     }

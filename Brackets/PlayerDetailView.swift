@@ -443,6 +443,7 @@ struct PlayerDetailView: View {
         guard let date = inputFormatter.date(from: dob) else { return dob }
 
         let outputFormatter = DateFormatter()
+        outputFormatter.timeZone = AppConfig.DateTime.apiTimeZone
         outputFormatter.dateFormat = "dd MMM yy"
         return outputFormatter.string(from: date)
     }

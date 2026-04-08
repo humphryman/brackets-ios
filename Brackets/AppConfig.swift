@@ -147,8 +147,15 @@ enum AppConfig {
         #endif
     }
     
+    // MARK: - Date/Time
+
+    enum DateTime {
+        /// Fixed timezone for displaying dates as received from the API (no conversion)
+        static let apiTimeZone = TimeZone(identifier: "America/Tijuana")!
+    }
+
     // MARK: - App Settings
-    
+
     enum Settings {
         static let defaultLanguage = "es" // Spanish
         static let supportedLanguages = ["es", "en"]

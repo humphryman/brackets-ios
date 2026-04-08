@@ -534,12 +534,14 @@ struct UpcomingGameView: View {
     private func formatShortDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "es_MX")
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "dd MMM yy"
         return formatter.string(from: date)
     }
 
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
     }
