@@ -201,7 +201,7 @@ struct GameResultView: View {
         if teams.count >= 2 {
             let safeIndex = min(selectedTeamIndex, teams.count - 1)
             let selectedTeam = teams[safeIndex]
-            let players = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }
+            let players = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }.sorted { $0.played && !$1.played }
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
@@ -343,7 +343,7 @@ struct GameResultView: View {
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
-                Text("Game Stats Leaders")
+                Text("Top Estadisticas de Juego")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -405,7 +405,7 @@ struct GameResultView: View {
                             // Player image
                             playerHeroImage(player: top.player, size: 120)
 
-                            // Name
+                            // Name + Team
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(top.player.playerFirstName)
                                     .font(.system(size: 16))
@@ -413,6 +413,9 @@ struct GameResultView: View {
                                 Text(top.player.playerLastName)
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
+                                Text(top.teamName)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Color(white: 0.45))
                             }
 
                             Spacer(minLength: 0)
@@ -441,12 +444,13 @@ struct GameResultView: View {
                             playerAvatarCircle(player: entry.player, size: 44)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.player.playerFirstName)
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                                Text(entry.player.playerLastName)
+                                Text("\(entry.player.playerFirstName) \(entry.player.playerLastName)")
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
+                                    .lineLimit(1)
+                                Text(entry.teamName)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(AppTheme.Colors.secondaryText)
                             }
 
                             Spacer()
@@ -508,15 +512,18 @@ struct GameResultView: View {
     private struct RankedPlayer {
         let player: PlayerGameStat
         let value: Int
+        let teamName: String
     }
 
     private func rankedPlayers(for statKey: String, detail: GameDetailResponse) -> [RankedPlayer] {
-        let allPlayers = (detail.game.teamStats ?? []).flatMap { $0.playerStats ?? [] }
-            .filter { !$0.isTeamEntry }
+        let allPlayers = (detail.game.teamStats ?? []).flatMap { team in
+            (team.playerStats ?? []).map { (player: $0, teamName: team.teamName) }
+        }
+        .filter { !$0.player.isTeamEntry }
 
-        let ranked = allPlayers.compactMap { player -> RankedPlayer? in
-            guard let val = player.dynamicStats[statKey] ?? nil, val > 0 else { return nil }
-            return RankedPlayer(player: player, value: val)
+        let ranked = allPlayers.compactMap { entry -> RankedPlayer? in
+            guard let val = entry.player.dynamicStats[statKey] ?? nil, val > 0 else { return nil }
+            return RankedPlayer(player: entry.player, value: val, teamName: entry.teamName)
         }
         .sorted { $0.value > $1.value }
 
