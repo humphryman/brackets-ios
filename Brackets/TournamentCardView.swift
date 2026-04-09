@@ -101,6 +101,7 @@ struct TournamentCardView: View {
         }
         .aspectRatio(2.0, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 28))
+        .contentShape(RoundedRectangle(cornerRadius: 28))
     }
     
     private var defaultBackground: some View {

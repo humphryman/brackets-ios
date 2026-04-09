@@ -190,6 +190,7 @@ struct ContentView: View {
         }
         .background(Color(white: 0.1))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .contentShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func tournamentImageFallback(for tournament: Tournament) -> some View {
