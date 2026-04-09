@@ -459,11 +459,6 @@ struct UpcomingGameView: View {
     }
 
     private func positionLabel(for player: PlayerGameStat) -> String {
-        // Use dynamic stats keys presence as a rough proxy; real position data
-        // would come from the API. For now, show gender or a dash.
-        if let gender = player.playerGender {
-            return gender == "male" ? "Player" : "Player"
-        }
         return ""
     }
 

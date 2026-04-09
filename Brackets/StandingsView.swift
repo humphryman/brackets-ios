@@ -101,8 +101,8 @@ struct StandingCard: View {
                 .font(AppTheme.Typography.bodyBold)
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .textCase(.uppercase)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
             
             Spacer(minLength: AppTheme.Spacing.small)
             
