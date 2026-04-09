@@ -237,9 +237,11 @@ struct GameResultView: View {
                         .fill(Color(white: 0.18))
                 )
 
-                // Stats table: fixed player column + scrollable stats
+                // Stats table: fixed player column + stats
                 let rowHeight: CGFloat = 50
                 let headerHeight: CGFloat = 38
+                let minStatWidth: CGFloat = 56
+                let needsScroll = CGFloat(activeStats.count) * minStatWidth > 200
 
                 HStack(spacing: 0) {
                     // Fixed player name column
@@ -256,50 +258,64 @@ struct GameResultView: View {
                         ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
                             HStack(spacing: 8) {
                                 playerAvatarCircle(player: player, size: 30)
-                                Text(player.playerName)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundStyle(AppTheme.Colors.primaryText)
-                                    .lineLimit(1)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(player.playerFirstName)
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                                        .lineLimit(1)
+                                    Text(player.playerLastName)
+                                        .font(.system(size: 11, weight: .regular))
+                                        .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
+                                        .lineLimit(1)
+                                }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .frame(height: rowHeight)
                             .padding(.leading, 12)
+                            .opacity(player.played ? 1.0 : 0.5)
                             .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
                         }
                     }
                     .frame(width: 150)
 
-                    // Single scrollable stats area (header + all rows scroll together)
-                    ScrollView(.horizontal, showsIndicators: true) {
-                        VStack(spacing: 0) {
-                            // Stat headers
-                            HStack(spacing: 0) {
-                                ForEach(activeStats, id: \.self) { statKey in
-                                    Text(detail.shortNameStats[statKey] ?? statKey.uppercased())
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundStyle(Color(white: 0.45))
-                                        .frame(width: 56)
-                                }
-                            }
-                            .frame(height: headerHeight)
-
-                            Divider().background(Color(white: 0.2))
-
-                            // Stat value rows
-                            ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
-                                HStack(spacing: 0) {
-                                    ForEach(activeStats, id: \.self) { statKey in
-                                        let value = player.dynamicStats[statKey] ?? nil
-                                        Text(value.map { "\($0)" } ?? "-")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(AppTheme.Colors.primaryText)
-                                            .frame(width: 56)
-                                    }
-                                }
-                                .frame(height: rowHeight)
-                                .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
+                    // Stats area — scrollable when many stats, fills width when few
+                    let statsContent = VStack(spacing: 0) {
+                        // Stat headers
+                        HStack(spacing: 0) {
+                            ForEach(activeStats, id: \.self) { statKey in
+                                Text(detail.shortNameStats[statKey] ?? statKey.uppercased())
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color(white: 0.45))
+                                    .frame(minWidth: minStatWidth, maxWidth: .infinity)
                             }
                         }
+                        .frame(height: headerHeight)
+
+                        Divider().background(Color(white: 0.2))
+
+                        // Stat value rows
+                        ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
+                            HStack(spacing: 0) {
+                                ForEach(activeStats, id: \.self) { statKey in
+                                    let value = player.dynamicStats[statKey] ?? nil
+                                    Text(value.map { "\($0)" } ?? "-")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                                        .frame(minWidth: minStatWidth, maxWidth: .infinity)
+                                }
+                            }
+                            .frame(height: rowHeight)
+                            .opacity(player.played ? 1.0 : 0.5)
+                            .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
+                        }
+                        }
+
+                    if needsScroll {
+                        ScrollView(.horizontal, showsIndicators: true) {
+                            statsContent
+                        }
+                    } else {
+                        statsContent
                     }
                 }
             }
