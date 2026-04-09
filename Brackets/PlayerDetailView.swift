@@ -160,7 +160,7 @@ struct PlayerDetailView: View {
 
     private func totalStatsCard(_ detail: PlayerSeasonDetailResponse) -> some View {
         let info = detail.playerSeason
-        let gamesPlayed = info.stats.count
+        let gamesPlayed = info.stats.filter { $0.gamePlayed && $0.played }.count
 
         // Order: points first, then remaining active stats
         var orderedKeys: [String] = []
@@ -264,6 +264,9 @@ struct PlayerDetailView: View {
 
     private func opponentStatsCard(_ detail: PlayerSeasonDetailResponse) -> some View {
         let info = detail.playerSeason
+        let sortedStats = info.stats
+            .filter { $0.gamePlayed }
+            .sorted { $0.played && !$1.played }
         let statColumnWidth: CGFloat = 44
         let headerHeight: CGFloat = 36
         let rowHeight: CGFloat = 52
@@ -289,7 +292,7 @@ struct PlayerDetailView: View {
                     Divider().background(Color(white: 0.2))
 
                     // Opponent rows
-                    ForEach(info.stats) { game in
+                    ForEach(sortedStats) { game in
                         VStack(spacing: 0) {
                             HStack(spacing: 8) {
                                 opponentCircle(game)
@@ -297,12 +300,13 @@ struct PlayerDetailView: View {
 
                                 Text(game.opponent)
                                     .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(AppTheme.Colors.primaryText)
+                                    .foregroundStyle(game.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
                                     .lineLimit(1)
                             }
                             .frame(height: rowHeight)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 12)
+                            .opacity(game.played ? 1.0 : 0.5)
 
                             Divider().background(Color(white: 0.15))
                         }
@@ -315,40 +319,48 @@ struct PlayerDetailView: View {
                     .fill(Color(white: 0.2))
                     .frame(width: 1)
 
-                // Scrollable stats columns
-                ScrollView(.horizontal, showsIndicators: true) {
-                    VStack(spacing: 0) {
-                        // Stat headers
-                        HStack(spacing: 0) {
-                            ForEach(info.activeStats, id: \.self) { key in
-                                Text(detail.shortNameStats[key] ?? key.uppercased())
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(Color(white: 0.5))
-                                    .frame(width: statColumnWidth, alignment: .center)
-                            }
-                        }
-                        .frame(height: headerHeight)
-
-                        Divider().background(Color(white: 0.2))
-
-                        // Stat value rows
-                        ForEach(info.stats) { game in
-                            VStack(spacing: 0) {
-                                HStack(spacing: 0) {
-                                    ForEach(info.activeStats, id: \.self) { key in
-                                        let value = game.dynamicStats[key].flatMap { $0 }
-                                        Text(value != nil ? "\(value!)" : "-")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(AppTheme.Colors.primaryText)
-                                            .frame(width: statColumnWidth, alignment: .center)
-                                    }
-                                }
-                                .frame(height: rowHeight)
-
-                                Divider().background(Color(white: 0.15))
-                            }
+                // Stats columns
+                let needsScroll = CGFloat(info.activeStats.count) * statColumnWidth > 200
+                let statsContent = VStack(spacing: 0) {
+                    // Stat headers
+                    HStack(spacing: 0) {
+                        ForEach(info.activeStats, id: \.self) { key in
+                            Text(detail.shortNameStats[key] ?? key.uppercased())
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Color(white: 0.5))
+                                .frame(minWidth: statColumnWidth, maxWidth: .infinity, alignment: .center)
                         }
                     }
+                    .frame(height: headerHeight)
+
+                    Divider().background(Color(white: 0.2))
+
+                    // Stat value rows
+                    ForEach(sortedStats) { game in
+                        VStack(spacing: 0) {
+                            HStack(spacing: 0) {
+                                ForEach(info.activeStats, id: \.self) { key in
+                                    let value = game.dynamicStats[key].flatMap { $0 }
+                                    Text(value != nil ? "\(value!)" : "-")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(game.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                                        .frame(minWidth: statColumnWidth, maxWidth: .infinity, alignment: .center)
+                                }
+                            }
+                            .frame(height: rowHeight)
+                            .opacity(game.played ? 1.0 : 0.5)
+
+                            Divider().background(Color(white: 0.15))
+                        }
+                    }
+                }
+
+                if needsScroll {
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        statsContent
+                    }
+                } else {
+                    statsContent
                 }
             }
             .background(
@@ -430,7 +442,8 @@ struct PlayerDetailView: View {
     // MARK: - Helpers
 
     private func totalForStat(_ key: String, in stats: [PlayerSeasonGameStat]) -> Int {
-        stats.reduce(0) { $0 + (($1.dynamicStats[key] ?? nil) ?? 0) }
+        stats.filter { $0.gamePlayed && $0.played }
+            .reduce(0) { $0 + (($1.dynamicStats[key] ?? nil) ?? 0) }
     }
 
     private func formatDOB(_ dob: String?) -> String {

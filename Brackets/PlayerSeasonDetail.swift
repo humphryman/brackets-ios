@@ -73,11 +73,14 @@ struct PlayerSeasonGameStat: Identifiable, Codable, Sendable {
     let id: Int
     let opponent: String
     let opponentLogo: String?
+    let gamePlayed: Bool
+    let played: Bool
     let dynamicStats: [String: Int?]
 
     enum CodingKeys: String, CodingKey {
-        case id, opponent
+        case id, opponent, played
         case opponentLogo = "opponent_logo"
+        case gamePlayed = "game_played"
         case dynamicStats = "dynamic_stats"
     }
 
@@ -86,6 +89,8 @@ struct PlayerSeasonGameStat: Identifiable, Codable, Sendable {
         id = try container.decode(Int.self, forKey: .id)
         opponent = try container.decode(String.self, forKey: .opponent)
         opponentLogo = try container.decodeIfPresent(String.self, forKey: .opponentLogo)
+        gamePlayed = try container.decodeIfPresent(Bool.self, forKey: .gamePlayed) ?? false
+        played = try container.decodeIfPresent(Bool.self, forKey: .played) ?? false
         dynamicStats = try container.decode([String: Int?].self, forKey: .dynamicStats)
     }
 
