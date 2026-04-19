@@ -56,6 +56,27 @@ struct BracketView: View {
     // MARK: - Pager
 
     private func bracketPager(pageWidth: CGFloat) -> some View {
+        let bracketType = tournament.bracketType?.lowercased() ?? ""
+        let needsPaging = rounds.count > 2
+
+        if needsPaging {
+            return AnyView(pagedBracket(pageWidth: pageWidth))
+        } else {
+            return AnyView(staticBracket())
+        }
+    }
+
+    private func staticBracket() -> some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            bracketContent
+                .padding(.bottom, 100)
+                .padding(.top, AppTheme.Spacing.medium)
+        }
+        .padding(.leading, 0)
+        .padding(.trailing, 0)
+    }
+
+    private func pagedBracket(pageWidth: CGFloat) -> some View {
         let roundStep = roundColumnWidth
         let maxPage = max(0, rounds.count - 2)
         let baseOffset = -CGFloat(currentPage) * roundStep + AppTheme.Layout.screenPadding
@@ -69,7 +90,6 @@ struct BracketView: View {
         .highPriorityGesture(
             DragGesture(minimumDistance: 30)
                 .onChanged { value in
-                    // Only track horizontal drags
                     if abs(value.translation.width) > abs(value.translation.height) {
                         dragOffset = value.translation.width
                     }
@@ -328,7 +348,9 @@ struct BracketView: View {
     // MARK: - Layout Helpers
 
     private func matchupSpacing(for roundIndex: Int) -> CGFloat {
-        if roundIndex == 0 { return 24 }
+        let bracketType = tournament.bracketType?.lowercased() ?? ""
+        let baseSpacing: CGFloat = bracketType == "semifinals" ? 80 : 24
+        if roundIndex == 0 { return baseSpacing }
         return matchupSpacing(for: roundIndex - 1) * 2 + matchupCardHeight
     }
 
