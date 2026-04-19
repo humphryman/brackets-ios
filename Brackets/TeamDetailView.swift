@@ -474,7 +474,7 @@ struct TeamStatsTabView: View {
                 Spacer()
 
                 VStack(spacing: 2) {
-                    Text(category.longName)
+                    Text(category.longName ?? "")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.accent)
                     Text("TEAM LEADERS")

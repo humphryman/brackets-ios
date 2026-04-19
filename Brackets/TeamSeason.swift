@@ -47,12 +47,12 @@ struct TeamSeasonDetail: Decodable, Sendable {
     }
 
     var nonEmptyStatLeaders: [StatLeaderCategory] {
-        statLeaders.filter { !$0.players.isEmpty }
+        statLeaders.filter { $0.longName != nil && !$0.players.isEmpty }
     }
 }
 
 struct StatLeaderCategory: Codable, Identifiable, Sendable {
-    let longName: String
+    let longName: String?
     let shortName: String
     let players: [StatLeaderEntry]
 
