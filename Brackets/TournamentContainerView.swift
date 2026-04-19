@@ -101,7 +101,7 @@ struct TournamentContainerView: View {
             VStack {
                 Spacer()
                 CustomTabBar(selectedTab: $selectedTab, tabs: availableTabs, namespace: animation)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, availableTabs.count > 3 ? 16 : 40)
                     .padding(.bottom, 10)
             }
             .ignoresSafeArea(edges: .bottom)
@@ -116,7 +116,7 @@ struct CustomTabBar: View {
     let namespace: Namespace.ID
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: tabs.count > 3 ? 8 : 12) {
             ForEach(tabs, id: \.self) { tab in
                 TabButton(
                     tab: tab,
@@ -136,7 +136,6 @@ struct CustomTabBar: View {
             RoundedRectangle(cornerRadius: 40)
                 .fill(.ultraThinMaterial)
         )
-        .fixedSize(horizontal: true, vertical: false)
     }
 }
 
