@@ -378,7 +378,16 @@ struct UpcomingGameView: View {
 
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(players) { player in
-                        playerCard(player: player)
+                        if let psId = player.playerSeasonId {
+                            NavigationLink {
+                                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                            } label: {
+                                playerCard(player: player)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            playerCard(player: player)
+                        }
                     }
                 }
             }

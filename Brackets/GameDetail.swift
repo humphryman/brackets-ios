@@ -247,6 +247,7 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
     let playerFirstName: String
     let playerLastName: String
     let playerId: Int?
+    let playerSeasonId: Int?
     let playerNumber: Int?
     let playerGender: String?
     let playerImage: String?
@@ -272,6 +273,7 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         case playerFirstName = "player_first_name"
         case playerLastName = "player_last_name"
         case playerId = "player_id"
+        case playerSeasonId = "player_season_id"
         case playerNumber = "player_number"
         case playerGender = "player_gender"
         case playerImage = "player_image"
@@ -288,6 +290,7 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         playerFirstName = try container.decode(String.self, forKey: .playerFirstName)
         playerLastName = try container.decode(String.self, forKey: .playerLastName)
         playerId = try container.decodeIfPresent(Int.self, forKey: .playerId)
+        playerSeasonId = try container.decodeIfPresent(Int.self, forKey: .playerSeasonId)
         playerNumber = try container.decodeIfPresent(Int.self, forKey: .playerNumber)
         playerGender = try container.decodeIfPresent(String.self, forKey: .playerGender)
         playerImage = try container.decodeIfPresent(String.self, forKey: .playerImage)

@@ -256,24 +256,16 @@ struct GameResultView: View {
                         Divider().background(Color(white: 0.2))
 
                         ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
-                            HStack(spacing: 8) {
-                                playerAvatarCircle(player: player, size: 30)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(player.playerFirstName)
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
-                                        .lineLimit(1)
-                                    Text(player.playerLastName)
-                                        .font(.system(size: 11, weight: .regular))
-                                        .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
-                                        .lineLimit(1)
+                            if let psId = player.playerSeasonId {
+                                NavigationLink {
+                                    PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                                } label: {
+                                    playerRow(player: player, index: index, rowHeight: rowHeight)
                                 }
+                                .buttonStyle(.plain)
+                            } else {
+                                playerRow(player: player, index: index, rowHeight: rowHeight)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(height: rowHeight)
-                            .padding(.leading, 12)
-                            .opacity(player.played ? 1.0 : 0.5)
-                            .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
                         }
                     }
                     .frame(width: 150)
@@ -508,6 +500,28 @@ struct GameResultView: View {
     }
 
     // MARK: - Helpers
+
+    @ViewBuilder
+    private func playerRow(player: PlayerGameStat, index: Int, rowHeight: CGFloat) -> some View {
+        HStack(spacing: 8) {
+            playerAvatarCircle(player: player, size: 30)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(player.playerFirstName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                    .lineLimit(1)
+                Text(player.playerLastName)
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: rowHeight)
+        .padding(.leading, 12)
+        .opacity(player.played ? 1.0 : 0.5)
+        .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
+    }
 
     private struct RankedPlayer {
         let player: PlayerGameStat
