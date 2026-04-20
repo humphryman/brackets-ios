@@ -333,12 +333,18 @@ struct GameResultView: View {
         let card = VStack(spacing: AppTheme.Spacing.large) {
             // Title
             Text("Jugador del Partido")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
+                )
+                .frame(maxWidth: .infinity)
 
             // Player info
-            HStack(alignment: .center, spacing: 14) {
+            VStack(spacing: 10) {
                 if let imageURL = potg.fullImageURL, let url = URL(string: imageURL) {
                     AsyncImage(url: url) { phase in
                         switch phase {
@@ -346,7 +352,7 @@ struct GameResultView: View {
                             image
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 80, height: 80)
+                                .frame(width: 100, height: 100)
                                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
                         default:
                             potgInitials(firstName: potg.firstName, lastName: potg.lastName)
@@ -356,43 +362,51 @@ struct GameResultView: View {
                     potgInitials(firstName: potg.firstName, lastName: potg.lastName)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(potg.firstName) \(potg.lastName)")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.primaryText)
-                        .lineLimit(1)
-                    if let teamName = potg.teamName {
-                        Text(teamName)
-                            .font(.system(size: 13))
-                            .foregroundStyle(Color(white: 0.45))
-                    }
-                }
+                Text("\(potg.firstName) \(potg.lastName)")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .lineLimit(1)
 
-                Spacer()
+                if let teamName = potg.teamName {
+                    Text(teamName)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.45))
+                }
             }
+            .frame(maxWidth: .infinity)
 
             // Stat badges
             if let stats = potg.stats, !stats.isEmpty {
-                HStack(spacing: 10) {
-                    let sortedStats = stats.sorted { a, b in
-                        if a.key == "points" { return true }
-                        if b.key == "points" { return false }
-                        return a.key < b.key
-                    }
-                    ForEach(Array(sortedStats), id: \.key) { key, value in
-                        VStack(spacing: 4) {
-                            Text("\(value)")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.accentText)
-                            Text(shortNames[key] ?? key.uppercased())
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.accentText.opacity(0.7))
+                let sortedStats = Array(stats.sorted { a, b in
+                    if a.key == "points" { return true }
+                    if b.key == "points" { return false }
+                    return a.key < b.key
+                })
+                let rows = stride(from: 0, to: sortedStats.count, by: 5).map {
+                    Array(sortedStats[$0..<min($0 + 5, sortedStats.count)])
+                }
+
+                VStack(spacing: 10) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                        HStack(spacing: 10) {
+                            Spacer(minLength: 0)
+                            ForEach(row, id: \.key) { key, value in
+                                VStack(spacing: 4) {
+                                    Text("\(value)")
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundStyle(AppTheme.Colors.accentText)
+                                    Text(shortNames[key] ?? key.uppercased())
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(AppTheme.Colors.accentText.opacity(0.7))
+                                }
+                                .frame(width: 60, height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(AppTheme.Colors.accent)
+                                )
+                            }
+                            Spacer(minLength: 0)
                         }
-                        .frame(width: 60, height: 56)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(AppTheme.Colors.accent)
-                        )
                     }
                 }
             }
@@ -421,7 +435,7 @@ struct GameResultView: View {
         let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
         RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
             .fill(Color(white: 0.18))
-            .frame(width: 80, height: 80)
+            .frame(width: 100, height: 100)
             .overlay(
                 Text(initials)
                     .font(.system(size: 24, weight: .bold))
