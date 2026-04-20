@@ -65,7 +65,9 @@ struct GameResultView: View {
                         VStack(spacing: AppTheme.Spacing.large) {
                             scoreCard(detail: detail)
                             playerStatsCard(detail: detail)
-                            gameStatsLeadersCard(detail: detail)
+                            if let potg = detail.game.playerOfTheGame {
+                                playerOfTheGameCard(potg: potg, detail: detail)
+                            }
                         }
                         .padding(.horizontal, AppTheme.Layout.screenPadding)
                         .padding(.bottom, AppTheme.Layout.large)
@@ -321,6 +323,113 @@ struct GameResultView: View {
     }
 
     // MARK: - Section 3: Game Stats Leaders
+
+    // MARK: - Player of the Game
+
+    @ViewBuilder
+    private func playerOfTheGameCard(potg: PlayerOfTheGame, detail: GameDetailResponse) -> some View {
+        let shortNames = detail.shortNameStats
+
+        let card = VStack(spacing: AppTheme.Spacing.large) {
+            // Title
+            Text("Jugador del Partido")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Player info
+            HStack(alignment: .center, spacing: 14) {
+                if let imageURL = potg.fullImageURL, let url = URL(string: imageURL) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 80, height: 80)
+                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
+                        default:
+                            potgInitials(firstName: potg.firstName, lastName: potg.lastName)
+                        }
+                    }
+                } else {
+                    potgInitials(firstName: potg.firstName, lastName: potg.lastName)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(potg.firstName) \(potg.lastName)")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .lineLimit(1)
+                    if let teamName = potg.teamName {
+                        Text(teamName)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color(white: 0.45))
+                    }
+                }
+
+                Spacer()
+            }
+
+            // Stat badges
+            if let stats = potg.stats, !stats.isEmpty {
+                HStack(spacing: 10) {
+                    let sortedStats = stats.sorted { a, b in
+                        if a.key == "points" { return true }
+                        if b.key == "points" { return false }
+                        return a.key < b.key
+                    }
+                    ForEach(Array(sortedStats), id: \.key) { key, value in
+                        VStack(spacing: 4) {
+                            Text("\(value)")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(AppTheme.Colors.accentText)
+                            Text(shortNames[key] ?? key.uppercased())
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.accentText.opacity(0.7))
+                        }
+                        .frame(width: 60, height: 56)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(AppTheme.Colors.accent)
+                        )
+                    }
+                }
+            }
+        }
+        .padding(AppTheme.Layout.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                .fill(Color(white: 0.1))
+                .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+        )
+
+        if let psId = potg.playerSeasonId {
+            NavigationLink {
+                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+            } label: {
+                card
+            }
+            .buttonStyle(.plain)
+        } else {
+            card
+        }
+    }
+
+    @ViewBuilder
+    private func potgInitials(firstName: String, lastName: String) -> some View {
+        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
+            .fill(Color(white: 0.18))
+            .frame(width: 80, height: 80)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color(white: 0.4))
+            )
+    }
+
+    // MARK: - Game Stats Leaders (unused)
 
     @ViewBuilder
     private func gameStatsLeadersCard(detail: GameDetailResponse) -> some View {

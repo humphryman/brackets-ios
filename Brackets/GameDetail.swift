@@ -21,6 +21,51 @@ struct GameDetailResponse: Codable, Sendable {
     }
 }
 
+// MARK: - Player of the Game
+
+struct PlayerOfTheGame: Sendable {
+    let playerId: Int?
+    let playerSeasonId: Int?
+    let firstName: String
+    let lastName: String
+    let picture: String?
+    let teamName: String?
+    let teamLogo: String?
+    let stats: [String: Int]?
+
+    enum CodingKeys: String, CodingKey {
+        case playerId = "player_id"
+        case playerSeasonId = "player_season_id"
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case picture
+        case teamName = "team_name"
+        case teamLogo = "team_logo"
+        case stats
+    }
+
+    var fullImageURL: String? {
+        guard let pic = picture else { return nil }
+        if pic.lowercased().hasPrefix("http") { return pic }
+        let path = pic.hasPrefix("/") ? String(pic.dropFirst()) : pic
+        return "\(APIConfig.baseURL)/\(path)"
+    }
+}
+
+extension PlayerOfTheGame: Codable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        playerId = try container.decodeIfPresent(Int.self, forKey: .playerId)
+        playerSeasonId = try container.decodeIfPresent(Int.self, forKey: .playerSeasonId)
+        firstName = try container.decodeIfPresent(String.self, forKey: .firstName) ?? ""
+        lastName = try container.decodeIfPresent(String.self, forKey: .lastName) ?? ""
+        picture = try container.decodeIfPresent(String.self, forKey: .picture)
+        teamName = try container.decodeIfPresent(String.self, forKey: .teamName)
+        teamLogo = try container.decodeIfPresent(String.self, forKey: .teamLogo)
+        stats = try container.decodeIfPresent([String: Int].self, forKey: .stats)
+    }
+}
+
 // MARK: - Game detail
 
 struct GameDetail: Identifiable, Sendable {
@@ -34,6 +79,7 @@ struct GameDetail: Identifiable, Sendable {
     let activeStats: [String]?
     let gameSets: GameSets?
     let teamStats: [GameDetailTeamStat]?
+    let playerOfTheGame: PlayerOfTheGame?
 
     enum CodingKeys: String, CodingKey {
         case id, played, phase, round, stage, venue
@@ -41,6 +87,7 @@ struct GameDetail: Identifiable, Sendable {
         case activeStats = "active_stats"
         case gameSets = "game_sets"
         case teamStats = "team_stats"
+        case playerOfTheGame = "player_of_the_game"
     }
 }
 
@@ -63,6 +110,8 @@ extension GameDetail: Codable {
         } else {
             gameSets = nil
         }
+
+        playerOfTheGame = try? container.decodeIfPresent(PlayerOfTheGame.self, forKey: .playerOfTheGame)
     }
 }
 
