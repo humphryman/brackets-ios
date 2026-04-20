@@ -626,7 +626,15 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func playerRow(player: PlayerGameStat, index: Int, rowHeight: CGFloat) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
+            if let number = player.playerNumber, number > 0 {
+                Text("#\(number)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color(white: 0.4))
+                    .frame(width: 30, alignment: .center)
+            } else {
+                Spacer().frame(width: 28)
+            }
             playerAvatarCircle(player: player, size: 30)
             VStack(alignment: .leading, spacing: 1) {
                 Text(player.playerFirstName)
@@ -641,7 +649,7 @@ struct GameResultView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: rowHeight)
-        .padding(.leading, 12)
+        .padding(.leading, 6)
         .opacity(player.played ? 1.0 : 0.5)
         .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
     }

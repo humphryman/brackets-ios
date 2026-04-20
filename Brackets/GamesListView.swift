@@ -126,7 +126,7 @@ struct GamesListView: View {
                                             ForEach(dateGroup.games) { game in
                                                 if game.isLive {
                                                     NavigationLink {
-                                                        GameResultView(game: game, tournamentId: tournament.id)
+                                                        LiveGameDetailView(game: game, tournamentId: tournament.id)
                                                     } label: {
                                                         LiveGameCard(game: game, detail: liveGameDetails[game.id], tournamentId: tournament.id)
                                                             .padding(.horizontal, AppTheme.Layout.screenPadding)
