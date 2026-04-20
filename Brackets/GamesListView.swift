@@ -67,19 +67,20 @@ struct GamesListView: View {
                     }
                 }
             } else if let _ = gamesResponse {
-                if filteredGames.isEmpty {
-                    AppTheme.EmptyStateView(
-                        icon: "basketball",
-                        message: "No hay juegos agendados."
-                    )
-                } else {
-                    VStack(spacing: 0) {
-                        // Filter Buttons
-                        GameFilterView(selectedFilter: $selectedFilter)
-                            .padding(.horizontal, AppTheme.Layout.screenPadding)
-                            .padding(.top, AppTheme.Spacing.medium)
-                            .padding(.bottom, AppTheme.Spacing.large)
-                        
+                VStack(spacing: 0) {
+                    // Filter Buttons
+                    GameFilterView(selectedFilter: $selectedFilter)
+                        .padding(.horizontal, AppTheme.Layout.screenPadding)
+                        .padding(.top, AppTheme.Spacing.medium)
+                        .padding(.bottom, AppTheme.Spacing.large)
+
+                    if filteredGames.isEmpty {
+                        AppTheme.EmptyStateView(
+                            icon: "basketball",
+                            message: "No hay juegos agendados."
+                        )
+                        .frame(maxHeight: .infinity)
+                    } else {
                         // Games List
                         ScrollViewReader { proxy in
                             ScrollView {
