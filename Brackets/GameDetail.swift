@@ -72,6 +72,7 @@ struct GameDetail: Identifiable, Sendable {
     let id: Int
     let played: Bool?
     let phase: String?
+    let period: String?
     let round: String?
     let gameTime: Date?
     let stage: String?
@@ -82,7 +83,7 @@ struct GameDetail: Identifiable, Sendable {
     let playerOfTheGame: PlayerOfTheGame?
 
     enum CodingKeys: String, CodingKey {
-        case id, played, phase, round, stage, venue
+        case id, played, phase, period, round, stage, venue
         case gameTime = "game_time"
         case activeStats = "active_stats"
         case gameSets = "game_sets"
@@ -97,6 +98,7 @@ extension GameDetail: Codable {
         id = try container.decode(Int.self, forKey: .id)
         played = try container.decodeIfPresent(Bool.self, forKey: .played)
         phase = try container.decodeIfPresent(String.self, forKey: .phase)
+        period = try container.decodeIfPresent(String.self, forKey: .period)
         round = try container.decodeIfPresent(String.self, forKey: .round)
         gameTime = try container.decodeIfPresent(Date.self, forKey: .gameTime)
         stage = try container.decodeIfPresent(String.self, forKey: .stage)

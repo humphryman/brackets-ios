@@ -17,6 +17,7 @@ private extension DateFormatter {
 }
 
 enum GameFilter: String, CaseIterable {
+    case live = "En Vivo"
     case all = "Todos"
     case upcoming = "Próximos"
     case completed = "Resultados"
@@ -28,19 +29,41 @@ struct GamesListView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var selectedFilter: GameFilter = .all
-    
+    @State private var liveGameDetails: [Int: GameDetailResponse] = [:]
+    @State private var liveRefreshTimer: Timer?
+
+    private var hasLiveGames: Bool {
+        gamesResponse?.allGames.contains { $0.isLive } ?? false
+    }
+
+    private var availableFilters: [GameFilter] {
+        var filters: [GameFilter] = []
+        if hasLiveGames {
+            filters.append(.live)
+        }
+        filters.append(contentsOf: [.all, .upcoming, .completed])
+        return filters
+    }
+
     var filteredGames: [GamesResponse.DateGroup] {
         guard let gamesResponse = gamesResponse else { return [] }
 
         let groups: [GamesResponse.DateGroup]
         switch selectedFilter {
+        case .live:
+            groups = gamesResponse.games.map { dateGroup in
+                GamesResponse.DateGroup(
+                    date: dateGroup.date,
+                    games: dateGroup.games.filter { $0.isLive }
+                )
+            }.filter { !$0.games.isEmpty }
         case .all:
             groups = gamesResponse.games
         case .upcoming:
             groups = gamesResponse.games.map { dateGroup in
                 GamesResponse.DateGroup(
                     date: dateGroup.date,
-                    games: dateGroup.games.filter { !$0.isFinished }
+                    games: dateGroup.games.filter { !$0.isFinished && !$0.isLive }
                 )
             }.filter { !$0.games.isEmpty }
         case .completed:
@@ -69,7 +92,7 @@ struct GamesListView: View {
             } else if let _ = gamesResponse {
                 VStack(spacing: 0) {
                     // Filter Buttons
-                    GameFilterView(selectedFilter: $selectedFilter)
+                    GameFilterView(selectedFilter: $selectedFilter, filters: availableFilters)
                         .padding(.horizontal, AppTheme.Layout.screenPadding)
                         .padding(.top, AppTheme.Spacing.medium)
                         .padding(.bottom, AppTheme.Spacing.large)
@@ -101,7 +124,15 @@ struct GamesListView: View {
 
                                             // Games for this date
                                             ForEach(dateGroup.games) { game in
-                                                if game.isFinished {
+                                                if game.isLive {
+                                                    NavigationLink {
+                                                        GameResultView(game: game, tournamentId: tournament.id)
+                                                    } label: {
+                                                        LiveGameCard(game: game, detail: liveGameDetails[game.id], tournamentId: tournament.id)
+                                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                } else if game.isFinished {
                                                     NavigationLink {
                                                         GameResultView(game: game, tournamentId: tournament.id)
                                                     } label: {
@@ -143,6 +174,48 @@ struct GamesListView: View {
         }
         .task {
             await loadGames()
+            startLiveRefreshIfNeeded()
+        }
+        .onDisappear {
+            stopLiveRefresh()
+        }
+    }
+
+    private func startLiveRefreshIfNeeded() {
+        guard hasLiveGames else { return }
+        // Auto-select live filter when live games exist
+        if selectedFilter == .all {
+            selectedFilter = .live
+        }
+        stopLiveRefresh()
+        liveRefreshTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            Task {
+                await refreshLiveGames()
+            }
+        }
+        // Initial fetch
+        Task { await refreshLiveGames() }
+    }
+
+    private func stopLiveRefresh() {
+        liveRefreshTimer?.invalidate()
+        liveRefreshTimer = nil
+    }
+
+    private func refreshLiveGames() async {
+        guard let games = gamesResponse?.allGames.filter({ $0.isLive }) else { return }
+        for game in games {
+            do {
+                let detail = try await APIService.shared.fetchGameDetail(
+                    tournamentId: tournament.id,
+                    gameId: game.id
+                )
+                await MainActor.run {
+                    liveGameDetails[game.id] = detail
+                }
+            } catch {
+                print("❌ Live game refresh error for game \(game.id): \(error)")
+            }
         }
     }
     
@@ -199,25 +272,59 @@ struct GamesListView: View {
     }
 }
 
-/// Filter buttons at the top (All, Upcoming, Completed)
+/// Filter buttons at the top
 struct GameFilterView: View {
     @Binding var selectedFilter: GameFilter
-    
+    var filters: [GameFilter] = GameFilter.allCases
+
     var body: some View {
         HStack(spacing: AppTheme.Spacing.small) {
-            ForEach(GameFilter.allCases, id: \.self) { filter in
-                FilterButton(
-                    title: filter.rawValue,
-                    isSelected: selectedFilter == filter
-                ) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedFilter = filter
+            ForEach(filters, id: \.self) { filter in
+                if filter == .live {
+                    LiveFilterButton(isSelected: selectedFilter == filter) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedFilter = filter
+                        }
+                    }
+                } else {
+                    FilterButton(
+                        title: filter.rawValue,
+                        isSelected: selectedFilter == filter
+                    ) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            selectedFilter = filter
+                        }
                     }
                 }
             }
-            
+
             Spacer()
         }
+    }
+}
+
+/// Live filter button with red dot
+struct LiveFilterButton: View {
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 10, height: 10)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(isSelected ? Color.red.opacity(0.3) : Color.clear)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.red, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -485,6 +592,231 @@ struct CenterSection: View {
         formatter.timeZone = AppConfig.DateTime.apiTimeZone
         formatter.dateFormat = "h:mm a"
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Live Game Card
+
+struct LiveGameCard: View {
+    let game: Game
+    let detail: GameDetailResponse?
+    let tournamentId: Int
+
+    @State private var homeScalePulse = false
+    @State private var awayScalePulse = false
+    @State private var periodScalePulse = false
+    @State private var lastHomeScore: Int?
+    @State private var lastAwayScore: Int?
+    @State private var lastPeriod: String?
+
+    // Use teamStats as primary source — consistent team order for names, logos, and scores
+    private var homeTeamStat: GameDetailTeamStat? {
+        guard let teams = detail?.game.teamStats, !teams.isEmpty else { return nil }
+        return teams[0]
+    }
+
+    private var awayTeamStat: GameDetailTeamStat? {
+        guard let teams = detail?.game.teamStats, teams.count > 1 else { return nil }
+        return teams[1]
+    }
+
+    private var homeScore: Int {
+        homeTeamStat?.score ?? game.homeScore ?? 0
+    }
+
+    private var awayScore: Int {
+        awayTeamStat?.score ?? game.awayScore ?? 0
+    }
+
+    private var period: String {
+        if let detailPeriod = detail?.game.period, !detailPeriod.isEmpty {
+            return detailPeriod
+        }
+        return game.period ?? ""
+    }
+
+    private var homeTeamName: String {
+        homeTeamStat?.teamName ?? game.homeTeam?.name ?? "TBD"
+    }
+
+    private var awayTeamName: String {
+        awayTeamStat?.teamName ?? game.awayTeam?.name ?? "TBD"
+    }
+
+    private var homeLogoURL: String? {
+        homeTeamStat?.fullImageURL ?? game.homeTeam?.fullImageURL
+    }
+
+    private var awayLogoURL: String? {
+        awayTeamStat?.fullImageURL ?? game.awayTeam?.fullImageURL
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Stage badge
+            if let stage = game.stage {
+                Text(stage)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.accentText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(AppTheme.Colors.accent))
+            }
+
+            // Teams + Score
+            HStack(spacing: 0) {
+                // Home Team
+                VStack(spacing: 6) {
+                    liveTeamLogo(urlString: homeLogoURL, name: homeTeamName)
+                    Text(homeTeamName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity)
+
+                // Score + Period
+                VStack(spacing: 4) {
+                    if !period.isEmpty {
+                        Text(period)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.accent)
+                            .scaleEffect(periodScalePulse ? 1.3 : 1.0)
+                    }
+
+                    HStack(spacing: 8) {
+                        Text("\(homeScore)")
+                            .font(.system(size: 28, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .scaleEffect(homeScalePulse ? 1.3 : 1.0)
+                        Text("-")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Color(white: 0.4))
+                        Text("\(awayScore)")
+                            .font(.system(size: 28, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .scaleEffect(awayScalePulse ? 1.3 : 1.0)
+                    }
+
+                    // EN VIVO indicator
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                        Text("EN VIVO")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.red)
+                    }
+                }
+                .frame(width: 120)
+
+                // Away Team
+                VStack(spacing: 6) {
+                    liveTeamLogo(urlString: awayLogoURL, name: awayTeamName)
+                    Text(awayTeamName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                .fill(Color(white: 0.1))
+                .stroke(Color.red.opacity(0.5), lineWidth: 1.5)
+        )
+        .onChange(of: homeScore) { oldValue, newValue in
+            if lastHomeScore != nil && oldValue != newValue {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                    homeScalePulse = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                        homeScalePulse = false
+                    }
+                }
+            }
+            lastHomeScore = newValue
+        }
+        .onChange(of: awayScore) { oldValue, newValue in
+            if lastAwayScore != nil && oldValue != newValue {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                    awayScalePulse = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                        awayScalePulse = false
+                    }
+                }
+            }
+            lastAwayScore = newValue
+        }
+        .onChange(of: period) { oldValue, newValue in
+            if lastPeriod != nil && oldValue != newValue {
+                withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
+                    periodScalePulse = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.7)) {
+                        periodScalePulse = false
+                    }
+                }
+            }
+            lastPeriod = newValue
+        }
+        .onAppear {
+            lastHomeScore = homeScore
+            lastAwayScore = awayScore
+            lastPeriod = period
+        }
+    }
+
+    @ViewBuilder
+    private func liveTeamLogo(urlString: String?, name: String) -> some View {
+        if let urlString, let url = URL(string: urlString) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 56)
+                        .clipShape(Circle())
+                default:
+                    liveTeamInitials(name: name)
+                }
+            }
+        } else {
+            liveTeamInitials(name: name)
+        }
+    }
+
+    private func liveTeamInitials(name: String) -> some View {
+        let words = name.split(separator: " ")
+        let initials = words.count >= 2
+            ? String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
+            : String(name.prefix(3)).uppercased()
+        return Circle()
+            .fill(Color(white: 0.2))
+            .frame(width: 56, height: 56)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Color(white: 0.5))
+            )
+    }
+
+    private func formatLiveDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_MX")
+        formatter.timeZone = AppConfig.DateTime.apiTimeZone
+        formatter.dateFormat = "MMM dd, yyyy"
+        return formatter.string(from: date).capitalized
     }
 }
 

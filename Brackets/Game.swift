@@ -12,6 +12,8 @@ struct Game: Identifiable, Sendable {
     let gameTime: Date?
     let stage: String?
     let venue: Venue?
+    var isLive: Bool = false
+    var period: String? = nil
     let teamStats: [TeamStat]?
 
     // Computed properties for easier access
@@ -83,6 +85,8 @@ struct Game: Identifiable, Sendable {
         case gameTime = "game_time"
         case stage
         case venue
+        case isLive = "is_live"
+        case period
         case teamStats = "team_stats"
     }
 }
@@ -93,6 +97,8 @@ extension Game: Codable {
         id = try container.decode(Int.self, forKey: .id)
         gameTime = try container.decodeIfPresent(Date.self, forKey: .gameTime)
         stage = try container.decodeIfPresent(String.self, forKey: .stage)
+        isLive = try container.decodeIfPresent(Bool.self, forKey: .isLive) ?? false
+        period = try container.decodeIfPresent(String.self, forKey: .period)
         teamStats = try container.decodeIfPresent([TeamStat].self, forKey: .teamStats)
 
         // venue can be a Venue object or a plain string
