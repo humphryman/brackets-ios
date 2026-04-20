@@ -201,7 +201,7 @@ struct UpcomingGameView: View {
 
         VStack(spacing: 0) {
             // Title
-            Text("Stats")
+            Text("Promedios por equipo")
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
