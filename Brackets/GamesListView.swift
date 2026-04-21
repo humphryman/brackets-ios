@@ -70,7 +70,7 @@ struct GamesListView: View {
             groups = gamesResponse.games.map { dateGroup in
                 GamesResponse.DateGroup(
                     date: dateGroup.date,
-                    games: dateGroup.games.filter { $0.isFinished }
+                    games: dateGroup.games.filter { $0.isFinished && !$0.isLive }
                 )
             }.filter { !$0.games.isEmpty }
         }
@@ -685,10 +685,11 @@ struct LiveGameCard: View {
                             .scaleEffect(periodScalePulse ? 1.3 : 1.0)
                     }
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: 4) {
                         Text("\(homeScore)")
                             .font(.system(size: 28, weight: .heavy))
                             .foregroundStyle(.white)
+                            .frame(minWidth: 36)
                             .scaleEffect(homeScalePulse ? 1.3 : 1.0)
                         Text("-")
                             .font(.system(size: 20))
@@ -696,8 +697,10 @@ struct LiveGameCard: View {
                         Text("\(awayScore)")
                             .font(.system(size: 28, weight: .heavy))
                             .foregroundStyle(.white)
+                            .frame(minWidth: 36)
                             .scaleEffect(awayScalePulse ? 1.3 : 1.0)
                     }
+                    .fixedSize()
 
                     // EN VIVO indicator
                     HStack(spacing: 6) {

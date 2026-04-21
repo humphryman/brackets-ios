@@ -333,14 +333,8 @@ struct GameResultView: View {
         let card = VStack(spacing: AppTheme.Spacing.large) {
             // Title
             Text("Jugador del Partido")
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 20, weight: .heavy))
                 .foregroundStyle(AppTheme.Colors.primaryText)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
-                )
                 .frame(maxWidth: .infinity)
 
             // Player info
@@ -382,8 +376,10 @@ struct GameResultView: View {
                     if b.key == "points" { return false }
                     return a.key < b.key
                 })
-                let rows = stride(from: 0, to: sortedStats.count, by: 5).map {
-                    Array(sortedStats[$0..<min($0 + 5, sortedStats.count)])
+                let rowCount = sortedStats.count <= 5 ? 1 : Int(ceil(Double(sortedStats.count) / 5.0))
+                let itemsPerRow = Int(ceil(Double(sortedStats.count) / Double(rowCount)))
+                let rows = stride(from: 0, to: sortedStats.count, by: itemsPerRow).map {
+                    Array(sortedStats[$0..<min($0 + itemsPerRow, sortedStats.count)])
                 }
 
                 VStack(spacing: 10) {
