@@ -388,7 +388,7 @@ struct StatsLeadersView: View {
         }
     }
 }
-
+ 
 // MARK: - Custom Crown Shape
 
 struct CrownIcon: Shape {
