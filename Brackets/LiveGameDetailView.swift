@@ -16,8 +16,11 @@ struct LiveGameDetailView: View {
     @State private var selectedTeamIndex: Int = 0
     @State private var refreshTimer: Timer?
     @State private var previousStats: [Int: [String: Int?]] = [:] // playerId -> stats snapshot
+    @State private var previousStarters: [Int: Bool] = [:] // playerId -> was starter
     @State private var pulsingCells: Set<String> = [] // "playerId-statKey"
-    @State private var highlightedPlayers: Set<Int> = [] // player IDs with recent changes
+    @State private var highlightedPlayers: Set<Int> = [] // player IDs with recent stat changes
+    @State private var rosterGlowGreen: Set<Int> = [] // players added to starters
+    @State private var rosterGlowRed: Set<Int> = [] // players moved to bench
 
     var body: some View {
         ZStack {
@@ -136,9 +139,12 @@ struct LiveGameDetailView: View {
         let teams = newDetail.game.teamStats ?? []
         var newPulses: Set<String> = []
         var changedPlayers: Set<Int> = []
+        var newGlowGreen: Set<Int> = []
+        var newGlowRed: Set<Int> = []
 
         for team in teams {
             for player in (team.playerStats ?? []) where !player.isTeamEntry {
+                // Stat changes
                 let oldStats = previousStats[player.id]
                 if let oldStats {
                     for (key, newValue) in player.dynamicStats {
@@ -150,6 +156,16 @@ struct LiveGameDetailView: View {
                     }
                 }
                 previousStats[player.id] = player.dynamicStats
+
+                // Roster changes
+                if let wasStarter = previousStarters[player.id] {
+                    if player.starter && !wasStarter {
+                        newGlowGreen.insert(player.id)
+                    } else if !player.starter && wasStarter {
+                        newGlowRed.insert(player.id)
+                    }
+                }
+                previousStarters[player.id] = player.starter
             }
         }
 
@@ -165,6 +181,19 @@ struct LiveGameDetailView: View {
                 }
             }
         }
+
+        if !newGlowGreen.isEmpty || !newGlowRed.isEmpty {
+            withAnimation(.easeIn(duration: 0.3)) {
+                rosterGlowGreen = newGlowGreen
+                rosterGlowRed = newGlowRed
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    rosterGlowGreen = []
+                    rosterGlowRed = []
+                }
+            }
+        }
     }
 
     // MARK: - Live Player Stats Card
@@ -177,7 +206,9 @@ struct LiveGameDetailView: View {
         if teams.count >= 2 {
             let safeIndex = min(selectedTeamIndex, teams.count - 1)
             let selectedTeam = teams[safeIndex]
-            let players = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }.sorted { $0.played && !$1.played }
+            let allPlayers = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }
+            let starters = allPlayers.filter { $0.starter }
+            let bench = allPlayers.filter { !$0.starter }
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
@@ -213,73 +244,26 @@ struct LiveGameDetailView: View {
                         .fill(Color(white: 0.18))
                 )
 
-                // Stats table
-                let rowHeight: CGFloat = 50
-                let headerHeight: CGFloat = 38
-                let minStatWidth: CGFloat = 56
-                let needsScroll = CGFloat(activeStats.count) * minStatWidth > 200
+                // Starters table
+                if !starters.isEmpty {
+                    liveStatsTable(
+                        title: "En Cancha",
+                        players: starters,
+                        activeStats: activeStats,
+                        detail: detail,
+                        sectionType: .starters
+                    )
+                }
 
-                HStack(spacing: 0) {
-                    // Fixed player name column
-                    VStack(spacing: 0) {
-                        Text("JUGADOR")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.45))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .frame(height: headerHeight)
-                            .padding(.leading, 12)
-
-                        Divider().background(Color(white: 0.2))
-
-                        ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
-                            livePlayerRow(player: player, index: index, rowHeight: rowHeight, isHighlighted: highlightedPlayers.contains(player.id))
-                        }
-                    }
-                    .frame(width: 150)
-
-                    // Stats columns
-                    let statsContent = VStack(spacing: 0) {
-                        // Stat headers
-                        HStack(spacing: 0) {
-                            ForEach(activeStats, id: \.self) { statKey in
-                                Text(detail.shortNameStats[statKey] ?? statKey.uppercased())
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(Color(white: 0.45))
-                                    .frame(minWidth: minStatWidth, maxWidth: .infinity)
-                            }
-                        }
-                        .frame(height: headerHeight)
-
-                        Divider().background(Color(white: 0.2))
-
-                        // Stat value rows
-                        ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
-                            HStack(spacing: 0) {
-                                ForEach(activeStats, id: \.self) { statKey in
-                                    let value = player.dynamicStats[statKey] ?? nil
-                                    let cellKey = "\(player.id)-\(statKey)"
-                                    let isPulsing = pulsingCells.contains(cellKey)
-
-                                    Text(value.map { "\($0)" } ?? "-")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
-                                        .frame(minWidth: minStatWidth, maxWidth: .infinity)
-                                        .scaleEffect(isPulsing ? 1.3 : 1.0)
-                                }
-                            }
-                            .frame(height: rowHeight)
-                            .opacity(player.played ? 1.0 : 0.5)
-                            .background(highlightedPlayers.contains(player.id) ? AppTheme.Colors.accent.opacity(0.1) : (index % 2 == 0 ? Color(white: 0.14) : Color.clear))
-                        }
-                    }
-
-                    if needsScroll {
-                        ScrollView(.horizontal, showsIndicators: true) {
-                            statsContent
-                        }
-                    } else {
-                        statsContent
-                    }
+                // Bench table
+                if !bench.isEmpty {
+                    liveStatsTable(
+                        title: "Banca",
+                        players: bench,
+                        activeStats: activeStats,
+                        detail: detail,
+                        sectionType: .bench
+                    )
                 }
             }
             .padding(AppTheme.Layout.cardPadding)
@@ -291,10 +275,120 @@ struct LiveGameDetailView: View {
         }
     }
 
+    private enum RosterSection {
+        case starters, bench
+    }
+
+    @ViewBuilder
+    private func liveStatsTable(title: String, players: [PlayerGameStat], activeStats: [String], detail: GameDetailResponse, sectionType: RosterSection) -> some View {
+        let rowHeight: CGFloat = 50
+        let headerHeight: CGFloat = 38
+        let minStatWidth: CGFloat = 56
+        let needsScroll = CGFloat(activeStats.count) * minStatWidth > 200
+
+        VStack(spacing: 8) {
+            // Section title
+            Text(title)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(sectionType == .starters ? AppTheme.Colors.accent : Color(white: 0.5))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 0) {
+                // Fixed player name column
+                VStack(spacing: 0) {
+                    Text("JUGADOR")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(white: 0.45))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: headerHeight)
+                        .padding(.leading, 12)
+
+                    Divider().background(Color(white: 0.2))
+
+                    ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
+                        livePlayerRow(
+                            player: player,
+                            index: index,
+                            rowHeight: rowHeight,
+                            isHighlighted: highlightedPlayers.contains(player.id),
+                            rosterGlow: rosterGlowColor(for: player.id)
+                        )
+                    }
+                }
+                .frame(width: 150)
+
+                // Stats columns
+                let statsContent = VStack(spacing: 0) {
+                    HStack(spacing: 0) {
+                        ForEach(activeStats, id: \.self) { statKey in
+                            Text(detail.shortNameStats[statKey] ?? statKey.uppercased())
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Color(white: 0.45))
+                                .frame(minWidth: minStatWidth, maxWidth: .infinity)
+                        }
+                    }
+                    .frame(height: headerHeight)
+
+                    Divider().background(Color(white: 0.2))
+
+                    ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
+                        HStack(spacing: 0) {
+                            ForEach(activeStats, id: \.self) { statKey in
+                                let value = player.dynamicStats[statKey] ?? nil
+                                let cellKey = "\(player.id)-\(statKey)"
+                                let isPulsing = pulsingCells.contains(cellKey)
+
+                                Text(value.map { "\($0)" } ?? "-")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                                    .frame(minWidth: minStatWidth, maxWidth: .infinity)
+                                    .scaleEffect(isPulsing ? 1.3 : 1.0)
+                            }
+                        }
+                        .frame(height: rowHeight)
+                        .opacity(player.played ? 1.0 : 0.5)
+                        .background(rowBackground(for: player, index: index))
+                    }
+                }
+
+                if needsScroll {
+                    ScrollView(.horizontal, showsIndicators: true) {
+                        statsContent
+                    }
+                } else {
+                    statsContent
+                }
+            }
+        }
+    }
+
+    private func rowBackground(for player: PlayerGameStat, index: Int) -> Color {
+        if rosterGlowGreen.contains(player.id) {
+            return AppTheme.Colors.accent.opacity(0.15)
+        }
+        if rosterGlowRed.contains(player.id) {
+            return Color.red.opacity(0.15)
+        }
+        if highlightedPlayers.contains(player.id) {
+            return AppTheme.Colors.accent.opacity(0.1)
+        }
+        return index % 2 == 0 ? Color(white: 0.14) : Color.clear
+    }
+
+    private func rosterGlowColor(for playerId: Int) -> Color? {
+        if rosterGlowGreen.contains(playerId) {
+            return AppTheme.Colors.accent.opacity(0.15)
+        }
+        if rosterGlowRed.contains(playerId) {
+            return Color.red.opacity(0.15)
+        }
+        return nil
+    }
+
     // MARK: - Player Row
 
     @ViewBuilder
-    private func livePlayerRow(player: PlayerGameStat, index: Int, rowHeight: CGFloat, isHighlighted: Bool = false) -> some View {
+    private func livePlayerRow(player: PlayerGameStat, index: Int, rowHeight: CGFloat, isHighlighted: Bool = false, rosterGlow: Color? = nil) -> some View {
         HStack(spacing: 6) {
             if let number = player.playerNumber, number > 0 {
                 Text("#\(number)")
@@ -320,7 +414,7 @@ struct LiveGameDetailView: View {
         .frame(height: rowHeight)
         .padding(.leading, 6)
         .opacity(player.played ? 1.0 : 0.5)
-        .background(isHighlighted ? AppTheme.Colors.accent.opacity(0.1) : (index % 2 == 0 ? Color(white: 0.14) : Color.clear))
+        .background(rosterGlow ?? (isHighlighted ? AppTheme.Colors.accent.opacity(0.1) : (index % 2 == 0 ? Color(white: 0.14) : Color.clear)))
     }
 
     // MARK: - Player Avatar

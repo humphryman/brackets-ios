@@ -303,6 +303,7 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
     let playerGender: String?
     let playerImage: String?
     let played: Bool
+    let starter: Bool
     let dynamicStats: [String: Int?]
 
     /// True when this entry represents the team totals row ("Equipo")
@@ -329,6 +330,7 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         case playerGender = "player_gender"
         case playerImage = "player_image"
         case played
+        case starter
         case dynamicStats = "dynamic_stats"
     }
 
@@ -346,6 +348,7 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         playerGender = try container.decodeIfPresent(String.self, forKey: .playerGender)
         playerImage = try container.decodeIfPresent(String.self, forKey: .playerImage)
         played = try container.decodeIfPresent(Bool.self, forKey: .played) ?? true
+        starter = try container.decodeIfPresent(Bool.self, forKey: .starter) ?? false
 
         // Decode dynamic_stats: { "points": null, "tr": 0, ... }
         let statsContainer = try container.decode([String: Int?].self, forKey: .dynamicStats)
