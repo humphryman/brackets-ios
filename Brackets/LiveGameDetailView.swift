@@ -306,13 +306,28 @@ struct LiveGameDetailView: View {
                     Divider().background(Color(white: 0.2))
 
                     ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
-                        livePlayerRow(
-                            player: player,
-                            index: index,
-                            rowHeight: rowHeight,
-                            isHighlighted: highlightedPlayers.contains(player.id),
-                            rosterGlow: rosterGlowColor(for: player.id)
-                        )
+                        if let psId = player.playerSeasonId {
+                            NavigationLink {
+                                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                            } label: {
+                                livePlayerRow(
+                                    player: player,
+                                    index: index,
+                                    rowHeight: rowHeight,
+                                    isHighlighted: highlightedPlayers.contains(player.id),
+                                    rosterGlow: rosterGlowColor(for: player.id)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            livePlayerRow(
+                                player: player,
+                                index: index,
+                                rowHeight: rowHeight,
+                                isHighlighted: highlightedPlayers.contains(player.id),
+                                rosterGlow: rosterGlowColor(for: player.id)
+                            )
+                        }
                     }
                 }
                 .frame(width: 150)
