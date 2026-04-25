@@ -398,7 +398,7 @@ struct GameCard: View {
 
                     // Center: Score or VS with time
                     CenterSection(game: game, forceDarkText: isFinal)
-                        .frame(width: 130)
+                        .frame(width: 150)
 
                     // Away Team
                     TeamSection(
@@ -528,10 +528,11 @@ struct CenterSection: View {
                             .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
                     }
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text("\(game.homeScore ?? 0)")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(forceDarkText ? .black : (homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText))
+                            .frame(minWidth: 30)
 
                         Text("-")
                             .font(.system(size: 16, weight: .regular))
@@ -540,8 +541,10 @@ struct CenterSection: View {
                         Text("\(game.awayScore ?? 0)")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(forceDarkText ? .black : (awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText))
+                            .frame(minWidth: 30)
                     }
-                    .padding(.horizontal, 24)
+                    .fixedSize()
+                    .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
