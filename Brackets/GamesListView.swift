@@ -604,6 +604,7 @@ struct LiveGameCard: View {
     let game: Game
     let detail: GameDetailResponse?
     let tournamentId: Int
+    var showQuarterScores: Bool = false
 
     @State private var homeScalePulse = false
     @State private var awayScalePulse = false
@@ -727,6 +728,20 @@ struct LiveGameCard: View {
                         .minimumScaleFactor(0.8)
                 }
                 .frame(maxWidth: .infinity)
+            }
+
+            if showQuarterScores,
+               (homeTeamStat?.hasQuarterScores ?? false) || (awayTeamStat?.hasQuarterScores ?? false) {
+                Divider().background(Color(white: 0.2))
+                QuarterScoresTable(
+                    teamAName: homeTeamName,
+                    teamAScores: homeTeamStat?.quarterScores,
+                    teamATotal: homeTeamStat?.score,
+                    teamBName: awayTeamName,
+                    teamBScores: awayTeamStat?.quarterScores,
+                    teamBTotal: awayTeamStat?.score
+                )
+                .padding(.top, 4)
             }
         }
         .padding(.vertical, 16)

@@ -180,6 +180,18 @@ struct GameResultView: View {
                 .frame(maxWidth: .infinity)
             }
 
+            if (teamA?.hasQuarterScores ?? false) || (teamB?.hasQuarterScores ?? false) {
+                Divider().background(Color(white: 0.2))
+                QuarterScoresTable(
+                    teamAName: teamAName,
+                    teamAScores: teamA?.quarterScores,
+                    teamATotal: teamA?.score ?? sets?.teamAScore,
+                    teamBName: teamBName,
+                    teamBScores: teamB?.quarterScores,
+                    teamBTotal: teamB?.score ?? sets?.teamBScore
+                )
+            }
+
             // Venue
             if let venue = detail.game.venue {
                 VenueLabel(venue: venue)

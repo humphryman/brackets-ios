@@ -201,6 +201,30 @@ extension Venue: Codable {
     }
 }
 
+// MARK: - Quarter score value (flexible Int / String / null)
+
+struct QuarterScoreValue: Codable, Sendable {
+    let value: Int?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            value = nil
+        } else if let intValue = try? container.decode(Int.self) {
+            value = intValue
+        } else if let stringValue = try? container.decode(String.self) {
+            value = Int(stringValue)
+        } else {
+            value = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
 // MARK: - Game Sets (teams + scores)
 
 struct GameSets: Codable, Sendable {
@@ -255,6 +279,7 @@ struct GameDetailTeamStat: Identifiable, Codable, Sendable {
     let totalTeamStats: [String: Double]?
     let playerStats: [PlayerGameStat]?
     let gamesPlayed: Int?
+    let quarterScores: [String: QuarterScoreValue]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -266,6 +291,12 @@ struct GameDetailTeamStat: Identifiable, Codable, Sendable {
         case totalTeamStats = "total_team_stats"
         case playerStats = "player_stats"
         case gamesPlayed = "games_played"
+        case quarterScores = "quarter_scores"
+    }
+
+    var hasQuarterScores: Bool {
+        guard let scores = quarterScores else { return false }
+        return scores.values.contains { $0.value != nil }
     }
 
     /// Average stats per game
@@ -359,6 +390,93 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
 // MARK: - Venue Label (reusable, tappable when coordinates available)
 
 import SwiftUI
+
+struct QuarterScoresTable: View {
+    let teamAName: String
+    let teamAScores: [String: QuarterScoreValue]?
+    let teamATotal: Int?
+    let teamBName: String
+    let teamBScores: [String: QuarterScoreValue]?
+    let teamBTotal: Int?
+
+    private static let columnDefs: [(keys: [String], label: String, optional: Bool)] = [
+        (["q1", "1"], "1Q", false),
+        (["q2", "2"], "2Q", false),
+        (["q3", "3"], "3Q", false),
+        (["q4", "4"], "4Q", false),
+        (["ot", "OT", "ot1"], "OT", true),
+        (["2ot", "2OT", "ot2"], "2OT", true)
+    ]
+
+    private var columns: [(keys: [String], label: String)] {
+        Self.columnDefs.compactMap { col in
+            if col.optional && !hasNonZeroValue(col.keys) { return nil }
+            return (col.keys, col.label)
+        }
+    }
+
+    private func lookup(_ keys: [String], in dict: [String: QuarterScoreValue]?) -> Int? {
+        guard let dict else { return nil }
+        for key in keys {
+            if let entry = dict[key], let val = entry.value { return val }
+        }
+        return nil
+    }
+
+    private func hasNonZeroValue(_ keys: [String]) -> Bool {
+        if let v = lookup(keys, in: teamAScores), v > 0 { return true }
+        if let v = lookup(keys, in: teamBScores), v > 0 { return true }
+        return false
+    }
+
+    private let columnWidth: CGFloat = 36
+    private let nameTrailingPadding: CGFloat = 8
+
+    var body: some View {
+        Grid(horizontalSpacing: 0, verticalSpacing: 6) {
+            GridRow {
+                Color.clear.frame(width: 0, height: 1)
+                ForEach(columns, id: \.label) { col in
+                    Text(col.label)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color(white: 0.5))
+                        .frame(width: columnWidth)
+                }
+                Text("T")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color(white: 0.75))
+                    .frame(width: columnWidth)
+            }
+
+            row(name: teamAName, scores: teamAScores, total: teamATotal)
+            row(name: teamBName, scores: teamBScores, total: teamBTotal)
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private func row(name: String, scores: [String: QuarterScoreValue]?, total: Int?) -> some View {
+        GridRow {
+            Text(name)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color(white: 0.7))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.trailing, nameTrailingPadding)
+                .gridColumnAlignment(.trailing)
+            ForEach(columns, id: \.label) { col in
+                Text(lookup(col.keys, in: scores).map { "\($0)" } ?? "-")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .frame(width: columnWidth)
+            }
+            Text(total.map { "\($0)" } ?? "-")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .frame(width: columnWidth)
+        }
+    }
+}
 
 struct VenueLabel: View {
     let venue: Venue

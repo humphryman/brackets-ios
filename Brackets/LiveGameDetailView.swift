@@ -70,7 +70,7 @@ struct LiveGameDetailView: View {
                     ScrollView {
                         VStack(spacing: AppTheme.Spacing.large) {
                             // Live game card at top
-                            LiveGameCard(game: game, detail: gameDetail, tournamentId: tournamentId)
+                            LiveGameCard(game: game, detail: gameDetail, tournamentId: tournamentId, showQuarterScores: true)
 
                             // Player stats
                             if let detail = gameDetail {
