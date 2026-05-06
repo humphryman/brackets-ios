@@ -64,7 +64,7 @@ struct StandingsView: View {
                 NavigationLink {
                     TeamDetailView(standing: standing, tournamentId: tournament.id, rank: index + 1)
                 } label: {
-                    StandingCard(position: index + 1, standing: standing)
+                    StandingCard(position: index + 1, standing: standing, usesAverage: tournament.usesAverage)
                 }
                 .buttonStyle(.plain)
             }
@@ -89,13 +89,14 @@ struct StandingsView: View {
 struct StandingCard: View {
     let position: Int
     let standing: TeamStanding
-    
+    let usesAverage: Bool
+
     var body: some View {
         HStack(spacing: 0) {
             // Position Circle
             AppTheme.PositionCircle(position: position)
                 .padding(.trailing, AppTheme.Spacing.medium)
-            
+
             // Team Name
             Text(standing.teamName)
                 .font(AppTheme.Typography.bodyBold)
@@ -103,17 +104,21 @@ struct StandingCard: View {
                 .textCase(.uppercase)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
-            
+
             Spacer(minLength: AppTheme.Spacing.small)
-            
-            // Stats: FAV, CON, DIFF
-            HStack(spacing: 14) {
+
+            // Stats: FAV, CON, DIFF or AVG
+            HStack(spacing: 8) {
                 StatColumn(value: standing.pointsFor, label: "FAV")
                 StatColumn(value: standing.pointsAgainst, label: "CON")
-                DiffColumn(value: standing.pointDifferential)
+                if usesAverage {
+                    AvgColumn(value: standing.avg)
+                } else {
+                    DiffColumn(value: standing.pointDifferential)
+                }
             }
             .padding(.trailing, AppTheme.Spacing.medium)
-            
+
             // Record Badge
             AppTheme.RecordBadge(record: standing.record)
         }
@@ -142,27 +147,58 @@ struct StatColumn: View {
 
 struct DiffColumn: View {
     let value: Int
-    
+
     var isPositive: Bool {
         value > 0
     }
-    
+
     var isNegative: Bool {
         value < 0
     }
-    
+
     var body: some View {
         VStack(spacing: 2) {
             Text(value > 0 ? "+\(value)" : "\(value)")
                 .font(AppTheme.Typography.bodyBold)
                 .foregroundStyle(isPositive ? AppTheme.Colors.positive : (isNegative ? AppTheme.Colors.negative : AppTheme.Colors.neutral))
-            
-            Text("DIFF")
+
+            Text("DIF")
                 .font(AppTheme.Typography.tinyCaption)
                 .foregroundStyle(AppTheme.Colors.secondaryText)
                 .textCase(.uppercase)
         }
         .frame(minWidth: 36)
+    }
+}
+
+struct AvgColumn: View {
+    let value: Double?
+
+    private var color: Color {
+        guard let value else { return AppTheme.Colors.neutral }
+        if value > 0 { return AppTheme.Colors.positive }
+        if value < 0 { return AppTheme.Colors.negative }
+        return AppTheme.Colors.neutral
+    }
+
+    private var formatted: String {
+        guard let value else { return "-" }
+        let base = String(format: "%.1f", value)
+        return value > 0 ? "+\(base)" : base
+    }
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(formatted)
+                .font(AppTheme.Typography.bodyBold)
+                .foregroundStyle(color)
+
+            Text("AVG")
+                .font(AppTheme.Typography.tinyCaption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .textCase(.uppercase)
+        }
+        .frame(minWidth: 48)
     }
 }
 

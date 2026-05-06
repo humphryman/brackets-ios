@@ -17,6 +17,11 @@ struct Tournament: Identifiable, Codable, Sendable, Hashable {
     var endDate: String? = nil
     var stage: String? = nil
     var bracketType: String? = nil
+    var average: Bool? = nil
+
+    var usesAverage: Bool {
+        average ?? false
+    }
 
     var isPlayoffs: Bool {
         stage?.lowercased() == "playoffs"

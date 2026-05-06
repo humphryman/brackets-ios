@@ -20,6 +20,10 @@ struct StatsLeadersView: View {
         categories.filter { $0.name != nil && !$0.stats.isEmpty }
     }
 
+    private func formatScore(_ score: Double) -> String {
+        tournament.usesAverage ? String(format: "%.1f", score) : String(format: "%.0f", score)
+    }
+
     var body: some View {
         Group {
             if isLoading {
@@ -228,7 +232,7 @@ struct StatsLeadersView: View {
                 .lineLimit(1)
 
             // Score
-            Text("\(stat.score)")
+            Text(formatScore(stat.score))
                 .font(.system(size: 26, weight: .heavy))
                 .foregroundStyle(AppTheme.Colors.accent)
                 .shadow(color: AppTheme.Colors.accent.opacity(0.6), radius: 8, x: 0, y: 0)
@@ -302,7 +306,7 @@ struct StatsLeadersView: View {
             Spacer()
 
             // Score
-            Text("\(stat.score)")
+            Text(formatScore(stat.score))
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.accent)
         }

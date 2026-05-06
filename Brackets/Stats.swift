@@ -29,7 +29,7 @@ struct PlayerStatEntry: Codable, Identifiable, Sendable {
     var id: Int { playerSeasonId }
     let statShortName: String
     let statName: String
-    let score: Int
+    let score: Double
     let teamName: String
     let playerSeasonId: Int
     let player: Player
@@ -41,6 +41,24 @@ struct PlayerStatEntry: Codable, Identifiable, Sendable {
         case teamName = "team_name"
         case playerSeasonId = "player_season_id"
         case player
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        statShortName = try container.decode(String.self, forKey: .statShortName)
+        statName = try container.decode(String.self, forKey: .statName)
+        teamName = try container.decode(String.self, forKey: .teamName)
+        playerSeasonId = try container.decode(Int.self, forKey: .playerSeasonId)
+        player = try container.decode(Player.self, forKey: .player)
+
+        if let doubleValue = try? container.decode(Double.self, forKey: .score) {
+            score = doubleValue
+        } else if let stringValue = try? container.decode(String.self, forKey: .score),
+                  let parsed = Double(stringValue) {
+            score = parsed
+        } else {
+            score = 0
+        }
     }
 }
 

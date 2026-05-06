@@ -74,32 +74,33 @@ struct TeamStanding: Identifiable, Codable, Sendable {
     let pointsFor: Int
     let pointsAgainst: Int
     let tie: Int
-    let avg: Int
+    let diff: Int?
+    let avg: Double?
     let tieBreaker: String
     let teamLogo: String?
-    
-    // Computed property for point differential
+
+    // Point differential — prefer API value, fall back to computed
     var pointDifferential: Int {
-        pointsFor - pointsAgainst
+        diff ?? (pointsFor - pointsAgainst)
     }
-    
+
     // Record string (e.g., "5-2")
     var record: String {
         "\(wins)-\(losses)"
     }
-    
+
     // Full image URL
     var fullImageURL: String? {
         guard let teamLogo = teamLogo else { return nil }
-        
+
         if teamLogo.lowercased().hasPrefix("http://") || teamLogo.lowercased().hasPrefix("https://") {
             return teamLogo
         }
-        
+
         let imagePath = teamLogo.hasPrefix("/") ? String(teamLogo.dropFirst()) : teamLogo
         return "\(APIConfig.baseURL)/\(imagePath)"
     }
-    
+
     enum CodingKeys: String, CodingKey {
         case id = "team_season_id"
         case teamName = "name"
@@ -109,6 +110,7 @@ struct TeamStanding: Identifiable, Codable, Sendable {
         case pointsFor = "favor"
         case pointsAgainst = "against"
         case tie
+        case diff
         case avg
         case tieBreaker = "tie_breaker"
         case teamLogo = "team_logo"
