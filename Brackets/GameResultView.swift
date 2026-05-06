@@ -8,6 +8,7 @@ import SwiftUI
 struct GameResultView: View {
     let game: Game
     let tournamentId: Int
+    var tournamentName: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     @State private var gameDetail: GameDetailResponse?
@@ -340,91 +341,23 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func playerOfTheGameCard(potg: PlayerOfTheGame, detail: GameDetailResponse) -> some View {
-        let shortNames = detail.shortNameStats
-
-        let card = VStack(spacing: AppTheme.Spacing.large) {
-            // Title
+        let card = VStack(spacing: AppTheme.Spacing.medium) {
             Text("Jugador del Partido")
-                .font(.system(size: 20, weight: .heavy))
-                .foregroundStyle(AppTheme.Colors.primaryText)
+                .font(.system(size: 16, weight: .heavy))
+                .foregroundStyle(AppTheme.Colors.accent)
+                .textCase(.uppercase)
+                .tracking(1)
                 .frame(maxWidth: .infinity)
+                .padding(.top, AppTheme.Spacing.large)
 
-            // Player info
-            VStack(spacing: 10) {
-                if let imageURL = potg.fullImageURL, let url = URL(string: imageURL) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 100, height: 100)
-                                .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
-                        default:
-                            potgInitials(firstName: potg.firstName, lastName: potg.lastName)
-                        }
-                    }
-                } else {
-                    potgInitials(firstName: potg.firstName, lastName: potg.lastName)
-                }
+            potgHeroImage(potg: potg)
 
-                Text("\(potg.firstName) \(potg.lastName)")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-                    .lineLimit(1)
+            potgInfoRow(potg: potg)
 
-                if let teamName = potg.teamName {
-                    Text(teamName)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(white: 0.45))
-                }
-            }
-            .frame(maxWidth: .infinity)
-
-            // Stat badges
             if let stats = potg.stats, !stats.isEmpty {
-                let sortedStats = Array(stats.sorted { a, b in
-                    if a.key == "points" { return true }
-                    if b.key == "points" { return false }
-                    return a.key < b.key
-                })
-                let rowCount = sortedStats.count <= 5 ? 1 : Int(ceil(Double(sortedStats.count) / 5.0))
-                let itemsPerRow = Int(ceil(Double(sortedStats.count) / Double(rowCount)))
-                let rows = stride(from: 0, to: sortedStats.count, by: itemsPerRow).map {
-                    Array(sortedStats[$0..<min($0 + itemsPerRow, sortedStats.count)])
-                }
-
-                VStack(spacing: 10) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                        HStack(spacing: 10) {
-                            Spacer(minLength: 0)
-                            ForEach(row, id: \.key) { key, value in
-                                VStack(spacing: 4) {
-                                    Text("\(value)")
-                                        .font(.system(size: 18, weight: .bold))
-                                        .foregroundStyle(AppTheme.Colors.accentText)
-                                    Text(shortNames[key] ?? key.uppercased())
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundStyle(AppTheme.Colors.accentText.opacity(0.7))
-                                }
-                                .frame(width: 60, height: 56)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(AppTheme.Colors.accent)
-                                )
-                            }
-                            Spacer(minLength: 0)
-                        }
-                    }
-                }
+                potgStatsGrid(stats: stats, shortNames: detail.shortNameStats)
             }
         }
-        .padding(AppTheme.Layout.cardPadding)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(Color(white: 0.1))
-                .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
-        )
 
         if let psId = potg.playerSeasonId {
             NavigationLink {
@@ -439,16 +372,168 @@ struct GameResultView: View {
     }
 
     @ViewBuilder
+    private func potgHeroImage(potg: PlayerOfTheGame) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            // Left side column with vertical tournament name label
+            Color.clear
+                .frame(width: 20)
+                .overlay {
+                    if let tName = tournamentName {
+                        Text(tName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .tracking(2)
+                            .textCase(.uppercase)
+                            .fixedSize()
+                            .rotationEffect(.degrees(-90))
+                    }
+                }
+
+            // Hero image — 4:3 aspect
+            ZStack(alignment: .bottomTrailing) {
+                Color(white: 0.12)
+                    .aspectRatio(4.0/3.0, contentMode: .fit)
+                    .overlay {
+                        if let imageURL = potg.fullImageURL, let url = URL(string: imageURL) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image.resizable().scaledToFill()
+                                default:
+                                    potgInitials(firstName: potg.firstName, lastName: potg.lastName)
+                                }
+                            }
+                        } else {
+                            potgInitials(firstName: potg.firstName, lastName: potg.lastName)
+                        }
+                    }
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
+
+                if let logoURL = potg.fullTeamLogoURL, let url = URL(string: logoURL) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let img):
+                            img.resizable().scaledToFill()
+                        default:
+                            Color(white: 0.18)
+                        }
+                    }
+                    .frame(width: 56, height: 56)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(.white, lineWidth: 2))
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func potgInfoRow(potg: PlayerOfTheGame) -> some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            Spacer(minLength: 0)
+
+            if let num = potg.playerNumber {
+                VStack(spacing: 2) {
+                    Text("\(num)")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                    if let team = potg.teamName {
+                        Text(team)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(white: 0.5))
+                            .tracking(1)
+                            .textCase(.uppercase)
+                    }
+                }
+
+                Rectangle()
+                    .fill(Color(white: 0.3))
+                    .frame(width: 1, height: 44)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(potg.firstName)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .textCase(.uppercase)
+                Text(potg.lastName)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(Color(white: 0.55))
+                    .textCase(.uppercase)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private func potgStatsGrid(stats: [String: Int], shortNames: [String: String]) -> some View {
+        let sorted = stats.sorted { a, b in
+            if a.key == "points" { return true }
+            if b.key == "points" { return false }
+            return a.key < b.key
+        }
+        let perRow = potgStatsPerRow(count: sorted.count)
+        let rows = stride(from: 0, to: sorted.count, by: perRow).map {
+            Array(sorted[$0..<min($0 + perRow, sorted.count)])
+        }
+
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { rowIdx, row in
+                HStack(spacing: 0) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { colIdx, entry in
+                        VStack(spacing: 4) {
+                            Text("\(entry.value)")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(AppTheme.Colors.accentText)
+                            Text(shortNames[entry.key] ?? entry.key.uppercased())
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.accentText.opacity(0.85))
+                                .tracking(1)
+                                .textCase(.uppercase)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+
+                        if colIdx < row.count - 1 {
+                            Rectangle()
+                                .fill(AppTheme.Colors.accentText.opacity(0.35))
+                                .frame(width: 1, height: 36)
+                        }
+                    }
+
+                    // Pad short last row so columns line up
+                    if row.count < perRow {
+                        ForEach(0..<(perRow - row.count), id: \.self) { _ in
+                            Color.clear.frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                .fill(AppTheme.Colors.accent)
+        )
+    }
+
+    private func potgStatsPerRow(count: Int) -> Int {
+        if count <= 4 { return max(count, 1) }
+        if count <= 6 { return 3 }
+        return 4
+    }
+
+    @ViewBuilder
     private func potgInitials(firstName: String, lastName: String) -> some View {
         let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
-        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
-            .fill(Color(white: 0.18))
-            .frame(width: 100, height: 100)
-            .overlay(
-                Text(initials)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color(white: 0.4))
-            )
+        ZStack {
+            Color(white: 0.18)
+            Text(initials)
+                .font(.system(size: 48, weight: .bold))
+                .foregroundStyle(Color(white: 0.4))
+        }
     }
 
     // MARK: - Game Stats Leaders (unused)

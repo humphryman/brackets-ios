@@ -22,6 +22,7 @@ enum TeamDetailTab: String, CaseIterable {
 struct TeamDetailView: View {
     let standing: TeamStanding
     let tournamentId: Int
+    var tournamentName: String? = nil
     var rank: Int = 0
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: TeamDetailTab = .games
@@ -167,7 +168,7 @@ struct TeamDetailView: View {
         } else {
             switch selectedTab {
             case .games:
-                TeamGamesTabView(games: teamSeason?.allGames ?? [], tournamentId: tournamentId)
+                TeamGamesTabView(games: teamSeason?.allGames ?? [], tournamentId: tournamentId, tournamentName: tournamentName)
             case .players:
                 TeamPlayersTabView(players: teamSeason?.playerSeasons ?? [], tournamentId: tournamentId)
             case .stats:
@@ -271,6 +272,7 @@ struct TeamDetailView: View {
 struct TeamGamesTabView: View {
     let games: [Game]
     let tournamentId: Int
+    var tournamentName: String? = nil
 
     var body: some View {
         if games.isEmpty {
@@ -285,7 +287,7 @@ struct TeamGamesTabView: View {
                         ForEach(games) { game in
                             if game.isFinished {
                                 NavigationLink {
-                                    GameResultView(game: game, tournamentId: tournamentId)
+                                    GameResultView(game: game, tournamentId: tournamentId, tournamentName: tournamentName)
                                 } label: {
                                     GameCard(game: game)
                                 }

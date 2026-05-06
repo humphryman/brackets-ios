@@ -134,7 +134,7 @@ struct GamesListView: View {
                                                     .buttonStyle(.plain)
                                                 } else if game.isFinished {
                                                     NavigationLink {
-                                                        GameResultView(game: game, tournamentId: tournament.id)
+                                                        GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
                                                     } label: {
                                                         GameCard(game: game)
                                                             .padding(.horizontal, AppTheme.Layout.screenPadding)

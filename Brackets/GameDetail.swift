@@ -26,6 +26,7 @@ struct GameDetailResponse: Codable, Sendable {
 struct PlayerOfTheGame: Sendable {
     let playerId: Int?
     let playerSeasonId: Int?
+    let playerNumber: Int?
     let firstName: String
     let lastName: String
     let picture: String?
@@ -36,6 +37,7 @@ struct PlayerOfTheGame: Sendable {
     enum CodingKeys: String, CodingKey {
         case playerId = "player_id"
         case playerSeasonId = "player_season_id"
+        case playerNumber = "player_number"
         case firstName = "first_name"
         case lastName = "last_name"
         case picture
@@ -50,6 +52,13 @@ struct PlayerOfTheGame: Sendable {
         let path = pic.hasPrefix("/") ? String(pic.dropFirst()) : pic
         return "\(APIConfig.baseURL)/\(path)"
     }
+
+    var fullTeamLogoURL: String? {
+        guard let logo = teamLogo else { return nil }
+        if logo.lowercased().hasPrefix("http") { return logo }
+        let path = logo.hasPrefix("/") ? String(logo.dropFirst()) : logo
+        return "\(APIConfig.baseURL)/\(path)"
+    }
 }
 
 extension PlayerOfTheGame: Codable {
@@ -57,6 +66,7 @@ extension PlayerOfTheGame: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         playerId = try container.decodeIfPresent(Int.self, forKey: .playerId)
         playerSeasonId = try container.decodeIfPresent(Int.self, forKey: .playerSeasonId)
+        playerNumber = try container.decodeIfPresent(Int.self, forKey: .playerNumber)
         firstName = try container.decodeIfPresent(String.self, forKey: .firstName) ?? ""
         lastName = try container.decodeIfPresent(String.self, forKey: .lastName) ?? ""
         picture = try container.decodeIfPresent(String.self, forKey: .picture)

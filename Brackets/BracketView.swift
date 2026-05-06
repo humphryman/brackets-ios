@@ -193,7 +193,7 @@ struct BracketView: View {
         if let game = matchup.game {
             NavigationLink {
                 if game.isFinished {
-                    GameResultView(game: game, tournamentId: tournament.id)
+                    GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
                 } else {
                     UpcomingGameView(game: game, tournamentId: tournament.id)
                 }
