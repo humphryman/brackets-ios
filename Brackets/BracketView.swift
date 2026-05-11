@@ -112,14 +112,16 @@ struct BracketView: View {
 
     private var bracketContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Round headers
+            // Round headers (skip last round — rendered inline above its card)
             HStack(alignment: .top, spacing: 0) {
                 ForEach(Array(rounds.enumerated()), id: \.element.name) { index, round in
-                    Text(round.name.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color(white: 0.45))
-                        .frame(width: matchupCardWidth, alignment: .center)
-                        .padding(.trailing, index < rounds.count - 1 ? connectorWidth : 0)
+                    if index < rounds.count - 1 {
+                        Text(round.name.uppercased())
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color(white: 0.45))
+                            .frame(width: matchupCardWidth, alignment: .center)
+                            .padding(.trailing, connectorWidth)
+                    }
                 }
             }
             .padding(.bottom, 20)
@@ -139,9 +141,19 @@ struct BracketView: View {
         let topOffset = topPadding(for: roundIndex)
         let spacing = matchupSpacing(for: roundIndex)
 
+        let isLastRound = roundIndex == rounds.count - 1
+
         return HStack(alignment: .top, spacing: 0) {
             // Matchup cards (+ Tercer Lugar stacked below, if present)
             VStack(spacing: 0) {
+                if isLastRound {
+                    Text(round.name.uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color(white: 0.45))
+                        .frame(width: matchupCardWidth, alignment: .center)
+                        .padding(.bottom, 6)
+                }
+
                 VStack(spacing: spacing) {
                     ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
                         matchupCard(matchup: matchup)
