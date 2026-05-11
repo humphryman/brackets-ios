@@ -8,7 +8,6 @@ import SwiftUI
 struct BracketView: View {
     let tournament: Tournament
     @State private var games: [Game] = []
-    @State private var standings: [TeamStanding] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var currentPage: Int = 0
@@ -26,7 +25,7 @@ struct BracketView: View {
                 AppTheme.ErrorView(message: errorMessage) {
                     Task { await loadGames() }
                 }
-            } else if rounds.isEmpty {
+            } else if games.isEmpty {
                 AppTheme.EmptyStateView(
                     icon: "square.grid.2x2",
                     message: "No hay bracket disponible."
@@ -141,10 +140,20 @@ struct BracketView: View {
         let spacing = matchupSpacing(for: roundIndex)
 
         return HStack(alignment: .top, spacing: 0) {
-            // Matchup cards
+            // Matchup cards (+ Tercer Lugar stacked below, if present)
             VStack(spacing: spacing) {
                 ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
                     matchupCard(matchup: matchup)
+                }
+
+                if let third = round.thirdPlace {
+                    Spacer().frame(height: 16)
+                    Text("3er Lugar")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Color(white: 0.45))
+                        .frame(width: matchupCardWidth, alignment: .center)
+                    Spacer().frame(height: 6)
+                    matchupCard(matchup: third)
                 }
             }
             .padding(.top, topOffset)
@@ -359,252 +368,109 @@ struct BracketView: View {
         return topPadding(for: roundIndex - 1) + (matchupSpacing(for: roundIndex - 1) + matchupCardHeight) / 2
     }
 
+    // MARK: - Slot-Based Lookup
+
+    private func stageMatches(gameStage: String, target: String) -> Bool {
+        let g = gameStage.lowercased()
+        let t = target.lowercased()
+        if t == "final" { return g == "final" }
+        if t == "semifinal" { return g == "semifinal" || g == "semifinales" }
+        return g == t
+    }
+
+    private func gameForSlot(stage: String, slot: Int) -> Game? {
+        games.first { game in
+            guard let gameStage = game.stage,
+                  stageMatches(gameStage: gameStage, target: stage) else { return false }
+            return game.bracketId == slot
+        }
+    }
+
+    private func winner(of matchup: BracketMatchup) -> Team? {
+        if matchup.homeIsWinner { return matchup.homeTeam }
+        if matchup.awayIsWinner { return matchup.awayTeam }
+        return nil
+    }
+
+    private func loser(of matchup: BracketMatchup) -> Team? {
+        if matchup.homeIsWinner { return matchup.awayTeam }
+        if matchup.awayIsWinner { return matchup.homeTeam }
+        return nil
+    }
+
+    /// For next-round slot `slotIndex` (0-based), source from previous matchups at
+    /// indices slotIndex*2 and slotIndex*2 + 1. Returns home/away pair (winners or losers).
+    private func propagatedPair(from previous: [BracketMatchup], slotIndex: Int, useLoser: Bool) -> (home: Team?, away: Team?) {
+        let aIdx = slotIndex * 2
+        let bIdx = aIdx + 1
+        let a = aIdx < previous.count ? previous[aIdx] : nil
+        let b = bIdx < previous.count ? previous[bIdx] : nil
+        return (
+            home: a.flatMap { useLoser ? loser(of: $0) : winner(of: $0) },
+            away: b.flatMap { useLoser ? loser(of: $0) : winner(of: $0) }
+        )
+    }
+
+    private func buildMatchup(stage: String, slot: Int, propagation: (home: Team?, away: Team?)?) -> BracketMatchup {
+        if let game = gameForSlot(stage: stage, slot: slot) {
+            return BracketMatchup(
+                homeTeam: game.homeTeam,
+                homeScore: game.homeScore,
+                homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
+                awayTeam: game.awayTeam,
+                awayScore: game.awayScore,
+                awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
+                hasGame: true,
+                game: game
+            )
+        }
+        return BracketMatchup(
+            homeTeam: propagation?.home,
+            homeScore: nil,
+            homeIsWinner: false,
+            awayTeam: propagation?.away,
+            awayScore: nil,
+            awayIsWinner: false,
+            hasGame: false,
+            game: nil
+        )
+    }
+
     // MARK: - Build Rounds
 
     private func buildRounds() -> [BracketRound] {
         let bracketType = tournament.bracketType?.lowercased() ?? ""
 
-        switch bracketType {
-        case "quarterfinals":
-            return buildQuarterfinalsBracket()
-        case "semifinals":
-            return buildStageRounds([
-                ("Semifinal", "Semifinal", 2),
-                ("Final", "Final", 1)
-            ])
-        default:
-            return buildStageRounds([
-                ("Semifinal", "Semifinal", 2),
-                ("Final", "Final", 1)
-            ])
-        }
-    }
-
-    /// Build quarterfinals bracket using standings for seeding
-    private func buildQuarterfinalsBracket() -> [BracketRound] {
-        // Seeding pairs: (seed1 vs seed8), (seed4 vs seed5), (seed2 vs seed7), (seed3 vs seed6)
-        let seedPairs: [(Int, Int)] = [(1, 8), (4, 5), (2, 7), (3, 6)]
-
-        // Quarterfinals matchups from standings + actual game data
-        var qfMatchups: [BracketMatchup] = []
-        let qfGames = gamesForStage("Cuartos de Final")
-
-        print("🏀 QF games found: \(qfGames.count)")
-        for g in qfGames {
-            print("  Game \(g.id): \(g.homeTeam?.name ?? "?") vs \(g.awayTeam?.name ?? "?") stage=\(g.stage ?? "nil")")
-        }
-
-        for (seedA, seedB) in seedPairs {
-            let teamA = teamFromSeed(seedA)
-            let teamB = teamFromSeed(seedB)
-
-            // Find corresponding game by matching team IDs or names
-            let game = findGame(teamA: teamA, teamB: teamB, in: qfGames)
-            print("🏀 Seed \(seedA) (\(teamA?.name ?? "nil") id:\(teamA?.id ?? -1)) vs Seed \(seedB) (\(teamB?.name ?? "nil") id:\(teamB?.id ?? -1)) → game: \(game?.id ?? -1)")
-
-            if let game = game {
-                qfMatchups.append(BracketMatchup(
-                    homeTeam: game.homeTeam,
-                    homeScore: game.homeScore,
-                    homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
-                    awayTeam: game.awayTeam,
-                    awayScore: game.awayScore,
-                    awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
-                    hasGame: true,
-                    game: game
-                ))
-            } else {
-                // No game yet — show empty TBD slots
-                qfMatchups.append(BracketMatchup(
-                    homeTeam: nil,
-                    homeScore: nil,
-                    homeIsWinner: false,
-                    awayTeam: nil,
-                    awayScore: nil,
-                    awayIsWinner: false,
-                    hasGame: false,
-                    game: nil
-                ))
-            }
-        }
-
-        // Build later rounds, propagating winners from previous rounds
-        let allStages: [(stage: String, name: String, expectedMatchups: Int)] = [
-            ("Semifinal", "Semifinal", 2),
-            ("Final", "Final", 1)
-        ]
-
-        var allRounds: [BracketRound] = [BracketRound(name: "Cuartos de Final", matchups: qfMatchups)]
-        var previousMatchups = qfMatchups
-
-        for (stage, name, expectedMatchups) in allStages {
-            let round = buildRoundWithWinners(
-                stage: stage,
-                name: name,
-                expectedMatchups: expectedMatchups,
-                previousMatchups: previousMatchups
-            )
-            allRounds.append(round)
-            previousMatchups = round.matchups
-        }
-
-        return allRounds
-    }
-
-    /// Build a round, filling placeholders with winners from the previous round
-    private func buildRoundWithWinners(stage: String, name: String, expectedMatchups: Int, previousMatchups: [BracketMatchup]) -> BracketRound {
-        let stageGames = gamesForStage(stage)
-
-        // Get winners from previous round (in order, paired)
-        var winners: [Team?] = []
-        for i in stride(from: 0, to: previousMatchups.count, by: 2) {
-            let m1 = previousMatchups[i]
-            let m2 = i + 1 < previousMatchups.count ? previousMatchups[i + 1] : nil
-
-            // Winner of matchup 1
-            if m1.homeIsWinner, let team = m1.homeTeam {
-                winners.append(team)
-            } else if m1.awayIsWinner, let team = m1.awayTeam {
-                winners.append(team)
-            } else {
-                winners.append(nil)
-            }
-
-            // Winner of matchup 2
-            if let m2 = m2 {
-                if m2.homeIsWinner, let team = m2.homeTeam {
-                    winners.append(team)
-                } else if m2.awayIsWinner, let team = m2.awayTeam {
-                    winners.append(team)
-                } else {
-                    winners.append(nil)
-                }
-            }
-        }
-
-        var matchups: [BracketMatchup] = []
-
-        for i in 0..<expectedMatchups {
-            let homeWinner = i * 2 < winners.count ? winners[i * 2] : nil
-            let awayWinner = i * 2 + 1 < winners.count ? winners[i * 2 + 1] : nil
-
-            // Try to find actual game for this matchup
-            let game = findGame(teamA: homeWinner, teamB: awayWinner, in: stageGames)
-
-            if let game = game {
-                matchups.append(BracketMatchup(
-                    homeTeam: game.homeTeam,
-                    homeScore: game.homeScore,
-                    homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
-                    awayTeam: game.awayTeam,
-                    awayScore: game.awayScore,
-                    awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
-                    hasGame: true,
-                    game: game
-                ))
-            } else {
-                // No game yet — show winners from previous round
-                matchups.append(BracketMatchup(
-                    homeTeam: homeWinner,
-                    homeScore: nil,
-                    homeIsWinner: false,
-                    awayTeam: awayWinner,
-                    awayScore: nil,
-                    awayIsWinner: false,
-                    hasGame: false,
-                    game: nil
-                ))
-            }
-        }
-
-        return BracketRound(name: name, matchups: matchups)
-    }
-
-    /// Convert a standing (by seed/position) to a Team
-    private func teamFromSeed(_ seed: Int) -> Team? {
-        guard seed > 0, seed <= standings.count else { return nil }
-        let standing = standings[seed - 1]
-        return Team(id: standing.id, name: standing.teamName, image: standing.teamLogo)
-    }
-
-    /// Find a game that matches two teams (in either order) by ID or name
-    private func findGame(teamA: Team?, teamB: Team?, in stageGames: [Game]) -> Game? {
-        guard let a = teamA, let b = teamB else { return nil }
-
-        // Try matching by team ID first
-        if let game = stageGames.first(where: { game in
-            let ids = [game.homeTeam?.id, game.awayTeam?.id]
-            return ids.contains(a.id) && ids.contains(b.id)
-        }) {
-            return game
-        }
-
-        // Fallback: match by team name
-        let nameA = a.name.lowercased()
-        let nameB = b.name.lowercased()
-        return stageGames.first { game in
-            let names = [game.homeTeam?.name.lowercased(), game.awayTeam?.name.lowercased()]
-            return names.contains(nameA) && names.contains(nameB)
-        }
-    }
-
-    /// Get games filtered by stage name
-    private func gamesForStage(_ stage: String) -> [Game] {
-        let target = stage.lowercased()
-        return games.filter { game in
-            guard let gameStage = game.stage?.lowercased() else { return false }
-            if target == "final" {
-                return gameStage == "final"
-            }
-            if target == "semifinal" {
-                return gameStage == "semifinal" || gameStage == "semifinales"
-            }
-            return gameStage.contains(target)
-        }
-    }
-
-    /// Build rounds from stage definitions, propagating winners between rounds
-    private func buildStageRounds(_ stages: [(stage: String, name: String, expectedMatchups: Int)]) -> [BracketRound] {
         var rounds: [BracketRound] = []
-        var previousMatchups: [BracketMatchup] = []
+        var previous: [BracketMatchup] = []
 
-        for (stage, name, expectedMatchups) in stages {
-            let round: BracketRound
-            if previousMatchups.isEmpty {
-                // First round — build from game data only
-                let stageGames = gamesForStage(stage)
-                var matchups: [BracketMatchup] = []
-                for game in stageGames {
-                    matchups.append(BracketMatchup(
-                        homeTeam: game.homeTeam,
-                        homeScore: game.homeScore,
-                        homeIsWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
-                        awayTeam: game.awayTeam,
-                        awayScore: game.awayScore,
-                        awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
-                        hasGame: true,
-                        game: game
-                    ))
-                }
-                while matchups.count < expectedMatchups {
-                    matchups.append(BracketMatchup(
-                        homeTeam: nil, homeScore: nil, homeIsWinner: false,
-                        awayTeam: nil, awayScore: nil, awayIsWinner: false,
-                        hasGame: false, game: nil
-                    ))
-                }
-                round = BracketRound(name: name, matchups: matchups)
-            } else {
-                // Later rounds — propagate winners
-                round = buildRoundWithWinners(
-                    stage: stage, name: name,
-                    expectedMatchups: expectedMatchups,
-                    previousMatchups: previousMatchups
-                )
+        // QF round (only for quarterfinals-type tournaments)
+        if bracketType == "quarterfinals" {
+            let qfMatchups = (1...4).map { slot in
+                buildMatchup(stage: "Cuartos de Final", slot: slot, propagation: nil)
             }
-            rounds.append(round)
-            previousMatchups = round.matchups
+            rounds.append(BracketRound(name: "Cuartos de Final", matchups: qfMatchups))
+            previous = qfMatchups
         }
+
+        // SF round (always present)
+        let sfMatchups = (1...2).map { slot -> BracketMatchup in
+            let prop: (home: Team?, away: Team?)? = previous.isEmpty
+                ? nil
+                : propagatedPair(from: previous, slotIndex: slot - 1, useLoser: false)
+            return buildMatchup(stage: "Semifinal", slot: slot, propagation: prop)
+        }
+        rounds.append(BracketRound(name: "Semifinal", matchups: sfMatchups))
+
+        // Final + Tercer Lugar (combined column)
+        let finalProp = propagatedPair(from: sfMatchups, slotIndex: 0, useLoser: false)
+        let finalMatch = buildMatchup(stage: "Final", slot: 1, propagation: finalProp)
+
+        let thirdProp = propagatedPair(from: sfMatchups, slotIndex: 0, useLoser: true)
+        let thirdMatch = buildMatchup(stage: "Tercer Lugar", slot: 1, propagation: thirdProp)
+
+        rounds.append(BracketRound(name: "Final", matchups: [finalMatch], thirdPlace: thirdMatch))
+
         return rounds
     }
 
@@ -615,21 +481,8 @@ struct BracketView: View {
         errorMessage = nil
 
         do {
-            async let gamesRequest = APIService.shared.fetchGamesResponse(for: tournament.id)
-            async let standingsRequest = APIService.shared.fetchStandings(for: tournament.id)
-
-            let response = try await gamesRequest
+            let response = try await APIService.shared.fetchGamesResponse(for: tournament.id)
             games = response.allGames
-
-            let standingsResult = try await standingsRequest
-            switch standingsResult {
-            case .flat(let s):
-                standings = s
-            case .groups(let groups):
-                // Combine all group standings into a flat list sorted by total points
-                standings = groups.flatMap(\.standings).sorted { $0.total > $1.total }
-            }
-
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -654,6 +507,7 @@ struct BracketMatchup {
 struct BracketRound: Identifiable {
     let name: String
     let matchups: [BracketMatchup]
+    var thirdPlace: BracketMatchup? = nil
 
     var id: String { name }
 }
