@@ -64,7 +64,51 @@ private struct FibaScoreTable: View {
     let entries: [FibaEntry]
 
     var body: some View {
-        EmptyView() // implemented in Task 3
+        if entries.isEmpty {
+            Text("Sin datos.")
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+        } else {
+            VStack(spacing: 0) {
+                // Header row
+                HStack {
+                    Text("Equipo")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("FIBA")
+                        .frame(width: 60, alignment: .trailing)
+                }
+                .font(AppTheme.Typography.tinyCaption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .textCase(.uppercase)
+                .padding(.vertical, AppTheme.Spacing.small)
+
+                Divider()
+                    .background(Color.white.opacity(0.08))
+
+                // Data rows
+                ForEach(entries) { entry in
+                    HStack {
+                        Text(entry.name)
+                            .font(AppTheme.Typography.body)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text("\(entry.fibaScore)")
+                            .font(AppTheme.Typography.bodyBold)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .frame(width: 60, alignment: .trailing)
+                    }
+                    .padding(.vertical, AppTheme.Spacing.medium)
+
+                    if entry.id != entries.last?.id {
+                        Divider()
+                            .background(Color.white.opacity(0.08))
+                    }
+                }
+            }
+        }
     }
 }
 
