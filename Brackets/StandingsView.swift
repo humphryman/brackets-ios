@@ -12,6 +12,7 @@ struct StandingsView: View {
     @State private var result: StandingsResult?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var presentedTiebreaker: Tiebreaker?
 
     var body: some View {
         ZStack {
@@ -52,6 +53,11 @@ struct StandingsView: View {
                 }
             }
         }
+        .sheet(item: $presentedTiebreaker) { tb in
+            TiebreakerSheet(tiebreaker: tb)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
         .task {
             await loadStandings()
         }
@@ -61,12 +67,21 @@ struct StandingsView: View {
     private func standingsList(_ standings: [TeamStanding]) -> some View {
         VStack(spacing: AppTheme.Layout.itemSpacing) {
             ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
-                NavigationLink {
-                    TeamDetailView(standing: standing, tournamentId: tournament.id, tournamentName: tournament.name, rank: index + 1)
-                } label: {
-                    StandingCard(position: index + 1, standing: standing, usesAverage: tournament.usesAverage)
+                ZStack {
+                    NavigationLink {
+                        TeamDetailView(standing: standing, tournamentId: tournament.id, tournamentName: tournament.name, rank: index + 1)
+                    } label: {
+                        EmptyView()
+                    }
+                    .opacity(0)
+
+                    StandingCard(
+                        position: index + 1,
+                        standing: standing,
+                        usesAverage: tournament.usesAverage,
+                        onTiebreakerTap: standing.tiebreaker.map { tb in { presentedTiebreaker = tb } }
+                    )
                 }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, AppTheme.Layout.screenPadding)
