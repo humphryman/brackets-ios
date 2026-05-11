@@ -64,6 +64,75 @@ enum StandingsResult: Sendable {
     }
 }
 
+// MARK: - Tiebreaker Models
+
+struct Tiebreaker: Codable, Sendable, Equatable, Identifiable {
+    enum Reason: String, Codable, Sendable {
+        case fibaScore = "fiba_score"
+        case h2h
+        case miniTable = "mini_table"
+    }
+
+    let groupIndex: Int?
+    let bucketId: Int
+    let bucketSize: Int
+    let reason: Reason
+    let fibaBreakdown: [FibaEntry]?
+    let h2hGames: [H2HGame]?
+    let miniTable: [MiniTableEntry]?
+
+    var id: String { "\(groupIndex ?? 0)-\(bucketId)" }
+
+    enum CodingKeys: String, CodingKey {
+        case groupIndex = "group_index"
+        case bucketId = "bucket_id"
+        case bucketSize = "bucket_size"
+        case reason
+        case fibaBreakdown = "fiba_breakdown"
+        case h2hGames = "h2h_games"
+        case miniTable = "mini_table"
+    }
+}
+
+struct FibaEntry: Codable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let name: String
+    let fibaScore: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case fibaScore = "fiba_score"
+    }
+}
+
+struct H2HGame: Codable, Sendable, Equatable, Identifiable {
+    let teamA: H2HSide
+    let teamB: H2HSide
+
+    var id: String { "\(teamA.id)-\(teamB.id)-\(teamA.score)-\(teamB.score)" }
+
+    enum CodingKeys: String, CodingKey {
+        case teamA = "team_a"
+        case teamB = "team_b"
+    }
+}
+
+struct H2HSide: Codable, Sendable, Equatable {
+    let id: Int
+    let name: String
+    let score: Int
+    let winner: Bool
+}
+
+struct MiniTableEntry: Codable, Sendable, Equatable, Identifiable {
+    let id: Int
+    let name: String
+    let favor: Int
+    let against: Int
+
+    var diff: Int { favor - against }
+}
+
 // Team Standing Model
 struct TeamStanding: Identifiable, Codable, Sendable {
     let id: Int
@@ -76,7 +145,8 @@ struct TeamStanding: Identifiable, Codable, Sendable {
     let tie: Int
     let diff: Int?
     let avg: Double?
-    let tieBreaker: String
+    let tieBreaker: String?
+    let tiebreaker: Tiebreaker?
     let teamLogo: String?
 
     // Point differential — prefer API value, fall back to computed
@@ -113,6 +183,7 @@ struct TeamStanding: Identifiable, Codable, Sendable {
         case diff
         case avg
         case tieBreaker = "tie_breaker"
+        case tiebreaker
         case teamLogo = "team_logo"
     }
 }
