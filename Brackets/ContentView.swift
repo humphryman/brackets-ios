@@ -93,6 +93,7 @@ struct ContentView: View {
                         tournamentListCard(for: tournament)
                             .onTapGesture {
                                 selectedTournament = tournament
+                                isBrowsingTournament = true
                             }
                     }
                 }
@@ -100,11 +101,16 @@ struct ContentView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 40)
             }
-            .navigationDestination(item: $selectedTournament) { tournament in
+            .navigationDestination(
+                item: Binding(
+                    get: { selectedTournament },
+                    set: { newValue in
+                        selectedTournament = newValue
+                        isBrowsingTournament = newValue != nil
+                    }
+                )
+            ) { tournament in
                 TournamentContainerView(tournament: tournament)
-            }
-            .onChange(of: selectedTournament) { _, newValue in
-                isBrowsingTournament = newValue != nil
             }
         }
     }
