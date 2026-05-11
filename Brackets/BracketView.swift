@@ -381,11 +381,13 @@ struct BracketView: View {
     }
 
     private func gameForSlot(stage: String, slot: Int) -> Game? {
-        games.first { game in
-            guard let gameStage = game.stage,
-                  stageMatches(gameStage: gameStage, target: stage) else { return false }
-            return game.bracketId == slot
+        let stageGames = games.filter { game in
+            guard let gameStage = game.stage else { return false }
+            return stageMatches(gameStage: gameStage, target: stage)
         }
+        // If only one game in this stage (e.g., Final, Tercer Lugar), placement is unambiguous.
+        if stageGames.count == 1 { return stageGames.first }
+        return stageGames.first { $0.bracketId == slot }
     }
 
     private func winner(of matchup: BracketMatchup) -> Team? {
