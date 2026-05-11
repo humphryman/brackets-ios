@@ -67,14 +67,9 @@ struct StandingsView: View {
     private func standingsList(_ standings: [TeamStanding]) -> some View {
         VStack(spacing: AppTheme.Layout.itemSpacing) {
             ForEach(Array(standings.enumerated()), id: \.element.id) { index, standing in
-                ZStack {
-                    NavigationLink {
-                        TeamDetailView(standing: standing, tournamentId: tournament.id, tournamentName: tournament.name, rank: index + 1)
-                    } label: {
-                        EmptyView()
-                    }
-                    .opacity(0)
-
+                NavigationLink {
+                    TeamDetailView(standing: standing, tournamentId: tournament.id, tournamentName: tournament.name, rank: index + 1)
+                } label: {
                     StandingCard(
                         position: index + 1,
                         standing: standing,
@@ -82,6 +77,7 @@ struct StandingsView: View {
                         onTiebreakerTap: standing.tiebreaker.map { tb in { presentedTiebreaker = tb } }
                     )
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, AppTheme.Layout.screenPadding)
