@@ -90,6 +90,7 @@ struct StandingCard: View {
     let position: Int
     let standing: TeamStanding
     let usesAverage: Bool
+    var onTiebreakerTap: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 0) {
@@ -106,6 +107,19 @@ struct StandingCard: View {
                 .minimumScaleFactor(0.8)
 
             Spacer(minLength: AppTheme.Spacing.small)
+
+            // Tiebreaker info icon (only when tiebreaker present)
+            if standing.tiebreaker != nil, let onTap = onTiebreakerTap {
+                Button(action: onTap) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundStyle(AppTheme.Colors.secondaryText)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 6)
+            }
 
             // Stats: FAV, CON, DIFF or AVG
             HStack(spacing: 8) {
