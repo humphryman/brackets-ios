@@ -414,12 +414,12 @@ struct BracketView: View {
                     game: game
                 ))
             } else {
-                // No game yet — show seeded teams without scores
+                // No game yet — show empty TBD slots
                 qfMatchups.append(BracketMatchup(
-                    homeTeam: teamA,
+                    homeTeam: nil,
                     homeScore: nil,
                     homeIsWinner: false,
-                    awayTeam: teamB,
+                    awayTeam: nil,
                     awayScore: nil,
                     awayIsWinner: false,
                     hasGame: false,
