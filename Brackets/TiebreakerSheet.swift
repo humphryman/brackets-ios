@@ -118,7 +118,51 @@ private struct H2HList: View {
     let games: [H2HGame]
 
     var body: some View {
-        EmptyView() // implemented in Task 4
+        if games.isEmpty {
+            Text("Sin datos.")
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+        } else {
+            VStack(spacing: 0) {
+                ForEach(games) { game in
+                    HStack(spacing: 12) {
+                        Text(game.teamA.name)
+                            .font(game.teamA.winner ? AppTheme.Typography.bodyBold : AppTheme.Typography.body)
+                            .foregroundStyle(game.teamA.winner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+
+                        Text("\(game.teamA.score)")
+                            .font(game.teamA.winner ? AppTheme.Typography.bodyBold : AppTheme.Typography.body)
+                            .foregroundStyle(game.teamA.winner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                            .frame(minWidth: 32, alignment: .trailing)
+
+                        Text("-")
+                            .font(AppTheme.Typography.body)
+                            .foregroundStyle(AppTheme.Colors.secondaryText)
+
+                        Text("\(game.teamB.score)")
+                            .font(game.teamB.winner ? AppTheme.Typography.bodyBold : AppTheme.Typography.body)
+                            .foregroundStyle(game.teamB.winner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                            .frame(minWidth: 32, alignment: .leading)
+
+                        Text(game.teamB.name)
+                            .font(game.teamB.winner ? AppTheme.Typography.bodyBold : AppTheme.Typography.body)
+                            .foregroundStyle(game.teamB.winner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.vertical, AppTheme.Spacing.medium)
+
+                    if game.id != games.last?.id {
+                        Divider()
+                            .background(Color.white.opacity(0.08))
+                    }
+                }
+            }
+        }
     }
 }
 
