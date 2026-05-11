@@ -141,9 +141,11 @@ struct BracketView: View {
 
         return HStack(alignment: .top, spacing: 0) {
             // Matchup cards (+ Tercer Lugar stacked below, if present)
-            VStack(spacing: spacing) {
-                ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
-                    matchupCard(matchup: matchup)
+            VStack(spacing: 0) {
+                VStack(spacing: spacing) {
+                    ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
+                        matchupCard(matchup: matchup)
+                    }
                 }
 
                 if let third = round.thirdPlace {
