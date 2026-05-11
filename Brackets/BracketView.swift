@@ -149,7 +149,7 @@ struct BracketView: View {
                 }
 
                 if let third = round.thirdPlace {
-                    Spacer().frame(height: 16)
+                    Spacer().frame(height: 60)
                     Text("3er Lugar")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Color(white: 0.45))
