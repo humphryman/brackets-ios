@@ -172,7 +172,75 @@ private struct MiniTable: View {
     let entries: [MiniTableEntry]
 
     var body: some View {
-        EmptyView() // implemented in Task 5
+        if entries.isEmpty {
+            Text("Sin datos.")
+                .font(AppTheme.Typography.caption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+        } else {
+            VStack(spacing: 0) {
+                // Header row
+                HStack {
+                    Text("Equipo")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("F")
+                        .frame(width: 44, alignment: .trailing)
+                    Text("C")
+                        .frame(width: 44, alignment: .trailing)
+                    Text("Dif")
+                        .frame(width: 52, alignment: .trailing)
+                }
+                .font(AppTheme.Typography.tinyCaption)
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .textCase(.uppercase)
+                .padding(.vertical, AppTheme.Spacing.small)
+
+                Divider()
+                    .background(Color.white.opacity(0.08))
+
+                // Data rows
+                ForEach(entries) { entry in
+                    HStack {
+                        Text(entry.name)
+                            .font(AppTheme.Typography.body)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text("\(entry.favor)")
+                            .font(AppTheme.Typography.bodyBold)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .frame(width: 44, alignment: .trailing)
+
+                        Text("\(entry.against)")
+                            .font(AppTheme.Typography.bodyBold)
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                            .frame(width: 44, alignment: .trailing)
+
+                        Text(diffText(entry.diff))
+                            .font(AppTheme.Typography.bodyBold)
+                            .foregroundStyle(diffColor(entry.diff))
+                            .frame(width: 52, alignment: .trailing)
+                    }
+                    .padding(.vertical, AppTheme.Spacing.medium)
+
+                    if entry.id != entries.last?.id {
+                        Divider()
+                            .background(Color.white.opacity(0.08))
+                    }
+                }
+            }
+        }
+    }
+
+    private func diffText(_ value: Int) -> String {
+        value > 0 ? "+\(value)" : "\(value)"
+    }
+
+    private func diffColor(_ value: Int) -> Color {
+        if value > 0 { return AppTheme.Colors.positive }
+        if value < 0 { return AppTheme.Colors.negative }
+        return AppTheme.Colors.neutral
     }
 }
 
