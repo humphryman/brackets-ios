@@ -126,7 +126,7 @@ struct GamesListView: View {
                                             ForEach(dateGroup.games) { game in
                                                 if game.isLive {
                                                     NavigationLink {
-                                                        LiveGameDetailView(game: game, tournamentId: tournament.id)
+                                                        LiveGameDetailView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
                                                     } label: {
                                                         LiveGameCard(game: game, detail: liveGameDetails[game.id], tournamentId: tournament.id)
                                                             .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -204,6 +204,8 @@ struct GamesListView: View {
 
     private func refreshLiveGames() async {
         guard let games = gamesResponse?.allGames.filter({ $0.isLive }) else { return }
+
+        var anyEnded = false
         for game in games {
             do {
                 let detail = try await APIService.shared.fetchGameDetail(
@@ -213,8 +215,18 @@ struct GamesListView: View {
                 await MainActor.run {
                     liveGameDetails[game.id] = detail
                 }
+                if detail.game.isFinished {
+                    anyEnded = true
+                }
             } catch {
                 print("❌ Live game refresh error for game \(game.id): \(error)")
+            }
+        }
+
+        if anyEnded {
+            await loadGames()
+            if !hasLiveGames {
+                await MainActor.run { stopLiveRefresh() }
             }
         }
     }
