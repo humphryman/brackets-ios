@@ -224,9 +224,16 @@ struct GamesListView: View {
         }
 
         if anyEnded {
-            await loadGames()
-            if !hasLiveGames {
-                await MainActor.run { stopLiveRefresh() }
+            do {
+                let response = try await APIService.shared.fetchGamesResponse(for: tournament.id)
+                await MainActor.run {
+                    gamesResponse = response
+                    if !hasLiveGames {
+                        stopLiveRefresh()
+                    }
+                }
+            } catch {
+                print("❌ Games refetch error after live game ended: \(error)")
             }
         }
     }
