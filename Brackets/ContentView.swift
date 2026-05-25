@@ -160,6 +160,13 @@ struct ContentView: View {
             .frame(height: 140)
             .clipped()
 
+            if tournament.hasLiveGames {
+                LiveGamesIndicator()
+                    .padding(.top, 5)
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             // Info area
             VStack(alignment: .leading, spacing: 10) {
                 Text(tournament.name)
@@ -180,22 +187,16 @@ struct ContentView: View {
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 6) {
-                        if tournament.hasLiveGames {
-                            LiveGamesIndicator()
-                        }
-
-                        HStack(spacing: 5) {
-                            Text("Ver categoría")
-                                .font(.system(size: 13, weight: .semibold))
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .bold))
-                        }
-                        .foregroundStyle(AppTheme.Colors.accentText)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
+                    HStack(spacing: 5) {
+                        Text("Ver categoría")
+                            .font(.system(size: 13, weight: .semibold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
                     }
+                    .foregroundStyle(AppTheme.Colors.accentText)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Capsule().fill(AppTheme.Colors.accent))
                 }
             }
             .padding(14)
