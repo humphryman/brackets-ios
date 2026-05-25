@@ -18,9 +18,14 @@ struct Tournament: Identifiable, Codable, Sendable, Hashable {
     var stage: String? = nil
     var bracketType: String? = nil
     var average: Bool? = nil
+    var liveGames: Bool? = nil
 
     var usesAverage: Bool {
         average ?? false
+    }
+
+    var hasLiveGames: Bool {
+        liveGames ?? false
     }
 
     var isPlayoffs: Bool {
