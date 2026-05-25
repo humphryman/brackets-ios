@@ -162,7 +162,7 @@ struct ContentView: View {
 
             // Info area
             VStack(alignment: .leading, spacing: 10) {
-                HStack {
+                HStack(alignment: .top) {
                     Text(tournament.name)
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
