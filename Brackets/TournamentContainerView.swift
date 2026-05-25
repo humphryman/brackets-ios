@@ -34,16 +34,16 @@ enum TournamentTab: String, CaseIterable {
 
 struct TournamentContainerView: View {
     let tournament: Tournament
-    @State private var selectedTab: TournamentTab = .standings
+    @State private var selectedTab: TournamentTab = .games
     @Environment(\.dismiss) private var dismiss
     @Namespace private var animation
 
     private var availableTabs: [TournamentTab] {
-        var tabs: [TournamentTab] = [.standings]
+        var tabs: [TournamentTab] = [.games, .standings]
         if tournament.isPlayoffs {
             tabs.append(.bracket)
         }
-        tabs.append(contentsOf: [.games, .stats])
+        tabs.append(.stats)
         return tabs
     }
 
@@ -112,7 +112,7 @@ struct TournamentContainerView: View {
 
 struct CustomTabBar: View {
     @Binding var selectedTab: TournamentTab
-    var tabs: [TournamentTab] = [.standings, .games, .stats]
+    var tabs: [TournamentTab] = [.games, .standings, .stats]
     let namespace: Namespace.ID
 
     var body: some View {
