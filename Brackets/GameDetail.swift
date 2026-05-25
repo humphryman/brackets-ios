@@ -127,6 +127,12 @@ extension GameDetail: Codable {
     }
 }
 
+extension GameDetail {
+    var isFinished: Bool {
+        teamStats?.contains { $0.result != nil } ?? false
+    }
+}
+
 // MARK: - Venue
 
 struct Venue: Sendable {
