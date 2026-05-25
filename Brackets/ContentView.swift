@@ -160,19 +160,20 @@ struct ContentView: View {
             .frame(height: 140)
             .clipped()
 
-            if tournament.hasLiveGames {
-                LiveGamesIndicator()
-                    .padding(.top, 5)
-                    .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-
             // Info area
             VStack(alignment: .leading, spacing: 10) {
-                Text(tournament.name)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
+                HStack {
+                    Text(tournament.name)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    if tournament.hasLiveGames {
+                        LiveGamesIndicator()
+                    }
+                }
 
                 HStack {
                     if let dateRange = tournament.formattedDateRange {
