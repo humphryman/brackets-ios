@@ -8,6 +8,7 @@ import SwiftUI
 struct LiveGameDetailView: View {
     let game: Game
     let tournamentId: Int
+    var tournamentName: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     @State private var gameDetail: GameDetailResponse?
@@ -21,9 +22,17 @@ struct LiveGameDetailView: View {
     @State private var highlightedPlayers: Set<Int> = [] // player IDs with recent stat changes
     @State private var rosterGlowGreen: Set<Int> = [] // players added to starters
     @State private var rosterGlowRed: Set<Int> = [] // players moved to bench
+    @State private var endedGame: Game?
 
     var body: some View {
-        ZStack {
+        if let endedGame {
+            GameResultView(
+                game: endedGame,
+                tournamentId: tournamentId,
+                tournamentName: tournamentName
+            )
+        } else {
+            ZStack {
             AppTheme.Colors.background
                 .ignoresSafeArea()
 
@@ -91,6 +100,30 @@ struct LiveGameDetailView: View {
         .onDisappear {
             stopRefreshTimer()
         }
+        }
+    }
+
+    // MARK: - Game End Transition
+
+    private func makeEndedGame(from detail: GameDetail) -> Game {
+        Game(
+            id: detail.id,
+            gameTime: detail.gameTime ?? game.gameTime,
+            stage: detail.stage ?? game.stage,
+            bracketId: game.bracketId,
+            venue: detail.venue ?? game.venue,
+            isLive: false,
+            period: nil,
+            teamStats: detail.teamStats?.map { stat in
+                TeamStat(
+                    id: stat.id,
+                    score: stat.score,
+                    result: stat.result,
+                    teamName: stat.teamName,
+                    teamLogo: stat.teamLogo
+                )
+            }
+        )
     }
 
     // MARK: - Data Loading
@@ -110,6 +143,10 @@ struct LiveGameDetailView: View {
                 detectStatChanges(newDetail: detail)
                 gameDetail = detail
                 isLoading = false
+                if detail.game.isFinished {
+                    stopRefreshTimer()
+                    endedGame = makeEndedGame(from: detail.game)
+                }
             }
         } catch {
             await MainActor.run {
