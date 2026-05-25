@@ -229,6 +229,9 @@ struct GamesListView: View {
                 await MainActor.run {
                     gamesResponse = response
                     if !hasLiveGames {
+                        if selectedFilter == .live {
+                            selectedFilter = .all
+                        }
                         stopLiveRefresh()
                     }
                 }
