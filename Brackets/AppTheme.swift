@@ -41,6 +41,7 @@ struct AppTheme {
         static let positive = accent // Use accent for positive values
         static let negative = Color.red
         static let neutral = Color.white
+        static let live = Color(red: 0.92, green: 0.20, blue: 0.25)
         
         /// UI Element colors
         static let separator = Color(white: 0.2)
