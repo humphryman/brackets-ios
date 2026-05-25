@@ -167,7 +167,7 @@ struct ContentView: View {
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
-                HStack {
+                HStack(alignment: .bottom) {
                     if let dateRange = tournament.formattedDateRange {
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
@@ -180,16 +180,22 @@ struct ContentView: View {
 
                     Spacer()
 
-                    HStack(spacing: 5) {
-                        Text("Ver categoría")
-                            .font(.system(size: 13, weight: .semibold))
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .bold))
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if tournament.hasLiveGames {
+                            LiveGamesIndicator()
+                        }
+
+                        HStack(spacing: 5) {
+                            Text("Ver categoría")
+                                .font(.system(size: 13, weight: .semibold))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundStyle(AppTheme.Colors.accentText)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(AppTheme.Colors.accent))
                     }
-                    .foregroundStyle(AppTheme.Colors.accentText)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(AppTheme.Colors.accent))
                 }
             }
             .padding(14)
@@ -295,6 +301,28 @@ struct GenderSelectorView: View {
                 .fill(Color(white: 0.15))
         )
         .padding(4)
+    }
+}
+
+private struct LiveGamesIndicator: View {
+    @State private var pulse: Bool = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(AppTheme.Colors.live)
+                .frame(width: 6, height: 6)
+                .opacity(pulse ? 1.0 : 0.4)
+                .animation(
+                    .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                    value: pulse
+                )
+
+            Text("JUEGOS EN VIVO")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.live)
+        }
+        .onAppear { pulse = true }
     }
 }
 
