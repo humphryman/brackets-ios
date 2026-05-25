@@ -164,7 +164,7 @@ struct ContentView: View {
                 LiveGamesIndicator()
                     .padding(.top, 5)
                     .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
 
             // Info area
