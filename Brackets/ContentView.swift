@@ -167,7 +167,7 @@ struct ContentView: View {
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
-                HStack(alignment: .bottom) {
+                HStack {
                     if let dateRange = tournament.formattedDateRange {
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
