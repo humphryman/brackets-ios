@@ -397,8 +397,12 @@ struct BracketView: View {
             guard let gameStage = game.stage else { return false }
             return stageMatches(gameStage: gameStage, target: stage)
         }
-        // If only one game in this stage (e.g., Final, Tercer Lugar), placement is unambiguous.
-        if stageGames.count == 1 { return stageGames.first }
+        // Final and Tercer Lugar have a single slot — bracket_id is meaningless there,
+        // so accept the lone game if one exists. QF (4 slots) and SF (2 slots) must
+        // always match by bracket_id to avoid replicating a single game across slots.
+        let stageLower = stage.lowercased()
+        let isSingleSlotStage = stageLower == "final" || stageLower == "tercer lugar"
+        if isSingleSlotStage, stageGames.count == 1 { return stageGames.first }
         return stageGames.first { $0.bracketId == slot }
     }
 
