@@ -482,6 +482,10 @@ struct GameResultView: View {
 
         VStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { rowIdx, row in
+                let isFirstRow = rowIdx == 0
+                let isLastRow = rowIdx == rows.count - 1
+                let topPad: CGFloat = isFirstRow ? 14 : 4
+                let bottomPad: CGFloat = isLastRow ? 14 : 4
                 HStack(spacing: 0) {
                     ForEach(Array(row.enumerated()), id: \.offset) { colIdx, entry in
                         VStack(spacing: 4) {
@@ -495,7 +499,8 @@ struct GameResultView: View {
                                 .textCase(.uppercase)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.top, topPad)
+                        .padding(.bottom, bottomPad)
 
                         if colIdx < row.count - 1 {
                             Rectangle()
