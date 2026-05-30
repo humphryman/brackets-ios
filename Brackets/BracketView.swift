@@ -12,6 +12,11 @@ struct BracketView: View {
     @State private var errorMessage: String?
     @State private var currentPage: Int = 0
     @State private var dragOffset: CGFloat = 0
+    @State private var liveRefreshTimer: Timer?
+
+    private var hasLiveGames: Bool {
+        games.contains(where: { $0.isLive })
+    }
 
     private var rounds: [BracketRound] {
         buildRounds()
@@ -38,6 +43,10 @@ struct BracketView: View {
         }
         .task {
             await loadGames()
+            startLiveRefreshIfNeeded()
+        }
+        .onDisappear {
+            stopLiveRefresh()
         }
     }
 
@@ -184,6 +193,12 @@ struct BracketView: View {
 
     @ViewBuilder
     private func matchupCard(matchup: BracketMatchup) -> some View {
+        let isLive = matchup.game?.isLive ?? false
+        let strokeColor: Color = isLive
+            ? AppTheme.Colors.live
+            : (matchup.game != nil ? Color(white: 0.45) : Color(white: 0.2))
+        let strokeWidth: CGFloat = isLive ? 1.5 : 1
+
         let card = VStack(spacing: 0) {
             // Home team row
             teamRow(
@@ -211,11 +226,19 @@ struct BracketView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(matchup.game != nil ? Color(white: 0.45) : Color(white: 0.2), lineWidth: 1)
+                .stroke(strokeColor, lineWidth: strokeWidth)
         )
+        .overlay(alignment: .top) {
+            if isLive {
+                BracketLiveBadge()
+                    .offset(y: -9)
+            }
+        }
         if let game = matchup.game {
             NavigationLink {
-                if game.isFinished {
+                if game.isLive {
+                    LiveGameDetailView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
+                } else if game.isFinished {
                     GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
                 } else {
                     UpcomingGameView(game: game, tournamentId: tournament.id)
@@ -509,6 +532,84 @@ struct BracketView: View {
             isLoading = false
         }
     }
+
+    // MARK: - Live Refresh
+
+    private func startLiveRefreshIfNeeded() {
+        guard hasLiveGames else { return }
+        stopLiveRefresh()
+        liveRefreshTimer = Timer.scheduledTimer(withTimeInterval: 7, repeats: true) { _ in
+            Task { await refreshLiveGames() }
+        }
+    }
+
+    private func stopLiveRefresh() {
+        liveRefreshTimer?.invalidate()
+        liveRefreshTimer = nil
+    }
+
+    private func refreshLiveGames() async {
+        let liveGames = games.filter { $0.isLive }
+        guard !liveGames.isEmpty else { return }
+
+        var updates: [Int: Game] = [:]
+        var anyEnded = false
+
+        for game in liveGames {
+            do {
+                let response = try await APIService.shared.fetchGameDetail(
+                    tournamentId: tournament.id,
+                    gameId: game.id
+                )
+                updates[game.id] = makeUpdatedGame(from: response.game, original: game)
+                if response.game.isFinished {
+                    anyEnded = true
+                }
+            } catch {
+                print("❌ Bracket live refresh error for game \(game.id): \(error)")
+            }
+        }
+
+        await MainActor.run {
+            if !updates.isEmpty {
+                games = games.map { updates[$0.id] ?? $0 }
+            }
+        }
+
+        if anyEnded {
+            do {
+                let response = try await APIService.shared.fetchGamesResponse(for: tournament.id)
+                await MainActor.run {
+                    games = response.allGames
+                    if !hasLiveGames { stopLiveRefresh() }
+                }
+            } catch {
+                print("❌ Bracket games refetch error after live game ended: \(error)")
+            }
+        }
+    }
+
+    private func makeUpdatedGame(from detail: GameDetail, original: Game) -> Game {
+        let mappedStats: [TeamStat]? = detail.teamStats?.map { stat in
+            TeamStat(
+                id: stat.id,
+                score: stat.score,
+                result: stat.result,
+                teamName: stat.teamName,
+                teamLogo: stat.teamLogo
+            )
+        }
+        return Game(
+            id: detail.id,
+            gameTime: detail.gameTime ?? original.gameTime,
+            stage: detail.stage ?? original.stage,
+            bracketId: original.bracketId,
+            venue: detail.venue ?? original.venue,
+            isLive: !detail.isFinished,
+            period: detail.period ?? original.period,
+            teamStats: mappedStats ?? original.teamStats
+        )
+    }
 }
 
 // MARK: - Models
@@ -530,4 +631,38 @@ struct BracketRound: Identifiable {
     var thirdPlace: BracketMatchup? = nil
 
     var id: String { name }
+}
+
+// MARK: - Live Badge
+
+private struct BracketLiveBadge: View {
+    @State private var pulse: Bool = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(AppTheme.Colors.live)
+                .frame(width: 5, height: 5)
+                .opacity(pulse ? 1.0 : 0.4)
+                .animation(
+                    .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                    value: pulse
+                )
+            Text("EN VIVO")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.live)
+                .tracking(0.5)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(
+            Capsule()
+                .fill(Color(white: 0.08))
+        )
+        .overlay(
+            Capsule()
+                .stroke(AppTheme.Colors.live, lineWidth: 1)
+        )
+        .onAppear { pulse = true }
+    }
 }
