@@ -144,6 +144,26 @@ struct ContentView: View {
                     tournamentImageFallback(for: tournament)
                 }
 
+                // Champion overlay — dims image and centers winner text
+                if let winner = tournament.winner {
+                    ZStack {
+                        Color.black.opacity(0.65)
+
+                        VStack(spacing: 2) {
+                            Text(winner.teamName.uppercased())
+                                .font(.system(size: 22, weight: .heavy))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
+                            Text("CAMPEÓN")
+                                .font(.system(size: 18, weight: .heavy))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+
                 // Stage badge — top right
                 if let stage = tournament.stage {
                     Text(stage)

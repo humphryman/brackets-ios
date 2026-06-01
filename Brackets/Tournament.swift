@@ -19,6 +19,7 @@ struct Tournament: Identifiable, Codable, Sendable, Hashable {
     var bracketType: String? = nil
     var average: Bool? = nil
     var liveGames: Bool? = nil
+    var winner: TournamentWinner? = nil
 
     var usesAverage: Bool {
         average ?? false
@@ -67,6 +68,13 @@ struct Tournament: Identifiable, Codable, Sendable, Hashable {
         let imagePath = image.hasPrefix("/") ? String(image.dropFirst()) : image
         return "\(APIConfig.baseURL)/\(imagePath)"
     }
+}
+
+struct TournamentWinner: Codable, Sendable, Hashable {
+    let teamSeasonId: Int?
+    let teamId: Int?
+    let teamName: String
+    let teamLogo: String?
 }
 
 enum Gender: Int, Codable, CaseIterable, Sendable {
