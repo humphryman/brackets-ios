@@ -165,7 +165,7 @@ struct BracketView: View {
 
                 VStack(spacing: spacing) {
                     ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
-                        matchupCard(matchup: matchup)
+                        matchupCard(matchup: matchup, isFinal: isLastRound)
                     }
                 }
 
@@ -192,12 +192,13 @@ struct BracketView: View {
     // MARK: - Matchup Card
 
     @ViewBuilder
-    private func matchupCard(matchup: BracketMatchup) -> some View {
+    private func matchupCard(matchup: BracketMatchup, isFinal: Bool = false) -> some View {
         let isLive = matchup.game?.isLive ?? false
+        let defaultStroke: Color = matchup.game != nil ? Color(white: 0.45) : Color(white: 0.2)
         let strokeColor: Color = isLive
             ? AppTheme.Colors.live
-            : (matchup.game != nil ? Color(white: 0.45) : Color(white: 0.2))
-        let strokeWidth: CGFloat = isLive ? 1.5 : 1
+            : (isFinal ? AppTheme.Colors.accent : defaultStroke)
+        let strokeWidth: CGFloat = (isLive || isFinal) ? 1.5 : 1
 
         let card = VStack(spacing: 0) {
             // Home team row
