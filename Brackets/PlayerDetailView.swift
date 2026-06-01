@@ -84,8 +84,11 @@ struct PlayerDetailView: View {
             VStack(spacing: AppTheme.Spacing.large) {
                 heroCard(detail)
                 totalStatsCard(detail)
+                if !detail.playerSeason.playoffsStats.isEmpty {
+                    opponentStatsCard(detail, stats: detail.playerSeason.playoffsStats, title: "Playoffs")
+                }
                 if !detail.playerSeason.stats.isEmpty {
-                    opponentStatsCard(detail)
+                    opponentStatsCard(detail, stats: detail.playerSeason.stats, title: "Stats")
                 }
             }
             .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -180,21 +183,9 @@ struct PlayerDetailView: View {
             // Green stat boxes — horizontal carousel
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    // First stat (points)
-                    if let firstKey = orderedKeys.first {
+                    ForEach(Array(orderedKeys.enumerated()), id: \.offset) { _, key in
                         statBox(
-                            value: "\(totalForStat(firstKey, in: info.stats))",
-                            label: detail.longNameStats[firstKey] ?? firstKey
-                        )
-                    }
-
-                    // GP
-                    statBox(value: "\(gamesPlayed)", label: "Partidos")
-
-                    // Remaining stats
-                    ForEach(Array(orderedKeys.dropFirst().enumerated()), id: \.offset) { _, key in
-                        statBox(
-                            value: "\(totalForStat(key, in: info.stats))",
+                            value: "\(info.totalStats[key] ?? 0)",
                             label: detail.longNameStats[key] ?? key
                         )
                     }
@@ -214,7 +205,7 @@ struct PlayerDetailView: View {
                 if !available.isEmpty {
                     HStack(spacing: 0) {
                         ForEach(available, id: \.key) { stat in
-                            let total = totalForStat(stat.key, in: info.stats)
+                            let total = info.totalStats[stat.key] ?? 0
                             let avg = Double(total) / Double(gamesPlayed)
 
                             VStack(spacing: 4) {
@@ -262,9 +253,9 @@ struct PlayerDetailView: View {
 
     // MARK: - Stats vs Opponents
 
-    private func opponentStatsCard(_ detail: PlayerSeasonDetailResponse) -> some View {
+    private func opponentStatsCard(_ detail: PlayerSeasonDetailResponse, stats: [PlayerSeasonGameStat], title: String) -> some View {
         let info = detail.playerSeason
-        let sortedStats = info.stats
+        let sortedStats = stats
             .filter { $0.gamePlayed }
             .sorted { $0.played && !$1.played }
         let statColumnWidth: CGFloat = 44
@@ -272,7 +263,7 @@ struct PlayerDetailView: View {
         let rowHeight: CGFloat = 52
 
         return VStack(spacing: 16) {
-            Text("Stats")
+            Text(title)
                 .font(.system(size: 18, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -440,11 +431,6 @@ struct PlayerDetailView: View {
     }
 
     // MARK: - Helpers
-
-    private func totalForStat(_ key: String, in stats: [PlayerSeasonGameStat]) -> Int {
-        stats.filter { $0.gamePlayed && $0.played }
-            .reduce(0) { $0 + (($1.dynamicStats[key] ?? nil) ?? 0) }
-    }
 
     private func formatDOB(_ dob: String?) -> String {
         guard let dob = dob else { return "-" }
