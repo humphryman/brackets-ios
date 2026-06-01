@@ -34,12 +34,18 @@ enum TournamentTab: String, CaseIterable {
 
 struct TournamentContainerView: View {
     let tournament: Tournament
-    @State private var selectedTab: TournamentTab = .games
+    @State private var selectedTab: TournamentTab
     @Environment(\.dismiss) private var dismiss
     @Namespace private var animation
 
+    init(tournament: Tournament) {
+        self.tournament = tournament
+        _selectedTab = State(initialValue: tournament.winner != nil ? .standings : .games)
+    }
+
     private var availableTabs: [TournamentTab] {
-        var tabs: [TournamentTab] = [.games, .standings]
+        let hasWinner = tournament.winner != nil
+        var tabs: [TournamentTab] = hasWinner ? [.standings, .games] : [.games, .standings]
         if tournament.isPlayoffs {
             tabs.append(.bracket)
         }

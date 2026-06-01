@@ -36,11 +36,59 @@ struct TournamentsResponse: Codable, Sendable {
 struct StandingsResponse: Codable, Sendable {
     let standings: [TeamStanding]?
     let groupStandings: [GroupStanding]?
+    let podium: Podium?
 
     enum CodingKeys: String, CodingKey {
         case standings
         case groupStandings = "group_standings"
+        case podium
     }
+}
+
+// MARK: - Podium
+
+struct PodiumEntry: Codable, Sendable, Hashable {
+    let place: Int
+    let teamId: Int?
+    let teamSeasonId: Int?
+    let teamName: String
+    let teamLogo: String?
+
+    enum CodingKeys: String, CodingKey {
+        case place
+        case teamId = "team_id"
+        case teamSeasonId = "team_season_id"
+        case teamName = "team_name"
+        case teamLogo = "team_logo"
+    }
+
+    var fullImageURL: String? {
+        guard let logo = teamLogo else { return nil }
+        if logo.lowercased().hasPrefix("http://") || logo.lowercased().hasPrefix("https://") {
+            return logo
+        }
+        let path = logo.hasPrefix("/") ? String(logo.dropFirst()) : logo
+        return "\(APIConfig.baseURL)/\(path)"
+    }
+}
+
+struct Podium: Codable, Sendable, Hashable {
+    let tournamentName: String
+    let first: PodiumEntry
+    let second: PodiumEntry?
+    let third: PodiumEntry?
+
+    enum CodingKeys: String, CodingKey {
+        case tournamentName = "tournament_name"
+        case first
+        case second
+        case third
+    }
+}
+
+struct StandingsBundle: Sendable {
+    let result: StandingsResult
+    let podium: Podium?
 }
 
 // Group Standing Model
@@ -378,7 +426,7 @@ final class APIService: Sendable {
         }
     }
     
-    func fetchStandings(for tournamentId: Int) async throws -> StandingsResult {
+    func fetchStandings(for tournamentId: Int) async throws -> StandingsBundle {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/standings.json") else {
             throw APIError.invalidURL
         }
@@ -405,21 +453,21 @@ final class APIService: Sendable {
                     // Single group named "DEFAULT" means no real groups — treat as flat
                     if groups.count == 1, groups[0].name.uppercased() == "DEFAULT" {
                         print("✅ Decoded standings as flat (single DEFAULT group)")
-                        return .flat(groups[0].standings)
+                        return StandingsBundle(result: .flat(groups[0].standings), podium: response.podium)
                     }
                     print("✅ Decoded standings as group standings")
-                    return .groups(groups)
+                    return StandingsBundle(result: .groups(groups), podium: response.podium)
                 }
                 if let standings = response.standings, !standings.isEmpty {
                     print("✅ Decoded standings as wrapped response")
-                    return .flat(standings)
+                    return StandingsBundle(result: .flat(standings), podium: response.podium)
                 }
             }
 
             // Fallback: Try to decode as direct array
             if let standings = try? decoder.decode([TeamStanding].self, from: data) {
                 print("✅ Decoded standings as direct array")
-                return .flat(standings)
+                return StandingsBundle(result: .flat(standings), podium: nil)
             }
 
             // If neither worked, throw detailed error
