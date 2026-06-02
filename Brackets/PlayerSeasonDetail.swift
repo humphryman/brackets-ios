@@ -31,6 +31,7 @@ struct PlayerSeasonInfo: Codable, Sendable {
     let stats: [PlayerSeasonGameStat]
     let playoffsStats: [PlayerSeasonGameStat]
     let totalStats: [String: Int]
+    let totalAverages: [String: Double]
 
     enum CodingKeys: String, CodingKey {
         case weight, height, number, team, player
@@ -38,6 +39,7 @@ struct PlayerSeasonInfo: Codable, Sendable {
         case stats
         case playoffsStats = "playoffs_stats"
         case totalStats = "total_stats"
+        case totalAverages = "total_averages"
     }
 
     init(from decoder: Decoder) throws {
@@ -67,6 +69,7 @@ struct PlayerSeasonInfo: Codable, Sendable {
         stats = try container.decode([PlayerSeasonGameStat].self, forKey: .stats)
         playoffsStats = (try? container.decodeIfPresent([PlayerSeasonGameStat].self, forKey: .playoffsStats)) ?? []
         totalStats = (try? container.decodeIfPresent([String: Int].self, forKey: .totalStats)) ?? [:]
+        totalAverages = (try? container.decodeIfPresent([String: Double].self, forKey: .totalAverages)) ?? [:]
     }
 }
 

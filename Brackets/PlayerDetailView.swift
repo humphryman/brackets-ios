@@ -163,7 +163,6 @@ struct PlayerDetailView: View {
 
     private func totalStatsCard(_ detail: PlayerSeasonDetailResponse) -> some View {
         let info = detail.playerSeason
-        let gamesPlayed = info.stats.filter { $0.gamePlayed && $0.played }.count
 
         // Order: points first, then remaining active stats
         var orderedKeys: [String] = []
@@ -193,32 +192,30 @@ struct PlayerDetailView: View {
                 .padding(.horizontal, 2)
             }
 
-            // Per-game averages: PPG, APG, RPG
-            if gamesPlayed > 0 {
-                let perGameStats: [(key: String, label: String)] = [
-                    ("points", "PPG"),
-                    ("as", "APG"),
-                    ("tr", "RPG")
-                ]
-                let available = perGameStats.filter { info.activeStats.contains($0.key) }
+            // Per-game averages from total_averages: PPG, APG, RPG
+            let perGameStats: [(key: String, label: String)] = [
+                ("ppg", "PPG"),
+                ("apg", "APG"),
+                ("rpg", "RPG")
+            ]
+            let available = perGameStats.compactMap { stat -> (key: String, label: String, value: Double)? in
+                guard let value = info.totalAverages[stat.key] else { return nil }
+                return (stat.key, stat.label, value)
+            }
 
-                if !available.isEmpty {
-                    HStack(spacing: 0) {
-                        ForEach(available, id: \.key) { stat in
-                            let total = info.totalStats[stat.key] ?? 0
-                            let avg = Double(total) / Double(gamesPlayed)
+            if !available.isEmpty {
+                HStack(spacing: 0) {
+                    ForEach(available, id: \.key) { stat in
+                        VStack(spacing: 4) {
+                            Text(String(format: "%.1f", stat.value))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(AppTheme.Colors.primaryText)
 
-                            VStack(spacing: 4) {
-                                Text(String(format: "%.1f", avg))
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(AppTheme.Colors.primaryText)
-
-                                Text(stat.label)
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                            }
-                            .frame(maxWidth: .infinity)
+                            Text(stat.label)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
                         }
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
