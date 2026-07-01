@@ -16,6 +16,8 @@ struct Game: Identifiable, Sendable {
     var isLive: Bool = false
     var period: String? = nil
     let teamStats: [TeamStat]?
+    var group: String? = nil
+    var bracket: String? = nil
 
     // Computed properties for easier access
     var homeTeam: Team? {
@@ -90,6 +92,8 @@ struct Game: Identifiable, Sendable {
         case isLive = "is_live"
         case period
         case teamStats = "team_stats"
+        case group
+        case bracket
     }
 }
 
@@ -103,6 +107,8 @@ extension Game: Codable {
         isLive = try container.decodeIfPresent(Bool.self, forKey: .isLive) ?? false
         period = try container.decodeIfPresent(String.self, forKey: .period)
         teamStats = try container.decodeIfPresent([TeamStat].self, forKey: .teamStats)
+        group = try container.decodeIfPresent(String.self, forKey: .group)
+        bracket = try container.decodeIfPresent(String.self, forKey: .bracket)
 
         // venue can be a Venue object or a plain string
         if let venueObject = try? container.decodeIfPresent(Venue.self, forKey: .venue) {
@@ -155,9 +161,21 @@ enum GameStatus: String, Codable, Sendable {
     case cancelled = "cancelled"
 }
 
+struct BracketInfo: Codable, Sendable {
+    let name: String
+    let position: Int?
+    let typeLabel: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, position
+        case typeLabel = "type_label"
+    }
+}
+
 // Response wrapper - handles the nested date structure
 struct GamesResponse: Codable, Sendable {
     let games: [DateGroup]
+    let brackets: [BracketInfo]?
     
     struct DateGroup: Codable, Sendable {
         let date: String
@@ -171,8 +189,9 @@ struct GamesResponse: Codable, Sendable {
     
     enum CodingKeys: String, CodingKey {
         case games
+        case brackets
     }
-    
+
     // Flatten all games from all date groups
     var allGames: [Game] {
         games.flatMap { $0.games }

@@ -16,9 +16,124 @@ private extension DateFormatter {
     }()
 }
 
+/// Colors specific to the redesigned game card.
+private enum GameCardPalette {
+    static let cardBackground = Color(white: 0.11)
+    static let semifinalBanner = Color(red: 0.23, green: 0.21, blue: 0.90)
+    static let stageTagFill = Color(white: 0.2)
+    static let groupTagFill = Color(red: 35/255, green: 14/255, blue: 46/255)
+}
+
+/// A single filter chip — either a group ("Grupo 1") or a playoff bracket ("Playoffs").
+struct GameGroupChip: Identifiable, Equatable {
+    enum Kind { case group, bracket }
+    let name: String
+    let kind: Kind
+    var id: String { "\(kind == .group ? "g" : "b")-\(name)" }
+}
+
+private struct CarouselContentWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+private struct CarouselContainerWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+/// Horizontally scrollable chip row with overflow chevron buttons.
+struct GroupFilterCarousel: View {
+    let chips: [GameGroupChip]
+    @Binding var selected: GameGroupChip?
+
+    @State private var contentWidth: CGFloat = 0
+    @State private var viewportWidth: CGFloat = 0
+    @State private var leadingIndex: Int = 0
+
+    // Both arrows are shown together whenever the chips overflow the row.
+    private var isOverflowing: Bool { contentWidth > viewportWidth + 1 }
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            HStack(spacing: 6) {
+                if isOverflowing {
+                    arrow("chevron.left") { step(-1, proxy) }
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppTheme.Spacing.small) {
+                        ForEach(chips) { chip in
+                            chipButton(chip).id(chip.id)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(key: CarouselContentWidthKey.self, value: geo.size.width)
+                        }
+                    )
+                }
+                .onPreferenceChange(CarouselContentWidthKey.self) { contentWidth = $0 }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(key: CarouselContainerWidthKey.self, value: geo.size.width)
+                    }
+                )
+                .onPreferenceChange(CarouselContainerWidthKey.self) { viewportWidth = $0 }
+
+                if isOverflowing {
+                    arrow("chevron.right") { step(1, proxy) }
+                }
+            }
+            .padding(.horizontal, AppTheme.Layout.screenPadding)
+            .onChange(of: chips) { leadingIndex = 0 }
+        }
+        .frame(height: 44)
+    }
+
+    /// Scroll the row by roughly one viewport of chips in `direction` (+1 right, -1 left).
+    private func step(_ direction: Int, _ proxy: ScrollViewProxy) {
+        guard !chips.isEmpty else { return }
+        let avg = contentWidth > 0 ? contentWidth / CGFloat(chips.count) : 90
+        let page = max(1, Int((viewportWidth / avg).rounded(.down)))
+        leadingIndex = min(max(0, leadingIndex + direction * page), chips.count - 1)
+        withAnimation(.easeInOut(duration: 0.3)) {
+            proxy.scrollTo(chips[leadingIndex].id, anchor: .leading)
+        }
+    }
+
+    private func chipButton(_ chip: GameGroupChip) -> some View {
+        let isSelected = selected == chip
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { selected = chip }
+        } label: {
+            Text(chip.name)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : Color(white: 0.83))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 9)
+                .background(Capsule().fill(isSelected ? Color.clear : Color(white: 0.08)))
+                .overlay(Capsule().stroke(AppTheme.Colors.accent, lineWidth: isSelected ? 2.5 : 0))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func arrow(_ system: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: system)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(Color(white: 0.83))
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color(white: 0.14)))
+                .shadow(color: .black.opacity(0.4), radius: 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 enum GameFilter: String, CaseIterable {
     case live = "En Vivo"
-    case all = "Todos"
     case upcoming = "Próximos"
     case completed = "Resultados"
 }
@@ -28,7 +143,9 @@ struct GamesListView: View {
     @State private var gamesResponse: GamesResponse?
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var selectedFilter: GameFilter = .all
+    @State private var selectedFilter: GameFilter = .upcoming
+    @State private var selectedChip: GameGroupChip?
+    @State private var didInitChip = false
     @State private var liveGameDetails: [Int: GameDetailResponse] = [:]
     @State private var liveRefreshTimer: Timer?
 
@@ -38,45 +155,92 @@ struct GamesListView: View {
 
     private var availableFilters: [GameFilter] {
         var filters: [GameFilter] = []
-        if hasLiveGames {
-            filters.append(.live)
-        }
-        filters.append(contentsOf: [.all, .upcoming, .completed])
+        if hasLiveGames { filters.append(.live) }
+        filters.append(contentsOf: [.upcoming, .completed])
         return filters
+    }
+
+    private var chips: [GameGroupChip] {
+        guard let response = gamesResponse else { return [] }
+        // Only groups/brackets that have games under the active top-tab.
+        let all = response.allGames.filter { matchesTab($0) }
+
+        let groupChips = Set(all.compactMap { $0.group })
+            .sorted { lhs, rhs in
+                switch (trailingInt(lhs), trailingInt(rhs)) {
+                case let (l?, r?) where l != r: return l < r
+                default: return lhs < rhs
+                }
+            }
+            .map { GameGroupChip(name: $0, kind: .group) }
+
+        let order = Dictionary(
+            (response.brackets ?? []).compactMap { info in info.position.map { (info.name, $0) } },
+            uniquingKeysWith: { first, _ in first })
+        let bracketChips = Set(all.compactMap { $0.bracket })
+            .sorted { lhs, rhs in
+                switch (order[lhs], order[rhs]) {
+                case let (l?, r?) where l != r: return l < r
+                case (nil, _?): return false
+                case (_?, nil): return true
+                default: return lhs < rhs
+                }
+            }
+            .map { GameGroupChip(name: $0, kind: .bracket) }
+
+        return groupChips + bracketChips
+    }
+
+    private func trailingInt(_ s: String) -> Int? {
+        if let last = s.split(separator: " ").last, let n = Int(last) { return n }
+        return nil
+    }
+
+    private func matchesTab(_ game: Game) -> Bool {
+        switch selectedFilter {
+        case .live: return game.isLive
+        case .upcoming: return !game.isFinished && !game.isLive
+        case .completed: return game.isFinished && !game.isLive
+        }
+    }
+
+    private func matches(_ game: Game, _ chip: GameGroupChip) -> Bool {
+        switch chip.kind {
+        case .group: return game.group == chip.name
+        case .bracket: return game.bracket == chip.name
+        }
+    }
+
+    private func ensureValidChip() {
+        let list = chips
+        guard !list.isEmpty else { selectedChip = nil; return }
+        let hasGames: (GameGroupChip) -> Bool = { chip in
+            self.gamesResponse?.allGames.contains { self.matchesTab($0) && self.matches($0, chip) } ?? false
+        }
+        if let sel = selectedChip, list.contains(sel), hasGames(sel) { return }
+        selectedChip = list.first(where: hasGames) ?? list.first
+    }
+
+    /// On a top-tab change, always jump to the first available group for that tab.
+    private func selectFirstChip() {
+        selectedChip = chips.first
     }
 
     var filteredGames: [GamesResponse.DateGroup] {
         guard let gamesResponse = gamesResponse else { return [] }
-
-        let groups: [GamesResponse.DateGroup]
-        switch selectedFilter {
-        case .live:
-            groups = gamesResponse.games.map { dateGroup in
-                GamesResponse.DateGroup(
-                    date: dateGroup.date,
-                    games: dateGroup.games.filter { $0.isLive }
-                )
-            }.filter { !$0.games.isEmpty }
-        case .all:
-            groups = gamesResponse.games
-        case .upcoming:
-            groups = gamesResponse.games.map { dateGroup in
-                GamesResponse.DateGroup(
-                    date: dateGroup.date,
-                    games: dateGroup.games.filter { !$0.isFinished && !$0.isLive }
-                )
-            }.filter { !$0.games.isEmpty }
-        case .completed:
-            groups = gamesResponse.games.map { dateGroup in
-                GamesResponse.DateGroup(
-                    date: dateGroup.date,
-                    games: dateGroup.games.filter { $0.isFinished && !$0.isLive }
-                )
-            }.filter { !$0.games.isEmpty }
-        }
-
-        // Sort date groups so future dates come first
-        return groups.sorted { $0.date > $1.date }
+        let chip = selectedChip
+        let groups = gamesResponse.games.map { dateGroup in
+            GamesResponse.DateGroup(
+                date: dateGroup.date,
+                games: dateGroup.games.filter { game in
+                    guard matchesTab(game) else { return false }
+                    if let chip { return matches(game, chip) }
+                    return true
+                }
+            )
+        }.filter { !$0.games.isEmpty }
+        let ascending = selectedFilter != .completed
+        return groups.sorted { ascending ? $0.date < $1.date : $0.date > $1.date }
     }
     
     var body: some View {
@@ -91,11 +255,16 @@ struct GamesListView: View {
                 }
             } else if let _ = gamesResponse {
                 VStack(spacing: 0) {
-                    // Filter Buttons
+                    // Top filter (Próximos / Resultados / En Vivo)
                     GameFilterView(selectedFilter: $selectedFilter, filters: availableFilters)
                         .padding(.horizontal, AppTheme.Layout.screenPadding)
                         .padding(.top, AppTheme.Spacing.medium)
-                        .padding(.bottom, AppTheme.Spacing.large)
+                        .padding(.bottom, AppTheme.Spacing.small)
+
+                    // Group / bracket carousel
+                    GroupFilterCarousel(chips: chips, selected: $selectedChip)
+                        .padding(.bottom, AppTheme.Spacing.medium)
+                        .onChange(of: selectedFilter) { selectFirstChip() }
 
                     if filteredGames.isEmpty {
                         AppTheme.EmptyStateView(
@@ -110,7 +279,7 @@ struct GamesListView: View {
                                 VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
                                     ForEach(filteredGames, id: \.date) { dateGroup in
                                         VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                                            // Date Header with calendar icon
+                                            // Date Header with calendar icon + count
                                             HStack(spacing: 8) {
                                                 Image(systemName: "calendar")
                                                     .font(.system(size: 14, weight: .semibold))
@@ -119,6 +288,13 @@ struct GamesListView: View {
                                                 Text(formatDateHeader(dateGroup.date))
                                                     .font(.system(size: 16, weight: .bold))
                                                     .foregroundStyle(AppTheme.Colors.primaryText)
+
+                                                Text(dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 4)
+                                                    .background(Capsule().fill(Color(white: 0.2)))
                                             }
                                             .padding(.horizontal, AppTheme.Layout.screenPadding)
 
@@ -184,7 +360,7 @@ struct GamesListView: View {
     private func startLiveRefreshIfNeeded() {
         guard hasLiveGames else { return }
         // Auto-select live filter when live games exist
-        if selectedFilter == .all {
+        if selectedFilter == .upcoming {
             selectedFilter = .live
         }
         stopLiveRefresh()
@@ -230,7 +406,7 @@ struct GamesListView: View {
                     gamesResponse = response
                     if !hasLiveGames {
                         if selectedFilter == .live {
-                            selectedFilter = .all
+                            selectedFilter = .upcoming
                         }
                         stopLiveRefresh()
                     }
@@ -247,6 +423,10 @@ struct GamesListView: View {
         
         do {
             gamesResponse = try await APIService.shared.fetchGamesResponse(for: tournament.id)
+            if !didInitChip {
+                ensureValidChip()
+                didInitChip = true
+            }
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -281,16 +461,19 @@ struct GamesListView: View {
         let parser = DateFormatter()
         parser.dateFormat = "yyyy-MM-dd"
         parser.timeZone = AppConfig.DateTime.apiTimeZone
+        guard let date = parser.date(from: dateString) else { return dateString }
 
-        if let date = parser.date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "es_MX")
-            formatter.timeZone = AppConfig.DateTime.apiTimeZone
-            formatter.dateFormat = "MMMM dd, yyyy"
-            return formatter.string(from: date).capitalized
-        }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es_MX")
+        f.timeZone = AppConfig.DateTime.apiTimeZone
 
-        return dateString
+        f.dateFormat = "EEEE"
+        let weekday = f.string(from: date).capitalized
+        f.dateFormat = "MMMM"
+        let month = f.string(from: date).capitalized
+        f.dateFormat = "d"
+        let day = f.string(from: date)
+        return "\(weekday), \(day) de \(month)"
     }
 }
 
@@ -372,96 +555,146 @@ struct FilterButton: View {
     }
 }
 
-/// Main game card matching the exact design
+/// Unified game card: optional Final/Semifinal banner, teams, score/time, location, tags.
 struct GameCard: View {
     let game: Game
-    
-    private var isQuarterfinal: Bool {
-        game.stage?.lowercased().contains("cuartos") == true
-    }
 
-    private var isSemifinal: Bool {
-        game.stage?.lowercased().contains("semifinal") == true
-    }
+    private var isFinal: Bool { game.stage?.lowercased() == "final" }
+    private var isSemifinal: Bool { game.stage?.lowercased().contains("semifinal") == true }
 
-    private var isFinal: Bool {
-        guard let stage = game.stage?.lowercased() else { return false }
-        return stage == "final"
-    }
-
-    private var isPlayoffGame: Bool {
-        isQuarterfinal || isSemifinal || isFinal
-    }
-
-    private var stageBadgeText: String? {
-        if isQuarterfinal { return "Cuartos de Final" }
-        if isSemifinal { return "Semifinal" }
+    private var bannerText: String? {
         if isFinal { return "Final" }
+        if isSemifinal { return "Semifinal" }
         return nil
     }
 
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(spacing: AppTheme.Spacing.standard) {
-                if stageBadgeText != nil {
-                    Spacer().frame(height: 16)
-                }
+    private var stageTagText: String? {
+        guard bannerText == nil, let stage = game.stage, !stage.isEmpty else { return nil }
+        return stage.capitalized
+    }
 
+    private var groupTagText: String? {
+        game.group ?? game.bracket
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let bannerText {
+                HStack {
+                    Text(bannerText)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(isFinal ? AppTheme.Colors.accentText : .white)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isFinal ? AppTheme.Colors.accent : GameCardPalette.semifinalBanner)
+            }
+
+            VStack(spacing: 14) {
                 HStack(spacing: AppTheme.Spacing.large) {
-                    // Home Team
                     TeamSection(
                         teamName: game.homeTeam?.name ?? "TBD",
-                        initials: getInitials(game.homeTeam?.name ?? "TBD"),
                         isWinner: game.isFinished && game.winner?.id == game.homeTeam?.id,
-                        imageURL: game.homeTeam?.fullImageURL,
-                        forceDarkText: isFinal
+                        imageURL: game.homeTeam?.fullImageURL
                     )
                     .frame(maxWidth: .infinity)
 
-                    // Center: Score or VS with time
-                    CenterSection(game: game, forceDarkText: isFinal)
-                        .frame(width: 150)
+                    CenterSection(game: game)
+                        .frame(width: 130)
 
-                    // Away Team
                     TeamSection(
                         teamName: game.awayTeam?.name ?? "TBD",
-                        initials: getInitials(game.awayTeam?.name ?? "TBD"),
                         isWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
-                        imageURL: game.awayTeam?.fullImageURL,
-                        forceDarkText: isFinal
+                        imageURL: game.awayTeam?.fullImageURL
                     )
                     .frame(maxWidth: .infinity)
                 }
 
-                // Stadium/Location
                 if let venue = game.venue {
-                    Text(venue.name + (venue.courtNumber.map { " - \($0)" } ?? ""))
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(isFinal ? Color.black.opacity(0.6) : Color(white: 0.5))
+                    VenueLabel(venue: venue)
+                }
+
+                if stageTagText != nil || groupTagText != nil {
+                    HStack(spacing: 8) {
+                        if let stageTagText {
+                            tag(stageTagText, fill: GameCardPalette.stageTagFill, textColor: AppTheme.Colors.secondaryText)
+                        }
+                        if let groupTagText {
+                            tag(groupTagText, fill: GameCardPalette.groupTagFill, textColor: .white)
+                        }
+                    }
                 }
             }
-
-            // Stage badge
-            if let badge = stageBadgeText {
-                Text(badge.uppercased())
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(isFinal ? .white : AppTheme.Colors.accentText)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(isFinal ? Color.black.opacity(0.3) : AppTheme.Colors.accent))
-                    .padding(.trailing, 10)
-            }
+            .padding(16)
         }
-        .padding(.horizontal, AppTheme.Spacing.large)
-        .padding(.vertical, AppTheme.Spacing.large)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(isFinal ? AppTheme.Colors.accent : Color(white: 0.1))
-                .stroke((isQuarterfinal || isSemifinal) ? AppTheme.Colors.accent.opacity(0.6) : Color(white: 1.0).opacity(isFinal ? 0 : 0.18), lineWidth: (isQuarterfinal || isSemifinal) ? 1.5 : 1)
-        )
+        .background(GameCardPalette.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
     }
-    
-    private func getInitials(_ teamName: String) -> String {
+
+    private func tag(_ text: String, fill: Color, textColor: Color) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(textColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(fill))
+    }
+}
+
+/// Team logo (winner gets a lime ring) with the name below.
+struct TeamSection: View {
+    let teamName: String
+    let isWinner: Bool
+    var imageURL: String? = nil
+
+    var body: some View {
+        VStack(spacing: AppTheme.Spacing.small) {
+            ZStack {
+                logoCircle
+                if isWinner {
+                    Circle()
+                        .stroke(AppTheme.Colors.accent, lineWidth: 2)
+                        .frame(width: 54, height: 54)
+                }
+            }
+            Text(teamName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    @ViewBuilder
+    private var logoCircle: some View {
+        if let imageURL, let url = URL(string: imageURL) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill().frame(width: 46, height: 46).clipShape(Circle())
+                default:
+                    initialsCircle
+                }
+            }
+        } else {
+            initialsCircle
+        }
+    }
+
+    private var initialsCircle: some View {
+        Circle()
+            .fill(Color(white: 0.15))
+            .frame(width: 46, height: 46)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+            )
+    }
+
+    private var initials: String {
         let words = teamName.split(separator: " ")
         if words.count >= 2 {
             return String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
@@ -472,152 +705,46 @@ struct GameCard: View {
     }
 }
 
-/// Team display with circle and name
-struct TeamSection: View {
-    let teamName: String
-    let initials: String
-    let isWinner: Bool
-    var imageURL: String? = nil
-    var forceDarkText: Bool = false
-
-    var body: some View {
-        VStack(spacing: AppTheme.Spacing.small) {
-            // Team circle with logo or initials
-            ZStack {
-                if let imageURL, let url = URL(string: imageURL) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 60, height: 60)
-                                .clipShape(Circle())
-                        default:
-                            initialsCircle
-                        }
-                    }
-                } else {
-                    initialsCircle
-                }
-
-                // Winner ring / Final border
-                if isWinner || forceDarkText {
-                    Circle()
-                        .stroke(forceDarkText ? Color.black : AppTheme.Colors.accent, lineWidth: 2)
-                        .frame(width: 68, height: 68)
-                }
-            }
-
-            // Team Name
-            Text(teamName)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(forceDarkText ? .black : AppTheme.Colors.primaryText)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-        }
-    }
-
-    private var initialsCircle: some View {
-        Circle()
-            .fill(isWinner ? (forceDarkText ? Color.black : AppTheme.Colors.accent) : Color(white: 0.15))
-            .frame(width: 60, height: 60)
-            .overlay(
-                Text(initials)
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : (forceDarkText ? .black : AppTheme.Colors.primaryText))
-            )
-    }
-}
-
-/// Center section with score or time
+/// Center of the card: score (winner in accent) when finished, else the start time.
 struct CenterSection: View {
     let game: Game
-    var forceDarkText: Bool = false
 
-    var homeIsWinner: Bool { game.isFinished && game.winner?.id == game.homeTeam?.id }
-    var awayIsWinner: Bool { game.isFinished && game.winner?.id == game.awayTeam?.id }
+    private var homeIsWinner: Bool { game.isFinished && game.winner?.id == game.homeTeam?.id }
+    private var awayIsWinner: Bool { game.isFinished && game.winner?.id == game.awayTeam?.id }
 
     var body: some View {
-        VStack(spacing: AppTheme.Spacing.small) {
-            if game.isFinished {
-                // Date + score
-                VStack(spacing: 4) {
-                    if let gameTime = game.gameTime {
-                        Text(formatShortDate(gameTime))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
-                    }
-
-                    HStack(spacing: 6) {
-                        Text("\(game.homeScore ?? 0)")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(forceDarkText ? .black : (homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText))
-                            .frame(minWidth: 30)
-
-                        Text("-")
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.45))
-
-                        Text("\(game.awayScore ?? 0)")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundStyle(forceDarkText ? .black : (awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText))
-                            .frame(minWidth: 30)
-                    }
-                    .fixedSize()
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(forceDarkText ? Color.black.opacity(0.1) : Color(white: 0.06))
-                            .stroke(forceDarkText ? Color.black.opacity(0.2) : Color(white: 0.2), lineWidth: 1)
-                    )
-
-                    Text("Final")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
-                }
-            } else {
-                // Date + time + VS
-                if let gameTime = game.gameTime {
-                    Text(formatFullDate(gameTime))
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.4))
-                    Text(formatTime(gameTime))
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(forceDarkText ? .black : AppTheme.Colors.accent)
-                }
-
-                Text("VS")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(forceDarkText ? Color.black.opacity(0.5) : Color(white: 0.5))
+        if game.isFinished {
+            HStack(spacing: 8) {
+                Text("\(game.homeScore ?? 0)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
+                Text("-")
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(Color(white: 0.45))
+                Text("\(game.awayScore ?? 0)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
             }
+            .fixedSize()
+        } else if let gameTime = game.gameTime {
+            Text(Self.timeFormatter.string(from: gameTime))
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .fixedSize()
+        } else {
+            Text("—")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Color(white: 0.45))
         }
     }
 
-    private func formatShortDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_MX")
-        formatter.timeZone = AppConfig.DateTime.apiTimeZone
-        formatter.dateFormat = "dd MMM yy"
-        return formatter.string(from: date)
-    }
-
-    private func formatFullDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "es_MX")
-        formatter.timeZone = AppConfig.DateTime.apiTimeZone
-        formatter.dateFormat = "dd MMMM yyyy"
-        return formatter.string(from: date).capitalized
-    }
-
-    private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = AppConfig.DateTime.apiTimeZone
-        formatter.dateFormat = "h:mm a"
-        return formatter.string(from: date)
-    }
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es_MX")
+        f.timeZone = AppConfig.DateTime.apiTimeZone
+        f.dateFormat = "h:mm a"
+        return f
+    }()
 }
 
 // MARK: - Live Game Card
@@ -861,6 +988,48 @@ struct LiveGameCard: View {
         formatter.dateFormat = "MMM dd, yyyy"
         return formatter.string(from: date).capitalized
     }
+}
+
+#Preview("Group carousel") {
+    struct Wrap: View {
+        @State var sel: GameGroupChip? = GameGroupChip(name: "Grupo 1", kind: .group)
+        var chips: [GameGroupChip] {
+            (1...13).map { GameGroupChip(name: "Grupo \($0)", kind: .group) }
+            + ["Playoffs", "Playoffs 2", "Playoffs 3"].map { GameGroupChip(name: $0, kind: .bracket) }
+        }
+        var body: some View {
+            GroupFilterCarousel(chips: chips, selected: $sel)
+        }
+    }
+    return ZStack { Color.black.ignoresSafeArea(); Wrap() }
+}
+
+#Preview("Game cards") {
+    func sample(stage: String, group: String?, bracket: String?, finished: Bool) -> Game {
+        Game(
+            id: Int.random(in: 1...99999),
+            gameTime: Date(),
+            stage: stage,
+            bracketId: nil,
+            venue: Venue(name: "Polideportivo Central", courtNumber: "1", lat: nil, lng: nil),
+            teamStats: [
+                TeamStat(id: 1, score: finished ? 48 : nil, result: finished ? "Won" : nil, teamName: "Sonora A", teamLogo: nil),
+                TeamStat(id: 2, score: finished ? 43 : nil, result: finished ? "Lost" : nil, teamName: "Sinaloa B", teamLogo: nil)
+            ],
+            group: group,
+            bracket: bracket
+        )
+    }
+    return ScrollView {
+        VStack(spacing: 16) {
+            GameCard(game: sample(stage: "Final", group: nil, bracket: "Playoffs", finished: true))
+            GameCard(game: sample(stage: "Semifinal", group: nil, bracket: "Playoffs", finished: true))
+            GameCard(game: sample(stage: "Ronda regular", group: "Grupo 1", bracket: nil, finished: true))
+            GameCard(game: sample(stage: "Ronda regular", group: "Grupo 1", bracket: nil, finished: false))
+        }
+        .padding()
+    }
+    .background(Color.black)
 }
 
 #Preview {
