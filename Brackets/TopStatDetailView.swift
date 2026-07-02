@@ -178,8 +178,6 @@ struct TopStatDetailView: View {
                 .foregroundStyle(AppTheme.Colors.secondaryText)
                 .frame(width: 28, alignment: .center)
 
-            avatar(entry.player, size: 40)
-
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.player.fullName)
                     .font(AppTheme.Typography.bodyBold)
@@ -198,38 +196,6 @@ struct TopStatDetailView: View {
                 .foregroundStyle(AppTheme.Colors.primaryText)
         }
         .cardStyle()
-    }
-
-    // MARK: - Avatar
-
-    @ViewBuilder
-    private func avatar(_ player: Player, size: CGFloat) -> some View {
-        if let picture = player.picture,
-           let url = URL(string: picture.hasPrefix("http") ? picture : "\(APIConfig.baseURL)/\(picture)") {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                default:
-                    avatarInitials(player)
-                }
-            }
-            .frame(width: size, height: size)
-            .clipShape(Circle())
-        } else {
-            avatarInitials(player)
-                .frame(width: size, height: size)
-        }
-    }
-
-    private func avatarInitials(_ player: Player) -> some View {
-        Circle()
-            .fill(Color(white: 0.2))
-            .overlay(
-                Text("\(player.firstName.prefix(1))\(player.lastName.prefix(1))".uppercased())
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-            )
     }
 
     // MARK: - Data
