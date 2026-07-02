@@ -13,9 +13,26 @@ struct BracketView: View {
     @State private var currentPage: Int = 0
     @State private var dragOffset: CGFloat = 0
     @State private var liveRefreshTimer: Timer?
+    @State private var brackets: [BracketInfo] = []
+    @State private var selectedBracketName: String?
+    @State private var didInitBracket = false
+    @Environment(\.openURL) private var openURL
 
     private var hasLiveGames: Bool {
         games.contains(where: { $0.isLive })
+    }
+
+    private var selectedBracket: BracketInfo? {
+        brackets.first { $0.name == selectedBracketName }
+    }
+
+    private var activeType: String {
+        (selectedBracket?.type ?? tournament.bracketType)?.lowercased() ?? ""
+    }
+
+    private var bracketGames: [Game] {
+        guard !brackets.isEmpty, let name = selectedBracketName else { return games }
+        return games.filter { $0.bracket == name }
     }
 
     private var rounds: [BracketRound] {
@@ -23,7 +40,16 @@ struct BracketView: View {
     }
 
     var body: some View {
-        ZStack {
+        VStack(spacing: 0) {
+            if brackets.count >= 2 {
+                ChipCarousel(items: brackets.map(\.name), label: { $0 }, selected: $selectedBracketName)
+                    .padding(.vertical, AppTheme.Spacing.small)
+                    .onChange(of: selectedBracketName) {
+                        currentPage = 0
+                        dragOffset = 0
+                    }
+            }
+            ZStack {
             if isLoading {
                 AppTheme.LoadingView(message: "Loading bracket...")
             } else if let errorMessage = errorMessage {
@@ -40,6 +66,7 @@ struct BracketView: View {
                     bracketPager(pageWidth: geo.size.width)
                 }
             }
+            }
         }
         .task {
             await loadGames()
@@ -53,9 +80,8 @@ struct BracketView: View {
     // MARK: - Layout Constants
 
     private let matchupCardWidth: CGFloat = 180
-    private let matchupCardHeight: CGFloat = 110
+    private let matchupCardHeight: CGFloat = 138
     private let connectorWidth: CGFloat = 36
-    private let teamLogoSize: CGFloat = 40
 
     private var roundColumnWidth: CGFloat {
         matchupCardWidth + connectorWidth
@@ -64,7 +90,6 @@ struct BracketView: View {
     // MARK: - Pager
 
     private func bracketPager(pageWidth: CGFloat) -> some View {
-        let bracketType = tournament.bracketType?.lowercased() ?? ""
         let needsPaging = rounds.count > 2
 
         if needsPaging {
@@ -75,13 +100,16 @@ struct BracketView: View {
     }
 
     private func staticBracket() -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            bracketContent
-                .padding(.bottom, 100)
+        VStack(alignment: .leading, spacing: 0) {
+            bracketHeaders
                 .padding(.top, AppTheme.Spacing.medium)
+                .padding(.bottom, 16)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                bracketBody
+                    .padding(.bottom, 100)
+            }
         }
-        .padding(.leading, 0)
-        .padding(.trailing, 0)
     }
 
     private func pagedBracket(pageWidth: CGFloat) -> some View {
@@ -89,12 +117,21 @@ struct BracketView: View {
         let maxPage = max(0, rounds.count - 2)
         let baseOffset = -CGFloat(currentPage) * roundStep + AppTheme.Layout.screenPadding
 
-        return ScrollView(.vertical, showsIndicators: false) {
-            bracketContent
-                .padding(.bottom, 100)
+        return VStack(alignment: .leading, spacing: 0) {
+            // Sticky round-title header — pinned vertically, offset horizontally with the pager
+            bracketHeaders
+                .offset(x: baseOffset + dragOffset)
                 .padding(.top, AppTheme.Spacing.medium)
+                .padding(.bottom, 16)
+                .clipped()
+
+            ScrollView(.vertical, showsIndicators: false) {
+                bracketBody
+                    .padding(.bottom, 100)
+            }
+            .offset(x: baseOffset + dragOffset)
+            .clipped()
         }
-        .offset(x: baseOffset + dragOffset)
         .highPriorityGesture(
             DragGesture(minimumDistance: 30)
                 .onChanged { value in
@@ -114,32 +151,37 @@ struct BracketView: View {
                     }
                 }
         )
-        .clipped()
     }
 
     // MARK: - Bracket Content
 
-    private var bracketContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Round headers (skip last round — rendered inline above its card)
-            HStack(alignment: .top, spacing: 0) {
-                ForEach(Array(rounds.enumerated()), id: \.element.name) { index, round in
-                    if index < rounds.count - 1 {
-                        Text(round.name.uppercased())
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(Color(white: 0.45))
-                            .frame(width: matchupCardWidth, alignment: .center)
-                            .padding(.trailing, connectorWidth)
-                    }
+    // Round-title header row (all rounds except the last, whose title is inline above its card).
+    private var bracketHeaders: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(rounds.enumerated()), id: \.element.name) { index, round in
+                if index < rounds.count - 1 {
+                    roundHeaderLabel(round)
+                        .frame(width: matchupCardWidth, alignment: .leading)
+                        .padding(.trailing, connectorWidth)
                 }
             }
-            .padding(.bottom, 20)
+        }
+    }
 
-            // Bracket body
-            HStack(alignment: .top, spacing: 0) {
-                ForEach(Array(rounds.enumerated()), id: \.element.name) { roundIndex, round in
-                    roundColumn(round: round, roundIndex: roundIndex)
-                }
+    private func roundHeaderLabel(_ round: BracketRound) -> some View {
+        Text(round.name.uppercased())
+            .font(.system(size: 11, weight: .bold))
+            .tracking(0.5)
+            .foregroundStyle(Color(white: 0.6))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color(white: 0.13)))
+    }
+
+    private var bracketBody: some View {
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(rounds.enumerated()), id: \.element.name) { roundIndex, round in
+                roundColumn(round: round, roundIndex: roundIndex)
             }
         }
     }
@@ -156,11 +198,9 @@ struct BracketView: View {
             // Matchup cards (+ Tercer Lugar stacked below, if present)
             VStack(spacing: 0) {
                 if isLastRound {
-                    Text(round.name.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color(white: 0.45))
-                        .frame(width: matchupCardWidth, alignment: .center)
-                        .padding(.bottom, 6)
+                    roundHeaderLabel(round)
+                        .frame(width: matchupCardWidth, alignment: .leading)
+                        .padding(.bottom, 10)
                 }
 
                 VStack(spacing: spacing) {
@@ -183,7 +223,7 @@ struct BracketView: View {
 
             // Connector lines to next round
             if roundIndex < rounds.count - 1 {
-                connectorsColumn(roundIndex: roundIndex, matchCount: round.matchups.count / 2)
+                connectorsColumn(roundIndex: roundIndex, matchups: round.matchups)
                     .padding(.top, topOffset)
             }
         }
@@ -194,11 +234,6 @@ struct BracketView: View {
     @ViewBuilder
     private func matchupCard(matchup: BracketMatchup, isFinal: Bool = false) -> some View {
         let isLive = matchup.game?.isLive ?? false
-        let defaultStroke: Color = matchup.game != nil ? Color(white: 0.45) : Color(white: 0.2)
-        let strokeColor: Color = isLive
-            ? AppTheme.Colors.live
-            : (isFinal ? AppTheme.Colors.accent : defaultStroke)
-        let strokeWidth: CGFloat = (isLive || isFinal) ? 1.5 : 1
 
         let card = VStack(spacing: 0) {
             // Home team row
@@ -206,29 +241,33 @@ struct BracketView: View {
                 team: matchup.homeTeam,
                 score: matchup.homeScore,
                 isWinner: matchup.homeIsWinner,
-                hasGame: matchup.hasGame
+                hasGame: matchup.hasGame,
+                placeholderName: matchup.homePlaceholder
             )
-
-            Rectangle()
-                .fill(Color(white: 0.2))
-                .frame(height: 1)
-                .padding(.horizontal, 8)
 
             // Away team row
             teamRow(
                 team: matchup.awayTeam,
                 score: matchup.awayScore,
                 isWinner: matchup.awayIsWinner,
-                hasGame: matchup.hasGame
+                hasGame: matchup.hasGame,
+                placeholderName: matchup.awayPlaceholder
             )
+
+            // Footer: clock + date + time, and venue (Maps link when coords exist)
+            if matchup.scheduledTime != nil || matchup.venue != nil {
+                Rectangle()
+                    .fill(Color(white: 0.2))
+                    .frame(height: 1)
+                    .padding(.top, 6)
+                matchupFooter(matchup: matchup)
+                    .padding(.top, 6)
+                    .padding(.bottom, 8)
+            }
         }
-        .frame(width: matchupCardWidth)
-        .background(Color(white: 0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(strokeColor, lineWidth: strokeWidth)
-        )
+        .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: (matchup.scheduledTime == nil && matchup.venue == nil) ? .center : .top)
+        .background(Color(white: 0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(alignment: .top) {
             if isLive {
                 BracketLiveBadge()
@@ -253,150 +292,189 @@ struct BracketView: View {
         }
     }
 
-    private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool) -> some View {
-        HStack(spacing: 6) {
-            // Team logo
-            if let team = team {
-                teamLogoView(team: team, isWinner: isWinner)
-            } else {
-                placeholderLogo()
-            }
+    private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool, placeholderName: String? = nil) -> some View {
+        let displayName = team?.name ?? placeholderName ?? "TBD"
+        let hasTeam = team != nil || placeholderName != nil
+        let nameColor: Color = isWinner ? AppTheme.Colors.primaryText : (hasTeam ? Color(white: 0.55) : Color(white: 0.3))
+        let scoreText = score.map { "\($0)" } ?? "-"
+        let scoreColor: Color = isWinner ? AppTheme.Colors.accent : (score != nil ? Color(white: 0.5) : Color(white: 0.3))
 
-            // Team name — fills all available space
-            Text(team?.name ?? "TBD")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(team != nil ? (isWinner ? AppTheme.Colors.primaryText : Color(white: 0.5)) : Color(white: 0.25))
+        return HStack(spacing: 8) {
+            teamAvatar(name: displayName, isWinner: isWinner, hasTeam: hasTeam)
+
+            Text(displayName)
+                .font(.system(size: 14, weight: isWinner ? .bold : .semibold))
+                .foregroundStyle(nameColor)
                 .lineLimit(2)
+                .minimumScaleFactor(0.7)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Score
-            Text(score.map { "\($0)" } ?? "-")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(isWinner ? AppTheme.Colors.accent : (score != nil ? AppTheme.Colors.primaryText : Color(white: 0.3)))
-                .frame(width: 28, height: 28)
-                .background(
-                    RoundedRectangle(cornerRadius: 5)
-                        .fill(isWinner ? AppTheme.Colors.accent.opacity(0.2) : Color(white: 0.15))
-                )
+            Text(scoreText)
+                .font(.system(size: 20, weight: .heavy))
+                .foregroundStyle(scoreColor)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isWinner ? AppTheme.Colors.accent.opacity(0.10) : Color.clear)
+                .padding(.horizontal, 4)
+        )
     }
 
-    // MARK: - Team Logo
-
-    @ViewBuilder
-    private func teamLogoView(team: Team, isWinner: Bool = false) -> some View {
-        let borderColor = isWinner ? AppTheme.Colors.accent : Color(white: 0.2)
-        let borderWidth: CGFloat = isWinner ? 2.5 : 1
-
-        if let imageURL = team.fullImageURL, let url = URL(string: imageURL) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: teamLogoSize, height: teamLogoSize)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(borderColor, lineWidth: borderWidth)
-                        )
-                default:
-                    logoPlaceholderWithInitials(name: team.name, isWinner: isWinner)
-                }
-            }
-        } else {
-            logoPlaceholderWithInitials(name: team.name, isWinner: isWinner)
-        }
-    }
-
-    private func logoPlaceholderWithInitials(name: String, isWinner: Bool = false) -> some View {
+    private func teamAvatar(name: String, isWinner: Bool, hasTeam: Bool) -> some View {
         let words = name.split(separator: " ")
-        let initials: String = if words.count >= 2 {
-            String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
-        } else {
-            String(name.prefix(2)).uppercased()
-        }
-        return RoundedRectangle(cornerRadius: 8)
-            .fill(Color(white: 0.15))
-            .frame(width: teamLogoSize, height: teamLogoSize)
+        let initials: String = words.count >= 2
+            ? String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
+            : String(name.prefix(2)).uppercased()
+        return Circle()
+            .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.18))
+            .frame(width: 30, height: 30)
             .overlay(
                 Text(initials)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(white: 0.4))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isWinner ? AppTheme.Colors.accent : Color(white: 0.2), lineWidth: isWinner ? 2.5 : 1)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : Color(white: 0.5))
             )
     }
 
-    private func placeholderLogo() -> some View {
-        RoundedRectangle(cornerRadius: 8)
-            .fill(Color(white: 0.08))
-            .frame(width: teamLogoSize, height: teamLogoSize)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(white: 0.15), lineWidth: 1)
-            )
-            .overlay(
-                Image(systemName: "questionmark")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(white: 0.2))
-            )
+    @ViewBuilder
+    private func venueRow(_ venue: Venue) -> some View {
+        if let mapsURL = venue.googleMapsURL {
+            Button {
+                openURL(mapsURL)
+            } label: {
+                venueContent(venue, linked: true)
+            }
+            .buttonStyle(.plain)
+        } else {
+            venueContent(venue, linked: false)
+        }
     }
+
+    private func venueContent(_ venue: Venue, linked: Bool) -> some View {
+        HStack(spacing: 3) {
+            if linked {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 10))
+                    .foregroundStyle(AppTheme.Colors.accent)
+            }
+            Text(venue.name)
+                .font(.system(size: 11))
+                .foregroundStyle(linked ? AppTheme.Colors.accent : Color(white: 0.45))
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+    }
+
+    @ViewBuilder
+    private func matchupFooter(matchup: BracketMatchup) -> some View {
+        VStack(spacing: 2) {
+            if let time = matchup.scheduledTime {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 9))
+                    Text(Self.footerDateFormatter.string(from: time))
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(Color(white: 0.4))
+            }
+            if let venue = matchup.venue {
+                venueRow(venue)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 10)
+    }
+
+    private static let footerDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es_MX")
+        f.timeZone = AppConfig.DateTime.apiTimeZone
+        f.dateFormat = "d MMM · h:mm a"
+        f.amSymbol = "AM"
+        f.pmSymbol = "PM"
+        return f
+    }()
 
     // MARK: - Connector Lines
 
-    private func connectorsColumn(roundIndex: Int, matchCount: Int) -> some View {
+    private func hasWinner(_ matchup: BracketMatchup) -> Bool {
+        matchup.homeIsWinner || matchup.awayIsWinner
+    }
+
+    private func connectorsColumn(roundIndex: Int, matchups: [BracketMatchup]) -> some View {
         let spacing = matchupSpacing(for: roundIndex)
         let cardH = matchupCardHeight
+        let pairCount = matchups.count / 2
 
         return VStack(spacing: 0) {
-            ForEach(0..<max(matchCount, 1), id: \.self) { i in
-                connectorPair(cardHeight: cardH, spacing: spacing)
-                    .padding(.bottom, i < matchCount - 1 ? spacing : 0)
+            ForEach(0..<max(pairCount, 1), id: \.self) { i in
+                let topAdvanced = (2 * i) < matchups.count ? hasWinner(matchups[2 * i]) : false
+                let bottomAdvanced = (2 * i + 1) < matchups.count ? hasWinner(matchups[2 * i + 1]) : false
+                connectorPair(cardHeight: cardH, spacing: spacing, topAdvanced: topAdvanced, bottomAdvanced: bottomAdvanced)
+                    .padding(.bottom, i < pairCount - 1 ? spacing : 0)
             }
         }
         .frame(width: connectorWidth)
     }
 
-    private func connectorPair(cardHeight: CGFloat, spacing: CGFloat) -> some View {
+    private func connectorPair(cardHeight: CGFloat, spacing: CGFloat, topAdvanced: Bool, bottomAdvanced: Bool) -> some View {
         // Connects two matchup cards to a single output point
         let pairHeight = cardHeight * 2 + spacing
         let topMid = cardHeight / 2
         let bottomMid = cardHeight + spacing + cardHeight / 2
         let centerY = pairHeight / 2
         let midX = connectorWidth / 2
+        let gray = Color(white: 0.25)
 
-        return Path { path in
-            // Line from top card center-right to vertical bar
-            path.move(to: CGPoint(x: 0, y: topMid))
-            path.addLine(to: CGPoint(x: midX, y: topMid))
+        return ZStack {
+            // Gray base — all segments
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: topMid))
+                path.addLine(to: CGPoint(x: midX, y: topMid))
+                path.addLine(to: CGPoint(x: midX, y: bottomMid))
+                path.move(to: CGPoint(x: 0, y: bottomMid))
+                path.addLine(to: CGPoint(x: midX, y: bottomMid))
+                path.move(to: CGPoint(x: midX, y: centerY))
+                path.addLine(to: CGPoint(x: connectorWidth, y: centerY))
+            }
+            .stroke(gray, lineWidth: 1.5)
 
-            // Vertical bar
-            path.addLine(to: CGPoint(x: midX, y: bottomMid))
-
-            // Line from bottom card center-right to vertical bar
-            path.move(to: CGPoint(x: 0, y: bottomMid))
-            path.addLine(to: CGPoint(x: midX, y: bottomMid))
-
-            // Horizontal line from center of vertical bar to next round
-            path.move(to: CGPoint(x: midX, y: centerY))
-            path.addLine(to: CGPoint(x: connectorWidth, y: centerY))
+            // Green — top input when that source has advanced
+            if topAdvanced {
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: topMid))
+                    p.addLine(to: CGPoint(x: midX, y: topMid))
+                }
+                .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
+            }
+            // Green — bottom input when that source has advanced
+            if bottomAdvanced {
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: bottomMid))
+                    p.addLine(to: CGPoint(x: midX, y: bottomMid))
+                }
+                .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
+            }
+            // Green — output when at least one source has advanced
+            if topAdvanced || bottomAdvanced {
+                Path { p in
+                    p.move(to: CGPoint(x: midX, y: centerY))
+                    p.addLine(to: CGPoint(x: connectorWidth, y: centerY))
+                }
+                .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
+            }
         }
-        .stroke(Color(white: 0.25), lineWidth: 1.5)
         .frame(width: connectorWidth, height: pairHeight)
     }
 
     // MARK: - Layout Helpers
 
     private func matchupSpacing(for roundIndex: Int) -> CGFloat {
-        let bracketType = tournament.bracketType?.lowercased() ?? ""
-        let baseSpacing: CGFloat = bracketType == "semifinals" ? 80 : 24
+        let baseSpacing: CGFloat = activeType == "semifinals" ? 80 : 24
         if roundIndex == 0 { return baseSpacing }
         return matchupSpacing(for: roundIndex - 1) * 2 + matchupCardHeight
     }
@@ -417,7 +495,7 @@ struct BracketView: View {
     }
 
     private func gameForSlot(stage: String, slot: Int) -> Game? {
-        let stageGames = games.filter { game in
+        let stageGames = bracketGames.filter { game in
             guard let gameStage = game.stage else { return false }
             return stageMatches(gameStage: gameStage, target: stage)
         }
@@ -428,6 +506,13 @@ struct BracketView: View {
         let isSingleSlotStage = stageLower == "final" || stageLower == "tercer lugar"
         if isSingleSlotStage, stageGames.count == 1 { return stageGames.first }
         return stageGames.first { $0.bracketId == slot }
+    }
+
+    private func placeholderForSlot(stage: String, slot: Int) -> GamePlaceholder? {
+        selectedBracket?.gamePlaceholders?.first { ph in
+            guard let phStage = ph.stage else { return false }
+            return stageMatches(gameStage: phStage, target: stage) && ph.bracketId == slot
+        }
     }
 
     private func winner(of matchup: BracketMatchup) -> Team? {
@@ -465,9 +550,13 @@ struct BracketView: View {
                 awayScore: game.awayScore,
                 awayIsWinner: game.isFinished && game.winner?.id == game.awayTeam?.id,
                 hasGame: true,
-                game: game
+                game: game,
+                scheduledTime: game.gameTime,
+                venue: game.venue
             )
         }
+
+        let placeholder = placeholderForSlot(stage: stage, slot: slot)
         return BracketMatchup(
             homeTeam: propagation?.home,
             homeScore: nil,
@@ -476,22 +565,37 @@ struct BracketView: View {
             awayScore: nil,
             awayIsWinner: false,
             hasGame: false,
-            game: nil
+            game: nil,
+            homePlaceholder: propagation?.home == nil ? placeholder?.teamA : nil,
+            awayPlaceholder: propagation?.away == nil ? placeholder?.teamB : nil,
+            scheduledTime: placeholder?.gameTime,
+            venue: placeholder?.venue
         )
     }
 
     // MARK: - Build Rounds
 
     private func buildRounds() -> [BracketRound] {
-        let bracketType = tournament.bracketType?.lowercased() ?? ""
-
+        let type = activeType
         var rounds: [BracketRound] = []
         var previous: [BracketMatchup] = []
 
-        // QF round (only for quarterfinals-type tournaments)
-        if bracketType == "quarterfinals" {
-            let qfMatchups = (1...4).map { slot in
-                buildMatchup(stage: "Cuartos de Final", slot: slot, propagation: nil)
+        // Octavos round (only for octavos-type brackets)
+        if type == "octavos" {
+            let r16 = (1...8).map { slot in
+                buildMatchup(stage: "Octavos de final", slot: slot, propagation: nil)
+            }
+            rounds.append(BracketRound(name: "Octavos de Final", matchups: r16))
+            previous = r16
+        }
+
+        // QF round (octavos or quarterfinals)
+        if type == "octavos" || type == "quarterfinals" {
+            let qfMatchups = (1...4).map { slot -> BracketMatchup in
+                let prop: (home: Team?, away: Team?)? = previous.isEmpty
+                    ? nil
+                    : propagatedPair(from: previous, slotIndex: slot - 1, useLoser: false)
+                return buildMatchup(stage: "Cuartos de Final", slot: slot, propagation: prop)
             }
             rounds.append(BracketRound(name: "Cuartos de Final", matchups: qfMatchups))
             previous = qfMatchups
@@ -527,6 +631,11 @@ struct BracketView: View {
         do {
             let response = try await APIService.shared.fetchGamesResponse(for: tournament.id)
             games = response.allGames
+            brackets = (response.brackets ?? []).sorted { ($0.position ?? Int.max) < ($1.position ?? Int.max) }
+            if !didInitBracket {
+                selectedBracketName = brackets.first?.name
+                didInitBracket = true
+            }
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -608,7 +717,9 @@ struct BracketView: View {
             venue: detail.venue ?? original.venue,
             isLive: !detail.isFinished,
             period: detail.period ?? original.period,
-            teamStats: mappedStats ?? original.teamStats
+            teamStats: mappedStats ?? original.teamStats,
+            group: original.group,
+            bracket: original.bracket
         )
     }
 }
@@ -624,6 +735,10 @@ struct BracketMatchup {
     let awayIsWinner: Bool
     let hasGame: Bool
     let game: Game?
+    var homePlaceholder: String? = nil
+    var awayPlaceholder: String? = nil
+    var scheduledTime: Date? = nil
+    var venue: Venue? = nil
 }
 
 struct BracketRound: Identifiable {

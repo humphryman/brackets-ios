@@ -25,112 +25,13 @@ private enum GameCardPalette {
 }
 
 /// A single filter chip — either a group ("Grupo 1") or a playoff bracket ("Playoffs").
-struct GameGroupChip: Identifiable, Equatable {
+struct GameGroupChip: Identifiable, Equatable, Hashable {
     enum Kind { case group, bracket }
     let name: String
     let kind: Kind
     var id: String { "\(kind == .group ? "g" : "b")-\(name)" }
 }
 
-private struct CarouselContentWidthKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
-}
-
-private struct CarouselContainerWidthKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
-}
-
-/// Horizontally scrollable chip row with overflow chevron buttons.
-struct GroupFilterCarousel: View {
-    let chips: [GameGroupChip]
-    @Binding var selected: GameGroupChip?
-
-    @State private var contentWidth: CGFloat = 0
-    @State private var viewportWidth: CGFloat = 0
-    @State private var leadingIndex: Int = 0
-
-    // Both arrows are shown together whenever the chips overflow the row.
-    private var isOverflowing: Bool { contentWidth > viewportWidth + 1 }
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            HStack(spacing: 6) {
-                if isOverflowing {
-                    arrow("chevron.left") { step(-1, proxy) }
-                }
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: AppTheme.Spacing.small) {
-                        ForEach(chips) { chip in
-                            chipButton(chip).id(chip.id)
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                    .background(
-                        GeometryReader { geo in
-                            Color.clear.preference(key: CarouselContentWidthKey.self, value: geo.size.width)
-                        }
-                    )
-                }
-                .onPreferenceChange(CarouselContentWidthKey.self) { contentWidth = $0 }
-                .background(
-                    GeometryReader { geo in
-                        Color.clear.preference(key: CarouselContainerWidthKey.self, value: geo.size.width)
-                    }
-                )
-                .onPreferenceChange(CarouselContainerWidthKey.self) { viewportWidth = $0 }
-
-                if isOverflowing {
-                    arrow("chevron.right") { step(1, proxy) }
-                }
-            }
-            .padding(.horizontal, AppTheme.Layout.screenPadding)
-            .onChange(of: chips) { leadingIndex = 0 }
-        }
-        .frame(height: 44)
-    }
-
-    /// Scroll the row by roughly one viewport of chips in `direction` (+1 right, -1 left).
-    private func step(_ direction: Int, _ proxy: ScrollViewProxy) {
-        guard !chips.isEmpty else { return }
-        let avg = contentWidth > 0 ? contentWidth / CGFloat(chips.count) : 90
-        let page = max(1, Int((viewportWidth / avg).rounded(.down)))
-        leadingIndex = min(max(0, leadingIndex + direction * page), chips.count - 1)
-        withAnimation(.easeInOut(duration: 0.3)) {
-            proxy.scrollTo(chips[leadingIndex].id, anchor: .leading)
-        }
-    }
-
-    private func chipButton(_ chip: GameGroupChip) -> some View {
-        let isSelected = selected == chip
-        return Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { selected = chip }
-        } label: {
-            Text(chip.name)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : Color(white: 0.83))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(isSelected ? Color.clear : Color(white: 0.08)))
-                .overlay(Capsule().stroke(AppTheme.Colors.accent, lineWidth: isSelected ? 2.5 : 0))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func arrow(_ system: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: system)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Color(white: 0.83))
-                .frame(width: 36, height: 36)
-                .background(Circle().fill(Color(white: 0.14)))
-                .shadow(color: .black.opacity(0.4), radius: 4)
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 enum GameFilter: String, CaseIterable {
     case live = "En Vivo"
@@ -262,7 +163,7 @@ struct GamesListView: View {
                         .padding(.bottom, AppTheme.Spacing.small)
 
                     // Group / bracket carousel
-                    GroupFilterCarousel(chips: chips, selected: $selectedChip)
+                    ChipCarousel(items: chips, label: \.name, selected: $selectedChip)
                         .padding(.bottom, AppTheme.Spacing.medium)
                         .onChange(of: selectedFilter) { selectFirstChip() }
 
@@ -998,7 +899,7 @@ struct LiveGameCard: View {
             + ["Playoffs", "Playoffs 2", "Playoffs 3"].map { GameGroupChip(name: $0, kind: .bracket) }
         }
         var body: some View {
-            GroupFilterCarousel(chips: chips, selected: $sel)
+            ChipCarousel(items: chips, label: \.name, selected: $sel)
         }
     }
     return ZStack { Color.black.ignoresSafeArea(); Wrap() }

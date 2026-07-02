@@ -161,14 +161,53 @@ enum GameStatus: String, Codable, Sendable {
     case cancelled = "cancelled"
 }
 
+struct GamePlaceholder: Codable, Sendable {
+    let stage: String?
+    let bracketId: Int?
+    let teamA: String?
+    let teamB: String?
+    let gameTime: Date?
+    let venue: Venue?
+
+    enum CodingKeys: String, CodingKey {
+        case stage
+        case bracketId = "bracket_id"
+        case teamA = "team_a"
+        case teamB = "team_b"
+        case gameTime = "game_time"
+        case venue
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        stage = try container.decodeIfPresent(String.self, forKey: .stage)
+        bracketId = try container.decodeIfPresent(Int.self, forKey: .bracketId)
+        teamA = try container.decodeIfPresent(String.self, forKey: .teamA)
+        teamB = try container.decodeIfPresent(String.self, forKey: .teamB)
+        gameTime = try container.decodeIfPresent(Date.self, forKey: .gameTime)
+
+        // venue can be a Venue object or a plain string (same tolerance as Game)
+        if let venueObject = try? container.decodeIfPresent(Venue.self, forKey: .venue) {
+            venue = venueObject
+        } else if let venueString = try? container.decodeIfPresent(String.self, forKey: .venue) {
+            venue = Venue(name: venueString, courtNumber: nil, lat: nil, lng: nil)
+        } else {
+            venue = nil
+        }
+    }
+}
+
 struct BracketInfo: Codable, Sendable {
     let name: String
     let position: Int?
+    let type: String?
     let typeLabel: String?
+    let gamePlaceholders: [GamePlaceholder]?
 
     enum CodingKeys: String, CodingKey {
-        case name, position
+        case name, position, type
         case typeLabel = "type_label"
+        case gamePlaceholders = "game_placeholders"
     }
 }
 
