@@ -15,8 +15,17 @@ class TournamentsViewModel {
     var isLoading = false
     var errorMessage: String?
     
+    var availableGenders: [Gender] {
+        Gender.allCases.filter { gender in tournaments.contains { $0.gender == gender } }
+    }
+
+    var showsGenderTabs: Bool {
+        availableGenders.count >= 2
+    }
+
     var filteredTournaments: [Tournament] {
-        tournaments.filter { $0.gender == nil || $0.gender == selectedGender }
+        guard showsGenderTabs else { return tournaments }
+        return tournaments.filter { $0.gender == nil || $0.gender == selectedGender }
     }
     
     func loadTournaments() async {
