@@ -80,7 +80,7 @@ struct BracketView: View {
     // MARK: - Layout Constants
 
     private let matchupCardWidth: CGFloat = 180
-    private let matchupCardHeight: CGFloat = 138
+    private let matchupCardHeight: CGFloat = 146
     private let connectorWidth: CGFloat = 36
 
     private var roundColumnWidth: CGFloat {
@@ -205,7 +205,7 @@ struct BracketView: View {
 
                 VStack(spacing: spacing) {
                     ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
-                        matchupCard(matchup: matchup, isFinal: isLastRound)
+                        matchupCard(matchup: matchup)
                     }
                 }
 
@@ -232,7 +232,7 @@ struct BracketView: View {
     // MARK: - Matchup Card
 
     @ViewBuilder
-    private func matchupCard(matchup: BracketMatchup, isFinal: Bool = false) -> some View {
+    private func matchupCard(matchup: BracketMatchup) -> some View {
         let isLive = matchup.game?.isLive ?? false
 
         let card = VStack(spacing: 0) {
