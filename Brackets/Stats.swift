@@ -33,6 +33,7 @@ struct PlayerStatEntry: Codable, Identifiable, Sendable {
     let teamName: String
     let playerSeasonId: Int
     let player: Player
+    let rank: Int?
 
     enum CodingKeys: String, CodingKey {
         case statShortName = "stat_short_name"
@@ -41,6 +42,7 @@ struct PlayerStatEntry: Codable, Identifiable, Sendable {
         case teamName = "team_name"
         case playerSeasonId = "player_season_id"
         case player
+        case rank
     }
 
     init(from decoder: Decoder) throws {
@@ -50,6 +52,7 @@ struct PlayerStatEntry: Codable, Identifiable, Sendable {
         teamName = try container.decode(String.self, forKey: .teamName)
         playerSeasonId = try container.decode(Int.self, forKey: .playerSeasonId)
         player = try container.decode(Player.self, forKey: .player)
+        rank = try container.decodeIfPresent(Int.self, forKey: .rank)
 
         if let doubleValue = try? container.decode(Double.self, forKey: .score) {
             score = doubleValue
@@ -85,5 +88,23 @@ struct Player: Codable, Identifiable, Sendable {
 
     var fullName: String {
         "\(firstName) \(lastName)"
+    }
+}
+
+// MARK: - Full-list (single stat) response
+
+struct TopStatDetail: Codable, Sendable {
+    let stat: String
+    let statName: String
+    let statShortName: String
+    let average: Bool
+    let players: [PlayerStatEntry]
+
+    enum CodingKeys: String, CodingKey {
+        case stat
+        case statName = "stat_name"
+        case statShortName = "stat_short_name"
+        case average
+        case players
     }
 }

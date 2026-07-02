@@ -883,4 +883,35 @@ final class APIService: Sendable {
             throw APIError.networkError(error)
         }
     }
+
+    func fetchTopStatDetail(for tournamentId: Int, stat: String) async throws -> TopStatDetail {
+        let encodedStat = stat.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? stat
+        guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/top_stat.json?stat=\(encodedStat)") else {
+            throw APIError.invalidURL
+        }
+
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                print("❌ Top Stat Detail: Bad HTTP status")
+                throw APIError.invalidResponse
+            }
+
+            do {
+                let detail = try JSONDecoder().decode(TopStatDetail.self, from: data)
+                print("✅ Decoded top stat detail — \(detail.players.count) players")
+                return detail
+            } catch let decodingError {
+                print("❌ Top Stat Detail Decoding Error: \(decodingError)")
+                throw APIError.decodingError(decodingError)
+            }
+        } catch let error as APIError {
+            throw error
+        } catch {
+            print("❌ Top Stat Detail Network Error: \(error)")
+            throw APIError.networkError(error)
+        }
+    }
 }

@@ -48,20 +48,10 @@ struct StatsLeadersView: View {
 
     // MARK: - Stats Content
 
-    // Dynamic height for content
-    private var carouselHeight: CGFloat {
-        let titleArea: CGFloat = 50
-        let podiumHeight: CGFloat = 260
-        let rowHeight: CGFloat = 44 + AppTheme.Layout.cardPadding * 2
-        let rowSpacing = AppTheme.Spacing.medium
-        let maxRows = activeCategories.map { max(0, $0.stats.count - 3) }.max() ?? 0
-        let restHeight = CGFloat(maxRows) * (rowHeight + rowSpacing)
-        return titleArea + podiumHeight + restHeight + 40
-    }
-
     private var statsContent: some View {
-        VStack(spacing: AppTheme.Spacing.standard) {
-            // Carousel — fixed to 5 player rows
+        VStack(spacing: 0) {
+            // Carousel fills the available content area; each page scrolls internally,
+            // so the tournament header and floating tab bar stay visible.
             TabView(selection: $currentPage) {
                 ForEach(Array(activeCategories.enumerated()), id: \.element.id) { index, category in
                     categoryPage(category)
@@ -70,13 +60,12 @@ struct StatsLeadersView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.3), value: currentPage)
-            .frame(height: carouselHeight)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Page indicator dots
+            // Page indicator dots — centered in the space between the card and the tab bar
             pageIndicator
-
-            Spacer()
         }
+        .padding(.bottom, 60) // clear the floating bottom tab bar so the dots stay visible
     }
 
     // MARK: - Page Indicator
@@ -93,7 +82,7 @@ struct StatsLeadersView: View {
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentPage)
             }
         }
-        .padding(.top, AppTheme.Spacing.small)
+        .padding(.vertical, AppTheme.Spacing.medium)
     }
 
     // MARK: - Category Page
@@ -101,61 +90,130 @@ struct StatsLeadersView: View {
     private func categoryPage(_ category: StatCategory) -> some View {
         let top3 = Array(category.stats.prefix(3))
         let rest = Array(category.stats.dropFirst(3))
+        let statKey = category.stats.first?.statName ?? ""
 
-        return ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: AppTheme.Spacing.large) {
-                    // Podium top 3
+        return GeometryReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // Title
+                    Text(category.name ?? "")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppTheme.Spacing.medium)
+
+                    Divider().overlay(Color(white: 0.2))
+
+                    // Podium (top 3) or fallback rows
                     if top3.count >= 3 {
-                        VStack(spacing: 0) {
-                            // Category title inside card
-                            Text(category.name ?? "")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, AppTheme.Layout.cardPadding)
-                                .padding(.bottom, AppTheme.Spacing.small)
-
-                            podiumView(top3: top3)
-                                .padding(.horizontal, AppTheme.Layout.cardPadding)
-                                .padding(.bottom, AppTheme.Layout.cardPadding)
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                                .fill(Color(white: 0.1))
-                                .stroke(Color(white: 0.2), lineWidth: 1)
-                        )
+                        podiumView(top3: top3)
+                            .padding(.horizontal, AppTheme.Layout.cardPadding)
+                            .padding(.top, AppTheme.Spacing.large)
+                            .padding(.bottom, AppTheme.Spacing.extraLarge)
                     } else {
-                        // Less than 3 players — show title + regular rows
-                        Text(category.name ?? "")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(AppTheme.Colors.primaryText)
                         ForEach(Array(top3.enumerated()), id: \.element.id) { index, stat in
-                            NavigationLink {
-                                PlayerDetailView(stat: stat, tournamentId: tournament.id)
-                            } label: {
-                                playerRow(stat: stat, rank: index + 1)
+                            statRowLink(stat: stat, rank: index + 1)
+                            if index < top3.count - 1 {
+                                Divider().overlay(Color(white: 0.15)).padding(.horizontal, AppTheme.Layout.cardPadding)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
 
-                    // Rest of players
+                    // Rest of the players — zebra-striped rows
                     if !rest.isEmpty {
-                        LazyVStack(spacing: AppTheme.Spacing.medium) {
-                            ForEach(Array(rest.enumerated()), id: \.element.id) { index, stat in
-                                NavigationLink {
-                                    PlayerDetailView(stat: stat, tournamentId: tournament.id)
-                                } label: {
-                                    playerRow(stat: stat, rank: index + 4)
-                                }
-                                .buttonStyle(.plain)
-                            }
+                        Divider().overlay(Color(white: 0.2))
+                    }
+                    ForEach(Array(rest.enumerated()), id: \.element.id) { index, stat in
+                        statRowLink(stat: stat, rank: index + 4)
+                    }
+
+                    // Keep the footer at the bottom of the card when content is short
+                    Spacer(minLength: AppTheme.Spacing.medium)
+
+                    // Footer link → full list
+                    if !category.stats.isEmpty {
+                        Divider().overlay(Color(white: 0.15)).padding(.horizontal, AppTheme.Layout.cardPadding)
+                        NavigationLink {
+                            TopStatDetailView(tournament: tournament, stat: statKey, categoryName: category.name ?? "")
+                        } label: {
+                            Text("Ver listado completo")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.accent)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, AppTheme.Spacing.medium)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.bottom, AppTheme.Spacing.huge)
+                .frame(minHeight: proxy.size.height, alignment: .top)
+                .background(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                        .fill(Color(white: 0.1))
+                )
+                .padding(.horizontal, 6)
             }
+        }
+    }
+
+    private func statRowLink(stat: PlayerStatEntry, rank: Int) -> some View {
+        NavigationLink {
+            PlayerDetailView(stat: stat, tournamentId: tournament.id)
+        } label: {
+            statListRow(stat: stat, rank: rank)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func statListRow(stat: PlayerStatEntry, rank: Int) -> some View {
+        HStack(spacing: AppTheme.Spacing.medium) {
+            Text("\(rank)")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .frame(width: 24, alignment: .center)
+
+            circularAvatar(stat.player, size: 36)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(stat.player.fullName)
+                    .font(AppTheme.Typography.bodyBold)
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    .lineLimit(1)
+                Text(stat.teamName)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Text(formatScore(stat.score))
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+        }
+        .padding(.horizontal, AppTheme.Layout.cardPadding)
+        .padding(.vertical, AppTheme.Spacing.medium)
+        .frame(maxWidth: .infinity)
+        .background(rank % 2 == 0 ? Color(white: 0.12) : Color(white: 0.086))
+    }
+
+    private func circularAvatar(_ player: Player, size: CGFloat) -> some View {
+        Group {
+            if let picture = player.picture,
+               let url = URL(string: picture.hasPrefix("http") ? picture : "\(APIConfig.baseURL)/\(picture)") {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        avatarPlaceholder(player)
+                    }
+                }
+            } else {
+                avatarPlaceholder(player)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
     }
 
     // MARK: - Podium View
@@ -233,10 +291,8 @@ struct StatsLeadersView: View {
 
             // Score
             Text(formatScore(stat.score))
-                .font(.system(size: 26, weight: .heavy))
-                .foregroundStyle(AppTheme.Colors.accent)
-                .shadow(color: AppTheme.Colors.accent.opacity(0.6), radius: 8, x: 0, y: 0)
-                .shadow(color: AppTheme.Colors.accent.opacity(0.3), radius: 16, x: 0, y: 0)
+                .font(.system(size: 24, weight: .heavy))
+                .foregroundStyle(AppTheme.Colors.primaryText)
         }
         .frame(maxWidth: .infinity)
         .offset(y: offsetY)
@@ -278,85 +334,6 @@ struct StatsLeadersView: View {
                     .foregroundStyle(Color(white: 0.4))
             )
             .overlay(Circle().stroke(borderColor, lineWidth: borderWidth))
-    }
-
-    // MARK: - Player Row
-
-    private func playerRow(stat: PlayerStatEntry, rank: Int) -> some View {
-        HStack(spacing: AppTheme.Spacing.medium) {
-            // Rank
-            rankIndicator(rank: rank)
-
-            // Player avatar
-            playerAvatar(stat.player)
-
-            // Name and team
-            VStack(alignment: .leading, spacing: 2) {
-                Text(stat.player.fullName)
-                    .font(AppTheme.Typography.bodyBold)
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-                    .lineLimit(1)
-
-                Text(stat.teamName)
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            // Score
-            Text(formatScore(stat.score))
-                .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(AppTheme.Colors.accent)
-        }
-        .cardStyle()
-    }
-
-    // MARK: - Rank Indicator
-
-    private func rankIndicator(rank: Int) -> some View {
-        Group {
-            if rank <= 3 {
-                AppTheme.PositionCircle(position: rank, size: 32)
-            } else {
-                ZStack {
-                    Circle()
-                        .fill(Color(white: 0.2))
-                        .frame(width: 32, height: 32)
-
-                    Text("\(rank)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.secondaryText)
-                }
-            }
-        }
-    }
-
-    // MARK: - Player Avatar
-
-    private func playerAvatar(_ player: Player) -> some View {
-        Group {
-            if let picture = player.picture,
-               let url = URL(string: picture.hasPrefix("http") ? picture : "\(APIConfig.baseURL)/\(picture)") {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        avatarPlaceholder(player)
-                    default:
-                        avatarPlaceholder(player)
-                    }
-                }
-            } else {
-                avatarPlaceholder(player)
-            }
-        }
-        .frame(width: 44, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small))
     }
 
     private func avatarPlaceholder(_ player: Player) -> some View {
