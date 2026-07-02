@@ -37,12 +37,59 @@ struct StandingsResponse: Codable, Sendable {
     let standings: [TeamStanding]?
     let groupStandings: [GroupStanding]?
     let podium: Podium?
+    let classification: Classification?
 
     enum CodingKeys: String, CodingKey {
         case standings
         case groupStandings = "group_standings"
         case podium
+        case classification
     }
+}
+
+// MARK: - Classification (playoff seeding table)
+
+struct ClassificationBracket: Codable, Sendable, Hashable, Identifiable {
+    let position: Int
+    let name: String
+    let type: String?
+    let typeLabel: String?
+    let capacity: Int
+    let filled: Int
+    let startSeed: Int?
+
+    var id: String { name }
+
+    enum CodingKeys: String, CodingKey {
+        case position, name, type, capacity, filled
+        case typeLabel = "type_label"
+        case startSeed = "start_seed"
+    }
+}
+
+struct ClassificationTeam: Codable, Sendable, Hashable, Identifiable {
+    let teamSeasonId: Int
+    let name: String
+    let teamLogo: String?
+    let group: String?
+    let place: Int?
+    let avg: Double?
+    let classified: Bool
+    let bracket: String?
+    let seed: Int?
+
+    var id: Int { teamSeasonId }
+
+    enum CodingKeys: String, CodingKey {
+        case name, group, place, avg, classified, bracket, seed
+        case teamSeasonId = "team_season_id"
+        case teamLogo = "team_logo"
+    }
+}
+
+struct Classification: Codable, Sendable, Hashable {
+    let brackets: [ClassificationBracket]
+    let teams: [ClassificationTeam]
 }
 
 // MARK: - Podium
@@ -89,6 +136,7 @@ struct Podium: Codable, Sendable, Hashable {
 struct StandingsBundle: Sendable {
     let result: StandingsResult
     let podium: Podium?
+    let classification: Classification?
 }
 
 // Group Standing Model
@@ -453,21 +501,21 @@ final class APIService: Sendable {
                     // Single group named "DEFAULT" means no real groups — treat as flat
                     if groups.count == 1, groups[0].name.uppercased() == "DEFAULT" {
                         print("✅ Decoded standings as flat (single DEFAULT group)")
-                        return StandingsBundle(result: .flat(groups[0].standings), podium: response.podium)
+                        return StandingsBundle(result: .flat(groups[0].standings), podium: response.podium, classification: response.classification)
                     }
                     print("✅ Decoded standings as group standings")
-                    return StandingsBundle(result: .groups(groups), podium: response.podium)
+                    return StandingsBundle(result: .groups(groups), podium: response.podium, classification: response.classification)
                 }
                 if let standings = response.standings, !standings.isEmpty {
                     print("✅ Decoded standings as wrapped response")
-                    return StandingsBundle(result: .flat(standings), podium: response.podium)
+                    return StandingsBundle(result: .flat(standings), podium: response.podium, classification: response.classification)
                 }
             }
 
             // Fallback: Try to decode as direct array
             if let standings = try? decoder.decode([TeamStanding].self, from: data) {
                 print("✅ Decoded standings as direct array")
-                return StandingsBundle(result: .flat(standings), podium: nil)
+                return StandingsBundle(result: .flat(standings), podium: nil, classification: nil)
             }
 
             // If neither worked, throw detailed error
