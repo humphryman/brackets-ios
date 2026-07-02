@@ -80,7 +80,7 @@ struct BracketView: View {
     // MARK: - Layout Constants
 
     private let matchupCardWidth: CGFloat = 180
-    private let matchupCardHeight: CGFloat = 146
+    private let matchupCardHeight: CGFloat = 153
     private let connectorWidth: CGFloat = 36
 
     private var roundColumnWidth: CGFloat {
@@ -236,6 +236,17 @@ struct BracketView: View {
         let isLive = matchup.game?.isLive ?? false
 
         let card = VStack(spacing: 0) {
+            // Header: clock + date + time, with a separator below
+            if let time = matchup.scheduledTime {
+                matchupTimeLine(time)
+                    .padding(.top, 8)
+                    .padding(.bottom, 6)
+                Rectangle()
+                    .fill(Color(white: 0.2))
+                    .frame(height: 1)
+                    .padding(.bottom, 4)
+            }
+
             // Home team row
             teamRow(
                 team: matchup.homeTeam,
@@ -254,15 +265,17 @@ struct BracketView: View {
                 placeholderName: matchup.awayPlaceholder
             )
 
-            // Footer: clock + date + time, and venue (Maps link when coords exist)
-            if matchup.scheduledTime != nil || matchup.venue != nil {
+            // Footer: venue (Maps link when coords exist)
+            if let venue = matchup.venue {
                 Rectangle()
                     .fill(Color(white: 0.2))
                     .frame(height: 1)
                     .padding(.top, 6)
-                matchupFooter(matchup: matchup)
+                venueRow(venue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
                     .padding(.top, 6)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 10)
             }
         }
         .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: (matchup.scheduledTime == nil && matchup.venue == nil) ? .center : .top)
@@ -370,21 +383,14 @@ struct BracketView: View {
     }
 
     @ViewBuilder
-    private func matchupFooter(matchup: BracketMatchup) -> some View {
-        VStack(spacing: 2) {
-            if let time = matchup.scheduledTime {
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 9))
-                    Text(Self.footerDateFormatter.string(from: time))
-                        .font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(Color(white: 0.4))
-            }
-            if let venue = matchup.venue {
-                venueRow(venue)
-            }
+    private func matchupTimeLine(_ time: Date) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock")
+                .font(.system(size: 9))
+            Text(Self.footerDateFormatter.string(from: time))
+                .font(.system(size: 10, weight: .medium))
         }
+        .foregroundStyle(Color(white: 0.4))
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 10)
     }
