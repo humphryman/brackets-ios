@@ -172,7 +172,7 @@ struct BracketView: View {
         Text(round.name.uppercased())
             .font(.system(size: 11, weight: .bold))
             .tracking(0.5)
-            .foregroundStyle(Color(white: 0.6))
+            .foregroundStyle(.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
             .background(Capsule().fill(Color(white: 0.13)))
@@ -234,6 +234,7 @@ struct BracketView: View {
     @ViewBuilder
     private func matchupCard(matchup: BracketMatchup) -> some View {
         let isLive = matchup.game?.isLive ?? false
+        let decided = matchup.homeIsWinner || matchup.awayIsWinner
 
         let card = VStack(spacing: 0) {
             // Header: clock + date + time, with a separator below
@@ -253,6 +254,7 @@ struct BracketView: View {
                 score: matchup.homeScore,
                 isWinner: matchup.homeIsWinner,
                 hasGame: matchup.hasGame,
+                decided: decided,
                 placeholderName: matchup.homePlaceholder
             )
 
@@ -262,6 +264,7 @@ struct BracketView: View {
                 score: matchup.awayScore,
                 isWinner: matchup.awayIsWinner,
                 hasGame: matchup.hasGame,
+                decided: decided,
                 placeholderName: matchup.awayPlaceholder
             )
 
@@ -305,10 +308,18 @@ struct BracketView: View {
         }
     }
 
-    private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool, placeholderName: String? = nil) -> some View {
+    private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool, decided: Bool, placeholderName: String? = nil) -> some View {
         let displayName = team?.name ?? placeholderName ?? "TBD"
         let hasTeam = team != nil || placeholderName != nil
-        let nameColor: Color = isWinner ? AppTheme.Colors.primaryText : (hasTeam ? Color(white: 0.55) : Color(white: 0.3))
+        // Unplayed / no-game rows use white; on a decided game the loser stays dimmed.
+        let nameColor: Color
+        if isWinner {
+            nameColor = AppTheme.Colors.primaryText
+        } else if decided {
+            nameColor = hasTeam ? Color(white: 0.55) : Color(white: 0.3)
+        } else {
+            nameColor = hasTeam ? AppTheme.Colors.primaryText : Color(white: 0.3)
+        }
         let scoreText = score.map { "\($0)" } ?? "-"
         let scoreColor: Color = isWinner ? AppTheme.Colors.accent : (score != nil ? Color(white: 0.5) : Color(white: 0.3))
 
@@ -390,7 +401,7 @@ struct BracketView: View {
             Text(Self.footerDateFormatter.string(from: time))
                 .font(.system(size: 10, weight: .medium))
         }
-        .foregroundStyle(Color(white: 0.4))
+        .foregroundStyle(.white)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 10)
     }
