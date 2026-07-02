@@ -80,7 +80,7 @@ struct BracketView: View {
     // MARK: - Layout Constants
 
     private let matchupCardWidth: CGFloat = 180
-    private let matchupCardHeight: CGFloat = 146
+    private let matchupCardHeight: CGFloat = 153
     private let connectorWidth: CGFloat = 36
 
     private var roundColumnWidth: CGFloat {
@@ -172,7 +172,7 @@ struct BracketView: View {
         Text(round.name.uppercased())
             .font(.system(size: 11, weight: .bold))
             .tracking(0.5)
-            .foregroundStyle(Color(white: 0.6))
+            .foregroundStyle(.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 6)
             .background(Capsule().fill(Color(white: 0.13)))
@@ -234,14 +234,27 @@ struct BracketView: View {
     @ViewBuilder
     private func matchupCard(matchup: BracketMatchup) -> some View {
         let isLive = matchup.game?.isLive ?? false
+        let decided = matchup.homeIsWinner || matchup.awayIsWinner
 
         let card = VStack(spacing: 0) {
+            // Header: clock + date + time, with a separator below
+            if let time = matchup.scheduledTime {
+                matchupTimeLine(time)
+                    .padding(.top, 8)
+                    .padding(.bottom, 6)
+                Rectangle()
+                    .fill(Color(white: 0.2))
+                    .frame(height: 1)
+                    .padding(.bottom, 4)
+            }
+
             // Home team row
             teamRow(
                 team: matchup.homeTeam,
                 score: matchup.homeScore,
                 isWinner: matchup.homeIsWinner,
                 hasGame: matchup.hasGame,
+                decided: decided,
                 placeholderName: matchup.homePlaceholder
             )
 
@@ -251,18 +264,21 @@ struct BracketView: View {
                 score: matchup.awayScore,
                 isWinner: matchup.awayIsWinner,
                 hasGame: matchup.hasGame,
+                decided: decided,
                 placeholderName: matchup.awayPlaceholder
             )
 
-            // Footer: clock + date + time, and venue (Maps link when coords exist)
-            if matchup.scheduledTime != nil || matchup.venue != nil {
+            // Footer: venue (Maps link when coords exist)
+            if let venue = matchup.venue {
                 Rectangle()
                     .fill(Color(white: 0.2))
                     .frame(height: 1)
                     .padding(.top, 6)
-                matchupFooter(matchup: matchup)
+                venueRow(venue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
                     .padding(.top, 6)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 10)
             }
         }
         .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: (matchup.scheduledTime == nil && matchup.venue == nil) ? .center : .top)
@@ -292,10 +308,18 @@ struct BracketView: View {
         }
     }
 
-    private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool, placeholderName: String? = nil) -> some View {
+    private func teamRow(team: Team?, score: Int?, isWinner: Bool, hasGame: Bool, decided: Bool, placeholderName: String? = nil) -> some View {
         let displayName = team?.name ?? placeholderName ?? "TBD"
         let hasTeam = team != nil || placeholderName != nil
-        let nameColor: Color = isWinner ? AppTheme.Colors.primaryText : (hasTeam ? Color(white: 0.55) : Color(white: 0.3))
+        // Unplayed / no-game rows use white; on a decided game the loser stays dimmed.
+        let nameColor: Color
+        if isWinner {
+            nameColor = AppTheme.Colors.primaryText
+        } else if decided {
+            nameColor = hasTeam ? Color(white: 0.55) : Color(white: 0.3)
+        } else {
+            nameColor = hasTeam ? AppTheme.Colors.primaryText : Color(white: 0.3)
+        }
         let scoreText = score.map { "\($0)" } ?? "-"
         let scoreColor: Color = isWinner ? AppTheme.Colors.accent : (score != nil ? Color(white: 0.5) : Color(white: 0.3))
 
@@ -370,21 +394,14 @@ struct BracketView: View {
     }
 
     @ViewBuilder
-    private func matchupFooter(matchup: BracketMatchup) -> some View {
-        VStack(spacing: 2) {
-            if let time = matchup.scheduledTime {
-                HStack(spacing: 4) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 9))
-                    Text(Self.footerDateFormatter.string(from: time))
-                        .font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(Color(white: 0.4))
-            }
-            if let venue = matchup.venue {
-                venueRow(venue)
-            }
+    private func matchupTimeLine(_ time: Date) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock")
+                .font(.system(size: 9))
+            Text(Self.footerDateFormatter.string(from: time))
+                .font(.system(size: 10, weight: .medium))
         }
+        .foregroundStyle(.white)
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 10)
     }

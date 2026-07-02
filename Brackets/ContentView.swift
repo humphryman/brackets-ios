@@ -45,8 +45,13 @@ struct ContentView: View {
                             .padding(.horizontal, AppTheme.Layout.extraLarge)
                             .padding(.top, AppTheme.Layout.large)
 
-                            GenderSelectorView(selectedGender: $viewModel.selectedGender)
+                            if viewModel.showsGenderTabs {
+                                GenderSelectorView(
+                                    selectedGender: $viewModel.selectedGender,
+                                    genders: viewModel.availableGenders
+                                )
                                 .padding(.horizontal, AppTheme.Layout.extraLarge)
+                            }
 
                             tournamentsContent
 
@@ -89,7 +94,14 @@ struct ContentView: View {
         } else {
             ScrollView {
                 VStack(spacing: 16) {
-                    ForEach(viewModel.tournaments) { tournament in
+                    if viewModel.showsGenderTabs {
+                        GenderSelectorView(
+                            selectedGender: $viewModel.selectedGender,
+                            genders: viewModel.availableGenders
+                        )
+                    }
+
+                    ForEach(viewModel.filteredTournaments) { tournament in
                         tournamentListCard(for: tournament)
                             .onTapGesture {
                                 selectedTournament = tournament
@@ -293,36 +305,30 @@ struct ContentView: View {
 
 struct GenderSelectorView: View {
     @Binding var selectedGender: Gender
-    @Namespace private var animation
-    
+    var genders: [Gender] = Gender.allCases
+
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Gender.allCases, id: \.self) { gender in
+        HStack(spacing: AppTheme.Spacing.small) {
+            ForEach(genders, id: \.self) { gender in
+                let isSelected = selectedGender == gender
                 Button {
                     withAnimation(AppTheme.Animation.spring) {
                         selectedGender = gender
                     }
                 } label: {
                     Text(gender.displayName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(selectedGender == gender ? AppTheme.Colors.accentText : AppTheme.Colors.secondaryText)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background {
-                            if selectedGender == gender {
-                                RoundedRectangle(cornerRadius: 20)
-                                    .fill(AppTheme.Colors.accent)
-                                    .matchedGeometryEffect(id: "selector", in: animation)
-                            }
-                        }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(isSelected ? AppTheme.Colors.accentText : AppTheme.Colors.secondaryText)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule().fill(isSelected ? AppTheme.Colors.accent : Color(white: 0.15))
+                        )
                 }
+                .buttonStyle(.plain)
             }
+            Spacer()
         }
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(white: 0.15))
-        )
-        .padding(4)
     }
 }
 

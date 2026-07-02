@@ -7,9 +7,18 @@
 
 import SwiftUI
 
-enum StandingsSubTab {
+enum StandingsSubTab: Hashable {
     case champion
     case standings
+    case classification
+
+    var title: String {
+        switch self {
+        case .champion: return "Campeón"
+        case .standings: return "Grupos"
+        case .classification: return "Clasificación"
+        }
+    }
 }
 
 // MARK: - Table layout
@@ -250,6 +259,19 @@ struct StandingsView: View {
         tournament.winner != nil && bundle?.podium != nil
     }
 
+    private var hasClassificationTab: Bool {
+        !(bundle?.classification?.teams.isEmpty ?? true)
+    }
+
+    /// Sub-tabs to show, in display order. The bar appears only when >1 exists.
+    private var availableTabs: [StandingsSubTab] {
+        var tabs: [StandingsSubTab] = []
+        if hasChampionTab { tabs.append(.champion) }
+        tabs.append(.standings)
+        if hasClassificationTab { tabs.append(.classification) }
+        return tabs
+    }
+
     var body: some View {
         ZStack {
             if isLoading {
@@ -262,15 +284,26 @@ struct StandingsView: View {
                 }
             } else if let bundle = bundle, !bundle.result.isEmpty {
                 VStack(spacing: 0) {
-                    if hasChampionTab {
-                        StandingsSubTabBar(selected: $selectedSubTab)
+                    if availableTabs.count > 1 {
+                        StandingsSubTabBar(tabs: availableTabs, selected: $selectedSubTab)
                             .padding(.horizontal, AppTheme.Layout.screenPadding)
                             .padding(.bottom, AppTheme.Spacing.medium)
                     }
 
-                    if hasChampionTab && selectedSubTab == .champion, let podium = bundle.podium {
-                        ChampionPanel(podium: podium)
-                    } else {
+                    switch selectedSubTab {
+                    case .champion:
+                        if let podium = bundle.podium {
+                            ChampionPanel(podium: podium)
+                        } else {
+                            standingsScroll(bundle.result)
+                        }
+                    case .classification:
+                        if let classification = bundle.classification {
+                            ClassificationView(classification: classification)
+                        } else {
+                            standingsScroll(bundle.result)
+                        }
+                    case .standings:
                         standingsScroll(bundle.result)
                     }
                 }
@@ -336,6 +369,10 @@ struct StandingsView: View {
                 expandedGroups = [first.id]
                 didInitExpansion = true
             }
+            // Fall back to Grupos if the initial selection isn't an available tab.
+            if !availableTabs.contains(selectedSubTab) {
+                selectedSubTab = .standings
+            }
             isLoading = false
         } catch {
             errorMessage = error.localizedDescription
@@ -372,12 +409,14 @@ struct StandingsView: View {
 // MARK: - Sub-tab bar
 
 struct StandingsSubTabBar: View {
+    let tabs: [StandingsSubTab]
     @Binding var selected: StandingsSubTab
 
     var body: some View {
         HStack(spacing: AppTheme.Spacing.small) {
-            subTabButton(title: "Campeón", value: .champion)
-            subTabButton(title: "Standings", value: .standings)
+            ForEach(tabs, id: \.self) { tab in
+                subTabButton(title: tab.title, value: tab)
+            }
             Spacer()
         }
     }
