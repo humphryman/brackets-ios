@@ -365,8 +365,8 @@ struct StandingsView: View {
         do {
             let loaded = try await APIService.shared.fetchStandings(for: tournament.id)
             bundle = loaded
-            if !didInitExpansion, case .groups(let groups) = loaded.result, let first = groups.first {
-                expandedGroups = [first.id]
+            if !didInitExpansion, case .groups(let groups) = loaded.result {
+                expandedGroups = Set(groups.prefix(2).map(\.id))
                 didInitExpansion = true
             }
             // Fall back to Grupos if the initial selection isn't an available tab.
