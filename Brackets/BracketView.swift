@@ -597,17 +597,29 @@ struct BracketView: View {
         var rounds: [BracketRound] = []
         var previous: [BracketMatchup] = []
 
-        // Octavos round (only for octavos-type brackets)
-        if type == "octavos" {
-            let r16 = (1...8).map { slot in
-                buildMatchup(stage: "Octavos de final", slot: slot, propagation: nil)
+        // Dieciseisavos round (only for round-of-32 brackets)
+        if type == "dieciseisavos" {
+            let r32 = (1...16).map { slot in
+                buildMatchup(stage: "Dieciseisavos de final", slot: slot, propagation: nil)
+            }
+            rounds.append(BracketRound(name: "16vos de Final", matchups: r32))
+            previous = r32
+        }
+
+        // Octavos round (dieciseisavos or octavos)
+        if type == "dieciseisavos" || type == "octavos" {
+            let r16 = (1...8).map { slot -> BracketMatchup in
+                let prop: (home: Team?, away: Team?)? = previous.isEmpty
+                    ? nil
+                    : propagatedPair(from: previous, slotIndex: slot - 1, useLoser: false)
+                return buildMatchup(stage: "Octavos de final", slot: slot, propagation: prop)
             }
             rounds.append(BracketRound(name: "Octavos de Final", matchups: r16))
             previous = r16
         }
 
-        // QF round (octavos or quarterfinals)
-        if type == "octavos" || type == "quarterfinals" {
+        // QF round (dieciseisavos, octavos, or quarterfinals)
+        if type == "dieciseisavos" || type == "octavos" || type == "quarterfinals" {
             let qfMatchups = (1...4).map { slot -> BracketMatchup in
                 let prop: (home: Team?, away: Team?)? = previous.isEmpty
                     ? nil
