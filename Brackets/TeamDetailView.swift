@@ -274,6 +274,40 @@ struct TeamGamesTabView: View {
     let tournamentId: Int
     var tournamentName: String? = nil
 
+    private struct DateGroup: Identifiable {
+        let date: String   // "yyyy-MM-dd" ("" when the game has no time)
+        let games: [Game]
+        var id: String { date }
+    }
+
+    /// Games grouped by day (ascending), each group's games sorted by time.
+    private var groupedGames: [DateGroup] {
+        let keyFormatter = DateFormatter()
+        keyFormatter.dateFormat = "yyyy-MM-dd"
+        keyFormatter.locale = Locale(identifier: "en_US_POSIX")
+        keyFormatter.timeZone = AppConfig.DateTime.apiTimeZone
+
+        let keyed = games.map { game -> (key: String, game: Game) in
+            (game.gameTime.map { keyFormatter.string(from: $0) } ?? "", game)
+        }
+
+        return Dictionary(grouping: keyed, by: \.key)
+            .map { key, items in
+                DateGroup(
+                    date: key,
+                    games: items.map(\.game).sorted {
+                        ($0.gameTime ?? .distantFuture) < ($1.gameTime ?? .distantFuture)
+                    }
+                )
+            }
+            .sorted { lhs, rhs in
+                // Ascending by date; games without a time sort last.
+                if lhs.date.isEmpty { return false }
+                if rhs.date.isEmpty { return true }
+                return lhs.date < rhs.date
+            }
+    }
+
     var body: some View {
         if games.isEmpty {
             AppTheme.EmptyStateView(
@@ -281,50 +315,74 @@ struct TeamGamesTabView: View {
                 message: "No hay juegos agendados."
             )
         } else {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: AppTheme.Spacing.medium) {
-                        ForEach(games) { game in
-                            if game.isFinished {
-                                NavigationLink {
-                                    GameResultView(game: game, tournamentId: tournamentId, tournamentName: tournamentName)
-                                } label: {
-                                    GameCard(game: game)
-                                }
-                                .buttonStyle(.plain)
-                                .id(game.id)
-                            } else {
-                                NavigationLink {
-                                    UpcomingGameView(game: game, tournamentId: tournamentId)
-                                } label: {
-                                    GameCard(game: game)
-                                }
-                                .buttonStyle(.plain)
-                                .id(game.id)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, AppTheme.Layout.screenPadding)
-                    .padding(.bottom, AppTheme.Layout.large)
-                }
-                .onAppear {
-                    // Find the nearest future game (closest to today)
-                    let now = Date()
-                    let nearestUpcoming = games
-                        .filter { !$0.isFinished && ($0.gameTime ?? .distantPast) >= now }
-                        .min { ($0.gameTime ?? .distantFuture) < ($1.gameTime ?? .distantFuture) }
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
+                    ForEach(groupedGames) { dateGroup in
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
+                            // Date header: calendar icon + date + count badge
+                            HStack(spacing: 8) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(AppTheme.Colors.accent)
 
-                    let targetId = nearestUpcoming?.id ?? games.first?.id
-                    if let targetId {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation {
-                                proxy.scrollTo(targetId, anchor: .top)
+                                Text(headerTitle(for: dateGroup.date))
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                                Text(dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(Capsule().fill(Color(white: 0.2)))
+                            }
+                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+
+                            ForEach(dateGroup.games) { game in
+                                if game.isFinished {
+                                    NavigationLink {
+                                        GameResultView(game: game, tournamentId: tournamentId, tournamentName: tournamentName)
+                                    } label: {
+                                        GameCard(game: game)
+                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                    }
+                                    .buttonStyle(.plain)
+                                } else {
+                                    NavigationLink {
+                                        UpcomingGameView(game: game, tournamentId: tournamentId)
+                                    } label: {
+                                        GameCard(game: game)
+                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                         }
                     }
                 }
+                .padding(.bottom, AppTheme.Layout.large)
             }
         }
+    }
+
+    private func headerTitle(for dateString: String) -> String {
+        guard !dateString.isEmpty else { return "Sin fecha" }
+
+        let parser = DateFormatter()
+        parser.dateFormat = "yyyy-MM-dd"
+        parser.timeZone = AppConfig.DateTime.apiTimeZone
+        guard let date = parser.date(from: dateString) else { return dateString }
+
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es_MX")
+        f.timeZone = AppConfig.DateTime.apiTimeZone
+        f.dateFormat = "EEEE"
+        let weekday = f.string(from: date).capitalized
+        f.dateFormat = "MMMM"
+        let month = f.string(from: date).capitalized
+        f.dateFormat = "d"
+        let day = f.string(from: date)
+        return "\(weekday), \(day) de \(month)"
     }
 }
 
