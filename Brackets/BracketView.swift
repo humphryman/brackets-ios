@@ -132,7 +132,7 @@ struct BracketView: View {
             .offset(x: baseOffset + dragOffset)
             .clipped()
         }
-        .highPriorityGesture(
+        .simultaneousGesture(
             DragGesture(minimumDistance: 30)
                 .onChanged { value in
                     if abs(value.translation.width) > abs(value.translation.height) {
