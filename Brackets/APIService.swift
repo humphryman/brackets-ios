@@ -167,6 +167,14 @@ struct Tiebreaker: Codable, Sendable, Equatable, Identifiable {
         case fibaScore = "fiba_score"
         case h2h
         case miniTable = "mini_table"
+        case groupTable = "group_table"
+        case unknown
+
+        // Tolerate unrecognized reasons so a new value never breaks standings decoding.
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            self = Reason(rawValue: raw) ?? .unknown
+        }
     }
 
     let groupIndex: Int?

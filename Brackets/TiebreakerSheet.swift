@@ -23,7 +23,7 @@ struct TiebreakerSheet: View {
                         FibaScoreTable(entries: tiebreaker.fibaBreakdown ?? [])
                     case .h2h:
                         H2HList(games: tiebreaker.h2hGames ?? [])
-                    case .miniTable:
+                    case .miniTable, .groupTable, .unknown:
                         MiniTable(entries: tiebreaker.miniTable ?? [])
                     }
                 }
@@ -54,6 +54,8 @@ struct TiebreakerSheet: View {
         case .fibaScore:  return "Resuelto por puntaje FIBA"
         case .h2h:        return "Resuelto por enfrentamiento directo"
         case .miniTable:  return "Resuelto por mini-tabla"
+        case .groupTable: return "Resuelto por tabla de grupo"
+        case .unknown:    return "Resuelto por desempate"
         }
     }
 }
