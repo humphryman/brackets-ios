@@ -188,6 +188,8 @@ private struct MiniTable: View {
                         .frame(width: 44, alignment: .trailing)
                     Text("C")
                         .frame(width: 44, alignment: .trailing)
+                    Text("Avg")
+                        .frame(width: 56, alignment: .trailing)
                     Text("Dif")
                         .frame(width: 52, alignment: .trailing)
                 }
@@ -219,6 +221,11 @@ private struct MiniTable: View {
                             .foregroundStyle(AppTheme.Colors.primaryText)
                             .frame(width: 44, alignment: .trailing)
 
+                        Text(avgText(entry.avg))
+                            .font(AppTheme.Typography.bodyBold)
+                            .foregroundStyle(avgColor(entry.avg))
+                            .frame(width: 56, alignment: .trailing)
+
                         Text(diffText(entry.diff))
                             .font(AppTheme.Typography.bodyBold)
                             .foregroundStyle(diffColor(entry.diff))
@@ -243,6 +250,16 @@ private struct MiniTable: View {
         if value > 0 { return AppTheme.Colors.positive }
         if value < 0 { return AppTheme.Colors.negative }
         return AppTheme.Colors.neutral
+    }
+
+    private func avgText(_ value: Double?) -> String {
+        guard let value else { return "-" }
+        return String(format: "%.3f", value)
+    }
+
+    private func avgColor(_ value: Double?) -> Color {
+        guard let value else { return AppTheme.Colors.neutral }
+        return value >= 1 ? AppTheme.Colors.positive : AppTheme.Colors.negative
     }
 }
 

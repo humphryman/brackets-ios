@@ -233,6 +233,7 @@ struct MiniTableEntry: Codable, Sendable, Equatable, Identifiable {
     let name: String
     let favor: Int
     let against: Int
+    let avg: Double?
 
     var diff: Int { favor - against }
 }
