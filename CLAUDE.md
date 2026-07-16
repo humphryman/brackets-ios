@@ -48,6 +48,7 @@ All prefixed with `APIConfig.apiURL` (`{baseURL}/api`):
 | `/tournaments/{id}/games.json` | `GamesResponse` (games by date) |
 | `/tournaments/{id}/games/{gameId}.json` | `GameDetailResponse` |
 | `/tournaments/{id}/top_stats.json` | `[StatCategory]` |
+| `/tournaments/{id}/top_stat.json?stat={stat}` | `TopStatDetail` (single-stat leaders) |
 | `/team_seasons/{id}.json` | `TeamSeasonDetail` |
 | `/player_seasons/{id}.json` | `PlayerSeasonDetailResponse` |
 
