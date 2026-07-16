@@ -91,6 +91,8 @@ struct GameDetail: Identifiable, Sendable {
     let gameSets: GameSets?
     let teamStats: [GameDetailTeamStat]?
     let playerOfTheGame: PlayerOfTheGame?
+    let periodFormat: String?
+    let periodColumns: [PeriodColumn]?
 
     enum CodingKeys: String, CodingKey {
         case id, played, phase, period, round, stage, venue
@@ -99,6 +101,8 @@ struct GameDetail: Identifiable, Sendable {
         case gameSets = "game_sets"
         case teamStats = "team_stats"
         case playerOfTheGame = "player_of_the_game"
+        case periodFormat = "period_format"
+        case periodColumns = "period_columns"
     }
 }
 
@@ -124,6 +128,8 @@ extension GameDetail: Codable {
         }
 
         playerOfTheGame = try? container.decodeIfPresent(PlayerOfTheGame.self, forKey: .playerOfTheGame)
+        periodFormat = try container.decodeIfPresent(String.self, forKey: .periodFormat)
+        periodColumns = try container.decodeIfPresent([PeriodColumn].self, forKey: .periodColumns)
     }
 }
 
@@ -414,8 +420,10 @@ struct QuarterScoresTable: View {
     let teamBName: String
     let teamBScores: [String: QuarterScoreValue]?
     let teamBTotal: Int?
+    /// Server-defined scoreboard columns (e.g. periods). Falls back to quarters when nil.
+    var periodColumns: [PeriodColumn]? = nil
 
-    private static let columnDefs: [(keys: [String], label: String, optional: Bool)] = [
+    private static let quarterColumnDefs: [(keys: [String], label: String, optional: Bool)] = [
         (["q1", "1"], "1Q", false),
         (["q2", "2"], "2Q", false),
         (["q3", "3"], "3Q", false),
@@ -424,8 +432,21 @@ struct QuarterScoresTable: View {
         (["2ot", "2OT", "ot2"], "2OT", true)
     ]
 
+    /// Column definitions: from `period_columns` when provided (skipping null-key
+    /// separators like "HALF"), otherwise the default quarters. Overtime columns
+    /// (label contains "OT") are hidden when neither team scored in them.
+    private var columnDefs: [(keys: [String], label: String, optional: Bool)] {
+        guard let periodColumns else { return Self.quarterColumnDefs }
+        let defs = periodColumns.compactMap { col -> (keys: [String], label: String, optional: Bool)? in
+            guard let key = col.key, !key.isEmpty else { return nil }
+            let label = col.label ?? key.uppercased()
+            return (keys: [key], label: label, optional: label.uppercased().contains("OT"))
+        }
+        return defs.isEmpty ? Self.quarterColumnDefs : defs
+    }
+
     private var columns: [(keys: [String], label: String)] {
-        Self.columnDefs.compactMap { col in
+        columnDefs.compactMap { col in
             if col.optional && !hasNonZeroValue(col.keys) { return nil }
             return (col.keys, col.label)
         }

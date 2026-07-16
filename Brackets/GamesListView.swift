@@ -789,7 +789,8 @@ struct LiveGameCard: View {
                     teamATotal: homeTeamStat?.score,
                     teamBName: awayTeamName,
                     teamBScores: awayTeamStat?.quarterScores,
-                    teamBTotal: awayTeamStat?.score
+                    teamBTotal: awayTeamStat?.score,
+                    periodColumns: game.periodColumns
                 )
                 .padding(.top, 4)
             }

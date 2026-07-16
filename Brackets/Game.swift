@@ -18,6 +18,8 @@ struct Game: Identifiable, Sendable {
     let teamStats: [TeamStat]?
     var group: String? = nil
     var bracket: String? = nil
+    var periodFormat: String? = nil
+    var periodColumns: [PeriodColumn]? = nil
 
     // Computed properties for easier access
     var homeTeam: Team? {
@@ -94,7 +96,16 @@ struct Game: Identifiable, Sendable {
         case teamStats = "team_stats"
         case group
         case bracket
+        case periodFormat = "period_format"
+        case periodColumns = "period_columns"
     }
+}
+
+/// Scoreboard column definition from the API (`period_columns`). A null `key`
+/// means the column has no per-column score (e.g. a "HALF" separator).
+struct PeriodColumn: Codable, Sendable, Hashable {
+    let label: String?
+    let key: String?
 }
 
 extension Game: Codable {
@@ -109,6 +120,8 @@ extension Game: Codable {
         teamStats = try container.decodeIfPresent([TeamStat].self, forKey: .teamStats)
         group = try container.decodeIfPresent(String.self, forKey: .group)
         bracket = try container.decodeIfPresent(String.self, forKey: .bracket)
+        periodFormat = try container.decodeIfPresent(String.self, forKey: .periodFormat)
+        periodColumns = try container.decodeIfPresent([PeriodColumn].self, forKey: .periodColumns)
 
         // venue can be a Venue object or a plain string
         if let venueObject = try? container.decodeIfPresent(Venue.self, forKey: .venue) {

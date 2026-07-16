@@ -189,7 +189,8 @@ struct GameResultView: View {
                     teamATotal: teamA?.score ?? sets?.teamAScore,
                     teamBName: teamBName,
                     teamBScores: teamB?.quarterScores,
-                    teamBTotal: teamB?.score ?? sets?.teamBScore
+                    teamBTotal: teamB?.score ?? sets?.teamBScore,
+                    periodColumns: detail.game.periodColumns
                 )
             }
 
