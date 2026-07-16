@@ -36,13 +36,13 @@ struct TournamentsResponse: Codable, Sendable {
 struct StandingsResponse: Codable, Sendable {
     let standings: [TeamStanding]?
     let groupStandings: [GroupStanding]?
-    let podium: Podium?
+    let podiums: [BracketPodium]?
     let classification: Classification?
 
     enum CodingKeys: String, CodingKey {
         case standings
         case groupStandings = "group_standings"
-        case podium
+        case podiums
         case classification
     }
 }
@@ -92,7 +92,7 @@ struct Classification: Codable, Sendable, Hashable {
     let teams: [ClassificationTeam]
 }
 
-// MARK: - Podium
+// MARK: - Podium Models
 
 struct PodiumEntry: Codable, Sendable, Hashable {
     let place: Int
@@ -119,23 +119,31 @@ struct PodiumEntry: Codable, Sendable, Hashable {
     }
 }
 
-struct Podium: Codable, Sendable, Hashable {
-    let tournamentName: String
+/// One per-bracket podium (e.g. Gold / Silver / Bronze) from the standings
+/// endpoint's `podiums` array. Unlike the legacy singular `podium`, these carry
+/// no `tournament_name` — the champion panel supplies it from the tournament.
+struct BracketPodium: Codable, Sendable, Hashable, Identifiable {
+    let bracketId: Int
+    let position: Int
+    let name: String
+    let type: String?
+    let typeLabel: String?
     let first: PodiumEntry
     let second: PodiumEntry?
     let third: PodiumEntry?
 
+    var id: Int { bracketId }
+
     enum CodingKeys: String, CodingKey {
-        case tournamentName = "tournament_name"
-        case first
-        case second
-        case third
+        case position, name, type, first, second, third
+        case bracketId = "bracket_id"
+        case typeLabel = "type_label"
     }
 }
 
 struct StandingsBundle: Sendable {
     let result: StandingsResult
-    let podium: Podium?
+    let podiums: [BracketPodium]
     let classification: Classification?
 }
 
@@ -510,21 +518,21 @@ final class APIService: Sendable {
                     // Single group named "DEFAULT" means no real groups — treat as flat
                     if groups.count == 1, groups[0].name.uppercased() == "DEFAULT" {
                         print("✅ Decoded standings as flat (single DEFAULT group)")
-                        return StandingsBundle(result: .flat(groups[0].standings), podium: response.podium, classification: response.classification)
+                        return StandingsBundle(result: .flat(groups[0].standings), podiums: response.podiums ?? [], classification: response.classification)
                     }
                     print("✅ Decoded standings as group standings")
-                    return StandingsBundle(result: .groups(groups), podium: response.podium, classification: response.classification)
+                    return StandingsBundle(result: .groups(groups), podiums: response.podiums ?? [], classification: response.classification)
                 }
                 if let standings = response.standings, !standings.isEmpty {
                     print("✅ Decoded standings as wrapped response")
-                    return StandingsBundle(result: .flat(standings), podium: response.podium, classification: response.classification)
+                    return StandingsBundle(result: .flat(standings), podiums: response.podiums ?? [], classification: response.classification)
                 }
             }
 
             // Fallback: Try to decode as direct array
             if let standings = try? decoder.decode([TeamStanding].self, from: data) {
                 print("✅ Decoded standings as direct array")
-                return StandingsBundle(result: .flat(standings), podium: nil, classification: nil)
+                return StandingsBundle(result: .flat(standings), podiums: [], classification: nil)
             }
 
             // If neither worked, throw detailed error

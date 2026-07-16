@@ -249,14 +249,16 @@ struct StandingsView: View {
     @State private var selectedSubTab: StandingsSubTab
     @State private var expandedGroups: Set<String> = []
     @State private var didInitExpansion = false
+    @State private var didInitSubTab = false
+    @State private var selectedPodiumName: String?
 
     init(tournament: Tournament) {
         self.tournament = tournament
-        _selectedSubTab = State(initialValue: tournament.winner != nil ? .champion : .standings)
+        _selectedSubTab = State(initialValue: .standings)
     }
 
     private var hasChampionTab: Bool {
-        tournament.winner != nil && bundle?.podium != nil
+        !(bundle?.podiums.isEmpty ?? true)
     }
 
     private var hasClassificationTab: Bool {
@@ -292,11 +294,7 @@ struct StandingsView: View {
 
                     switch selectedSubTab {
                     case .champion:
-                        if let podium = bundle.podium {
-                            ChampionPanel(podium: podium)
-                        } else {
-                            standingsScroll(bundle.result)
-                        }
+                        championTab(bundle)
                     case .classification:
                         if let classification = bundle.classification {
                             ClassificationView(classification: classification)
@@ -321,6 +319,20 @@ struct StandingsView: View {
         }
         .task {
             await loadStandings()
+        }
+    }
+
+    @ViewBuilder
+    private func championTab(_ bundle: StandingsBundle) -> some View {
+        let podiums = bundle.podiums.sorted { $0.position < $1.position }
+        if let selected = podiums.first(where: { $0.name == selectedPodiumName }) ?? podiums.first {
+            VStack(spacing: 0) {
+                ChipCarousel(items: podiums.map(\.name), label: { $0 }, selected: $selectedPodiumName)
+                    .padding(.bottom, AppTheme.Spacing.medium)
+                ChampionPanel(podium: selected, tournamentName: tournament.name)
+            }
+        } else {
+            standingsScroll(bundle.result)
         }
     }
 
@@ -369,8 +381,14 @@ struct StandingsView: View {
                 expandedGroups = Set(groups.prefix(2).map(\.id))
                 didInitExpansion = true
             }
-            // Fall back to Grupos if the initial selection isn't an available tab.
-            if !availableTabs.contains(selectedSubTab) {
+            if selectedPodiumName == nil {
+                selectedPodiumName = loaded.podiums.sorted { $0.position < $1.position }.first?.name
+            }
+            // Default to Campeón when podiums exist; otherwise fall back to Grupos.
+            if !didInitSubTab {
+                selectedSubTab = availableTabs.first ?? .standings
+                didInitSubTab = true
+            } else if !availableTabs.contains(selectedSubTab) {
                 selectedSubTab = .standings
             }
             isLoading = false
@@ -446,7 +464,8 @@ struct StandingsSubTabBar: View {
 // MARK: - Champion Panel
 
 struct ChampionPanel: View {
-    let podium: Podium
+    let podium: BracketPodium
+    let tournamentName: String
 
     var body: some View {
         ScrollView {
@@ -463,7 +482,7 @@ struct ChampionPanel: View {
                         .font(.system(size: 42, weight: .heavy))
                         .foregroundStyle(.white)
 
-                    Text(podium.tournamentName.uppercased())
+                    Text(tournamentName.uppercased())
                         .font(.system(size: 13, weight: .semibold))
                         .tracking(2)
                         .foregroundStyle(Color(white: 0.5))
@@ -669,5 +688,40 @@ private struct PodiumCard: View {
         }
         .padding()
     }
+}
+
+#Preview("Champion — multiple podiums") {
+    struct Wrap: View {
+        let podiums: [BracketPodium] = [
+            BracketPodium(
+                bracketId: 43, position: 1, name: "Gold", type: "quarterfinals", typeLabel: "Cuartos",
+                first: PodiumEntry(place: 1, teamId: 417, teamSeasonId: 890, teamName: "Gladiadores Valle", teamLogo: nil),
+                second: PodiumEntry(place: 2, teamId: 436, teamSeasonId: 909, teamName: "Pingüinos Sierra", teamLogo: nil),
+                third: PodiumEntry(place: 3, teamId: 453, teamSeasonId: 926, teamName: "Cometas Azteca", teamLogo: nil)
+            ),
+            BracketPodium(
+                bracketId: 44, position: 2, name: "Silver", type: "octavos", typeLabel: "Octavos de Final",
+                first: PodiumEntry(place: 1, teamId: 413, teamSeasonId: 886, teamName: "Águilas Continental", teamLogo: nil),
+                second: PodiumEntry(place: 2, teamId: 423, teamSeasonId: 896, teamName: "Titanes Pacífico", teamLogo: nil),
+                third: PodiumEntry(place: 3, teamId: 445, teamSeasonId: 918, teamName: "Osos Monterrey", teamLogo: nil)
+            ),
+            BracketPodium(
+                bracketId: 45, position: 3, name: "Bronze", type: "octavos", typeLabel: "Octavos de Final",
+                first: PodiumEntry(place: 1, teamId: 420, teamSeasonId: 893, teamName: "Cometas Cumbres", teamLogo: nil),
+                second: PodiumEntry(place: 2, teamId: 421, teamSeasonId: 894, teamName: "Gladiadores Monterrey", teamLogo: nil),
+                third: PodiumEntry(place: 3, teamId: 456, teamSeasonId: 929, teamName: "Gavilanes Guadalupe", teamLogo: nil)
+            ),
+        ]
+        @State private var selected: String? = "Gold"
+        var current: BracketPodium { podiums.first { $0.name == selected } ?? podiums[0] }
+        var body: some View {
+            VStack(spacing: 0) {
+                ChipCarousel(items: podiums.map(\.name), label: { $0 }, selected: $selected)
+                    .padding(.bottom, 12)
+                ChampionPanel(podium: current, tournamentName: "Elite Campeonato Nacional 2026")
+            }
+        }
+    }
+    return ZStack { Color.black.ignoresSafeArea(); Wrap() }
 }
 
