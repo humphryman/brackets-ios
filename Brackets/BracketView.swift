@@ -10,13 +10,12 @@ struct BracketView: View {
     @State private var games: [Game] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var currentPage: Int = 0
-    @State private var dragOffset: CGFloat = 0
+    @State private var windowProgress: CGFloat = 0
+    @State private var gestureStartProgress: CGFloat? = nil
     @State private var liveRefreshTimer: Timer?
     @State private var brackets: [BracketInfo] = []
     @State private var selectedBracketName: String?
     @State private var didInitBracket = false
-    @Environment(\.openURL) private var openURL
 
     private var hasLiveGames: Bool {
         games.contains(where: { $0.isLive })
@@ -45,8 +44,7 @@ struct BracketView: View {
                 ChipCarousel(items: brackets.map(\.name), label: { $0 }, selected: $selectedBracketName)
                     .padding(.vertical, AppTheme.Spacing.small)
                     .onChange(of: selectedBracketName) {
-                        currentPage = 0
-                        dragOffset = 0
+                        windowProgress = 0
                     }
             }
             ZStack {
@@ -62,9 +60,7 @@ struct BracketView: View {
                     message: "No hay bracket disponible."
                 )
             } else {
-                GeometryReader { geo in
-                    bracketPager(pageWidth: geo.size.width)
-                }
+                bracketContent()
             }
             }
         }
@@ -80,93 +76,116 @@ struct BracketView: View {
     // MARK: - Layout Constants
 
     private let matchupCardWidth: CGFloat = 180
-    private let matchupCardHeight: CGFloat = 153
+    private let matchupCardHeight: CGFloat = 118
     private let connectorWidth: CGFloat = 36
 
-    private var roundColumnWidth: CGFloat {
+    private var columnWidth: CGFloat {
         matchupCardWidth + connectorWidth
     }
 
-    // MARK: - Pager
+    // MARK: - Windowed Layout Math
 
-    private func bracketPager(pageWidth: CGFloat) -> some View {
-        let needsPaging = rounds.count > 2
+    private var baseSpacing: CGFloat { activeType == "semifinals" ? 80 : 24 }
+    private var step0: CGFloat { matchupCardHeight + baseSpacing }
+    private var maxWindow: CGFloat { CGFloat(max(0, rounds.count - 2)) }
 
-        if needsPaging {
-            return AnyView(pagedBracket(pageWidth: pageWidth))
-        } else {
-            return AnyView(staticBracket())
+    /// A round's clamped distance from the window's left edge (0 = condensed left
+    /// column, 1 = spread right column). Only the shared middle round has a
+    /// fractional distance mid-transition, so only it morphs.
+    private func distance(_ roundIndex: Int) -> CGFloat {
+        min(max(CGFloat(roundIndex) - windowProgress, 0), 1)
+    }
+
+    private func spacing(_ d: CGFloat) -> CGFloat {
+        (baseSpacing + matchupCardHeight) * pow(2, d) - matchupCardHeight
+    }
+
+    private func topPad(_ d: CGFloat) -> CGFloat {
+        step0 * (pow(2, d) - 1) / 2
+    }
+
+    private func roundLabel(_ name: String) -> String {
+        switch name {
+        case "16vos de Final": return "16vos"
+        case "Octavos de Final": return "8vos"
+        case "Cuartos de Final": return "4tos"
+        case "Semifinal": return "Semis"
+        case "Final": return "Final"
+        default: return name
         }
     }
 
-    private func staticBracket() -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            bracketHeaders
-                .padding(.top, AppTheme.Spacing.medium)
-                .padding(.bottom, 16)
+    // MARK: - Content
 
-            ScrollView(.vertical, showsIndicators: false) {
-                bracketBody
-                    .padding(.bottom, 100)
+    @ViewBuilder
+    private func bracketContent() -> some View {
+        let labels = rounds.map { roundLabel($0.name) }
+        // GeometryReader bounds this whole area to the screen width, so the wide
+        // rounds HStack can't expand the layout (which would otherwise stretch the
+        // StageSelector's own GeometryReader and shift the columns).
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                StageSelector(labels: labels, windowProgress: $windowProgress, maxWindow: maxWindow)
+                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    .padding(.top, AppTheme.Spacing.medium)
+                    .padding(.bottom, 12)
+
+                morphingBracket(pageWidth: geo.size.width)
             }
         }
     }
 
-    private func pagedBracket(pageWidth: CGFloat) -> some View {
-        let roundStep = roundColumnWidth
-        let maxPage = max(0, rounds.count - 2)
-        let baseOffset = -CGFloat(currentPage) * roundStep + AppTheme.Layout.screenPadding
-
-        return VStack(alignment: .leading, spacing: 0) {
-            // Sticky round-title header — pinned vertically, offset horizontally with the pager
-            bracketHeaders
-                .offset(x: baseOffset + dragOffset)
-                .padding(.top, AppTheme.Spacing.medium)
-                .padding(.bottom, 16)
-                .clipped()
-
-            ScrollView(.vertical, showsIndicators: false) {
-                bracketBody
-                    .padding(.bottom, 100)
+    private func morphingBracket(pageWidth: CGFloat) -> some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            // Position each round column by its distance from the window, and only
+            // render the columns near the visible window. This makes the scroll
+            // content height track the VISIBLE window's tallest column (fewer games
+            // = shorter scroll) instead of the whole bracket's tallest round — so
+            // settling on a smaller round no longer leaves dead black space below.
+            ZStack(alignment: .topLeading) {
+                ForEach(Array(rounds.enumerated()), id: \.element.name) { roundIndex, round in
+                    let rel = CGFloat(roundIndex) - windowProgress
+                    if rel > -1 && rel < 2.2 {
+                        roundColumn(round: round, roundIndex: roundIndex)
+                            .offset(x: rel * columnWidth + AppTheme.Layout.screenPadding)
+                    }
+                }
             }
-            .offset(x: baseOffset + dragOffset)
-            .clipped()
+            .frame(width: pageWidth, alignment: .leading)
+            .padding(.bottom, 100)
         }
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 30)
-                .onChanged { value in
-                    if abs(value.translation.width) > abs(value.translation.height) {
-                        dragOffset = value.translation.width
-                    }
+        .frame(width: pageWidth)
+        .clipped()
+        .simultaneousGesture(windowDragGesture())
+    }
+
+    private func windowDragGesture() -> some Gesture {
+        DragGesture(minimumDistance: 20)
+            .onChanged { value in
+                guard maxWindow > 0 else { return }
+                if abs(value.translation.width) > abs(value.translation.height) {
+                    let start = gestureStartProgress ?? windowProgress
+                    if gestureStartProgress == nil { gestureStartProgress = start }
+                    windowProgress = min(max(start - value.translation.width / columnWidth, 0), maxWindow)
                 }
-                .onEnded { value in
-                    let threshold: CGFloat = 50
-                    withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
-                        if value.translation.width < -threshold {
-                            currentPage = min(currentPage + 1, maxPage)
-                        } else if value.translation.width > threshold {
-                            currentPage = max(currentPage - 1, 0)
-                        }
-                        dragOffset = 0
-                    }
+            }
+            .onEnded { value in
+                let start = gestureStartProgress ?? windowProgress
+                gestureStartProgress = nil
+                guard maxWindow > 0 else { return }
+                let target: CGFloat
+                if abs(value.predictedEndTranslation.width) > columnWidth * 0.5 {
+                    target = value.translation.width < 0 ? start + 1 : start - 1
+                } else {
+                    target = windowProgress.rounded()
                 }
-        )
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                    windowProgress = min(max(target, 0), maxWindow)
+                }
+            }
     }
 
     // MARK: - Bracket Content
-
-    // Round-title header row (all rounds except the last, whose title is inline above its card).
-    private var bracketHeaders: some View {
-        HStack(alignment: .top, spacing: 0) {
-            ForEach(Array(rounds.enumerated()), id: \.element.name) { index, round in
-                if index < rounds.count - 1 {
-                    roundHeaderLabel(round)
-                        .frame(width: matchupCardWidth, alignment: .leading)
-                        .padding(.trailing, connectorWidth)
-                }
-            }
-        }
-    }
 
     private func roundHeaderLabel(_ round: BracketRound) -> some View {
         Text(round.name.uppercased())
@@ -178,19 +197,12 @@ struct BracketView: View {
             .background(Capsule().fill(Color(white: 0.13)))
     }
 
-    private var bracketBody: some View {
-        HStack(alignment: .top, spacing: 0) {
-            ForEach(Array(rounds.enumerated()), id: \.element.name) { roundIndex, round in
-                roundColumn(round: round, roundIndex: roundIndex)
-            }
-        }
-    }
-
     // MARK: - Round Column
 
     private func roundColumn(round: BracketRound, roundIndex: Int) -> some View {
-        let topOffset = topPadding(for: roundIndex)
-        let spacing = matchupSpacing(for: roundIndex)
+        let d = distance(roundIndex)
+        let topOffset = topPad(d)
+        let spacing = spacing(d)
 
         let isLastRound = roundIndex == rounds.count - 1
 
@@ -268,20 +280,8 @@ struct BracketView: View {
                 placeholderName: matchup.awayPlaceholder
             )
 
-            // Footer: venue (Maps link when coords exist)
-            if let venue = matchup.venue {
-                Rectangle()
-                    .fill(Color(white: 0.2))
-                    .frame(height: 1)
-                    .padding(.top, 6)
-                venueRow(venue)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 10)
-                    .padding(.top, 6)
-                    .padding(.bottom, 10)
-            }
         }
-        .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: (matchup.scheduledTime == nil && matchup.venue == nil) ? .center : .top)
+        .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: matchup.scheduledTime == nil ? .center : .top)
         .background(Color(white: 0.09))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(alignment: .top) {
@@ -327,7 +327,7 @@ struct BracketView: View {
             teamAvatar(name: displayName, isWinner: isWinner, hasTeam: hasTeam)
 
             Text(displayName)
-                .font(.system(size: 14, weight: isWinner ? .bold : .semibold))
+                .font(.system(size: 12, weight: isWinner ? .bold : .semibold))
                 .foregroundStyle(nameColor)
                 .lineLimit(2)
                 .minimumScaleFactor(0.7)
@@ -335,7 +335,7 @@ struct BracketView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(scoreText)
-                .font(.system(size: 20, weight: .heavy))
+                .font(.system(size: 17, weight: .heavy))
                 .foregroundStyle(scoreColor)
         }
         .padding(.horizontal, 10)
@@ -354,43 +354,12 @@ struct BracketView: View {
             : String(name.prefix(2)).uppercased()
         return Circle()
             .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.18))
-            .frame(width: 30, height: 30)
+            .frame(width: 22, height: 22)
             .overlay(
                 Text(initials)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(isWinner ? AppTheme.Colors.accentText : Color(white: 0.5))
             )
-    }
-
-    @ViewBuilder
-    private func venueRow(_ venue: Venue) -> some View {
-        if let mapsURL = venue.googleMapsURL {
-            Button {
-                openURL(mapsURL)
-            } label: {
-                venueContent(venue, linked: true)
-            }
-            .buttonStyle(.plain)
-        } else {
-            venueContent(venue, linked: false)
-        }
-    }
-
-    private func venueContent(_ venue: Venue, linked: Bool) -> some View {
-        HStack(spacing: 3) {
-            if linked {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 10))
-                    .foregroundStyle(AppTheme.Colors.accent)
-            }
-            Text(venue.name)
-                .font(.system(size: 11))
-                .foregroundStyle(linked ? AppTheme.Colors.accent : Color(white: 0.45))
-                .lineLimit(1)
-                .truncationMode(.tail)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 8)
     }
 
     @ViewBuilder
@@ -418,27 +387,21 @@ struct BracketView: View {
 
     // MARK: - Connector Lines
 
-    private func hasWinner(_ matchup: BracketMatchup) -> Bool {
-        matchup.homeIsWinner || matchup.awayIsWinner
-    }
-
     private func connectorsColumn(roundIndex: Int, matchups: [BracketMatchup]) -> some View {
-        let spacing = matchupSpacing(for: roundIndex)
+        let spacing = spacing(distance(roundIndex))
         let cardH = matchupCardHeight
         let pairCount = matchups.count / 2
 
         return VStack(spacing: 0) {
             ForEach(0..<max(pairCount, 1), id: \.self) { i in
-                let topAdvanced = (2 * i) < matchups.count ? hasWinner(matchups[2 * i]) : false
-                let bottomAdvanced = (2 * i + 1) < matchups.count ? hasWinner(matchups[2 * i + 1]) : false
-                connectorPair(cardHeight: cardH, spacing: spacing, topAdvanced: topAdvanced, bottomAdvanced: bottomAdvanced)
+                connectorPair(cardHeight: cardH, spacing: spacing)
                     .padding(.bottom, i < pairCount - 1 ? spacing : 0)
             }
         }
         .frame(width: connectorWidth)
     }
 
-    private func connectorPair(cardHeight: CGFloat, spacing: CGFloat, topAdvanced: Bool, bottomAdvanced: Bool) -> some View {
+    private func connectorPair(cardHeight: CGFloat, spacing: CGFloat) -> some View {
         // Connects two matchup cards to a single output point
         let pairHeight = cardHeight * 2 + spacing
         let topMid = cardHeight / 2
@@ -447,58 +410,17 @@ struct BracketView: View {
         let midX = connectorWidth / 2
         let gray = Color(white: 0.25)
 
-        return ZStack {
-            // Gray base — all segments
-            Path { path in
-                path.move(to: CGPoint(x: 0, y: topMid))
-                path.addLine(to: CGPoint(x: midX, y: topMid))
-                path.addLine(to: CGPoint(x: midX, y: bottomMid))
-                path.move(to: CGPoint(x: 0, y: bottomMid))
-                path.addLine(to: CGPoint(x: midX, y: bottomMid))
-                path.move(to: CGPoint(x: midX, y: centerY))
-                path.addLine(to: CGPoint(x: connectorWidth, y: centerY))
-            }
-            .stroke(gray, lineWidth: 1.5)
-
-            // Green — top input when that source has advanced
-            if topAdvanced {
-                Path { p in
-                    p.move(to: CGPoint(x: 0, y: topMid))
-                    p.addLine(to: CGPoint(x: midX, y: topMid))
-                }
-                .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
-            }
-            // Green — bottom input when that source has advanced
-            if bottomAdvanced {
-                Path { p in
-                    p.move(to: CGPoint(x: 0, y: bottomMid))
-                    p.addLine(to: CGPoint(x: midX, y: bottomMid))
-                }
-                .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
-            }
-            // Green — output when at least one source has advanced
-            if topAdvanced || bottomAdvanced {
-                Path { p in
-                    p.move(to: CGPoint(x: midX, y: centerY))
-                    p.addLine(to: CGPoint(x: connectorWidth, y: centerY))
-                }
-                .stroke(AppTheme.Colors.accent, lineWidth: 1.5)
-            }
+        return Path { path in
+            path.move(to: CGPoint(x: 0, y: topMid))
+            path.addLine(to: CGPoint(x: midX, y: topMid))
+            path.addLine(to: CGPoint(x: midX, y: bottomMid))
+            path.move(to: CGPoint(x: 0, y: bottomMid))
+            path.addLine(to: CGPoint(x: midX, y: bottomMid))
+            path.move(to: CGPoint(x: midX, y: centerY))
+            path.addLine(to: CGPoint(x: connectorWidth, y: centerY))
         }
+        .stroke(gray, lineWidth: 1.5)
         .frame(width: connectorWidth, height: pairHeight)
-    }
-
-    // MARK: - Layout Helpers
-
-    private func matchupSpacing(for roundIndex: Int) -> CGFloat {
-        let baseSpacing: CGFloat = activeType == "semifinals" ? 80 : 24
-        if roundIndex == 0 { return baseSpacing }
-        return matchupSpacing(for: roundIndex - 1) * 2 + matchupCardHeight
-    }
-
-    private func topPadding(for roundIndex: Int) -> CGFloat {
-        if roundIndex == 0 { return 0 }
-        return topPadding(for: roundIndex - 1) + (matchupSpacing(for: roundIndex - 1) + matchupCardHeight) / 2
     }
 
     // MARK: - Slot-Based Lookup
@@ -810,4 +732,96 @@ private struct BracketLiveBadge: View {
         )
         .onAppear { pulse = true }
     }
+}
+
+// MARK: - Stage Selector
+
+/// Apple Sports–style stage bar: a row of stage labels with a draggable 2-wide
+/// highlight marking the two stages currently visible. Bound to the same
+/// `windowProgress` the bracket content uses, so selector-drag and content-swipe
+/// stay in sync.
+struct StageSelector: View {
+    let labels: [String]
+    @Binding var windowProgress: CGFloat
+    let maxWindow: CGFloat
+
+    @State private var dragStart: CGFloat?
+
+    var body: some View {
+        GeometryReader { geo in
+            let n = max(labels.count, 1)
+            let segW = geo.size.width / CGFloat(n)
+            let h = geo.size.height
+
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(white: 0.10))
+
+                // 2-wide highlight window with chevron affordances
+                HStack {
+                    Image(systemName: "chevron.left")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(maxWindow > 0 ? Color(white: 0.7) : .clear)
+                .padding(.horizontal, 8)
+                .frame(width: segW * 2, height: h - 8)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
+                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(AppTheme.Colors.accent, lineWidth: 2))
+                .offset(x: windowProgress * segW)
+
+                // Stage labels (drawn over the highlight)
+                HStack(spacing: 0) {
+                    ForEach(Array(labels.enumerated()), id: \.offset) { i, label in
+                        Text(label)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(isActive(i) ? AppTheme.Colors.primaryText : Color(white: 0.45))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .frame(width: segW)
+                    }
+                }
+            }
+            .frame(height: h)
+            .contentShape(Rectangle())
+            .gesture(dragGesture(segW: segW))
+        }
+        .frame(height: 44)
+    }
+
+    private func isActive(_ i: Int) -> Bool {
+        CGFloat(i) >= windowProgress - 0.5 && CGFloat(i) <= windowProgress + 1.5
+    }
+
+    private func dragGesture(segW: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 5)
+            .onChanged { value in
+                guard maxWindow > 0, segW > 0 else { return }
+                let start = dragStart ?? windowProgress
+                if dragStart == nil { dragStart = start }
+                windowProgress = min(max(start + value.translation.width / segW, 0), maxWindow)
+            }
+            .onEnded { _ in
+                dragStart = nil
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                    windowProgress = min(max(windowProgress.rounded(), 0), maxWindow)
+                }
+            }
+    }
+}
+
+#Preview("Stage selector") {
+    struct Wrap: View {
+        @State var progress: CGFloat = 0
+        var body: some View {
+            StageSelector(
+                labels: ["16vos", "8vos", "4tos", "Semis", "Final"],
+                windowProgress: $progress,
+                maxWindow: 3
+            )
+            .padding()
+        }
+    }
+    return ZStack { Color.black.ignoresSafeArea(); Wrap() }
 }
