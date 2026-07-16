@@ -23,6 +23,14 @@ enum StandingsSubTab: Hashable {
 
 // MARK: - Table layout
 
+/// Layout constants for the Standings screen.
+enum StandingsLayout {
+    /// Bottom clearance so the pinned "Ranking Final" button sits just above the
+    /// container's floating CustomTabBar. Kept snug so the button hugs the menu;
+    /// tune on-device in Xcode if the gap looks off.
+    static let tabBarClearance: CGFloat = 52
+}
+
 /// Shared fixed column widths so the header row and every team row line up.
 enum StandingsCol {
     static let rank: CGFloat = 16      // "#"
@@ -251,6 +259,8 @@ struct StandingsView: View {
     @State private var didInitExpansion = false
     @State private var didInitSubTab = false
     @State private var selectedPodiumName: String?
+    @State private var ranking: RankingResponse?
+    @State private var showRanking = false
 
     init(tournament: Tournament) {
         self.tournament = tournament
@@ -263,6 +273,11 @@ struct StandingsView: View {
 
     private var hasClassificationTab: Bool {
         !(bundle?.classification?.teams.isEmpty ?? true)
+    }
+
+    private var showsRankingButton: Bool {
+        guard let ranking else { return false }
+        return ranking.available && !ranking.ranking.isEmpty
     }
 
     /// Sub-tabs to show, in display order. The bar appears only when >1 exists.
@@ -320,6 +335,28 @@ struct StandingsView: View {
         .task {
             await loadStandings()
         }
+        .task {
+            ranking = try? await APIService.shared.fetchRanking(for: tournament.id)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if showsRankingButton {
+                RankingButton { showRanking = true }
+                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    .padding(.top, AppTheme.Spacing.small)
+                    .padding(.bottom, StandingsLayout.tabBarClearance)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .fullScreenCover(isPresented: $showRanking) {
+            // `ranking` is bound to button-gating, not presentation, so present via
+            // `showRanking` (only set from the button, which requires ranking != nil).
+            // Guard anyway so a nil ranking can never strand the user on a blank cover.
+            if let ranking {
+                RankingView(response: ranking)
+            } else {
+                Color.clear.onAppear { showRanking = false }
+            }
+        }
     }
 
     @ViewBuilder
@@ -329,7 +366,7 @@ struct StandingsView: View {
             VStack(spacing: 0) {
                 ChipCarousel(items: podiums.map(\.name), label: { $0 }, selected: $selectedPodiumName)
                     .padding(.bottom, AppTheme.Spacing.medium)
-                ChampionPanel(podium: selected, tournamentName: tournament.name)
+                ChampionPanel(podium: selected)
             }
         } else {
             standingsScroll(bundle.result)
@@ -465,7 +502,6 @@ struct StandingsSubTabBar: View {
 
 struct ChampionPanel: View {
     let podium: BracketPodium
-    let tournamentName: String
 
     var body: some View {
         ScrollView {
@@ -473,21 +509,14 @@ struct ChampionPanel: View {
                 // Title block
                 VStack(spacing: 4) {
                     Text(podium.first.teamName.uppercased())
-                        .font(.system(size: 42, weight: .heavy))
+                        .font(.system(size: 32, weight: .heavy))
                         .foregroundStyle(.white)
                         .lineLimit(2)
                         .minimumScaleFactor(0.5)
                         .multilineTextAlignment(.center)
                     Text("CAMPEÓN")
-                        .font(.system(size: 42, weight: .heavy))
+                        .font(.system(size: 32, weight: .heavy))
                         .foregroundStyle(.white)
-
-                    Text(tournamentName.uppercased())
-                        .font(.system(size: 13, weight: .semibold))
-                        .tracking(2)
-                        .foregroundStyle(Color(white: 0.5))
-                        .padding(.top, 14)
-                        .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.top, 8)
@@ -718,7 +747,7 @@ private struct PodiumCard: View {
             VStack(spacing: 0) {
                 ChipCarousel(items: podiums.map(\.name), label: { $0 }, selected: $selected)
                     .padding(.bottom, 12)
-                ChampionPanel(podium: current, tournamentName: "Elite Campeonato Nacional 2026")
+                ChampionPanel(podium: current)
             }
         }
     }
