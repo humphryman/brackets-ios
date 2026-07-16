@@ -36,13 +36,13 @@ struct TournamentsResponse: Codable, Sendable {
 struct StandingsResponse: Codable, Sendable {
     let standings: [TeamStanding]?
     let groupStandings: [GroupStanding]?
-    let podium: Podium?
+    let podiums: [BracketPodium]?
     let classification: Classification?
 
     enum CodingKeys: String, CodingKey {
         case standings
         case groupStandings = "group_standings"
-        case podium
+        case podiums
         case classification
     }
 }
@@ -92,7 +92,7 @@ struct Classification: Codable, Sendable, Hashable {
     let teams: [ClassificationTeam]
 }
 
-// MARK: - Podium
+// MARK: - Podium Models
 
 struct PodiumEntry: Codable, Sendable, Hashable {
     let place: Int
@@ -119,24 +119,86 @@ struct PodiumEntry: Codable, Sendable, Hashable {
     }
 }
 
-struct Podium: Codable, Sendable, Hashable {
-    let tournamentName: String
+/// One per-bracket podium (e.g. Gold / Silver / Bronze) from the standings
+/// endpoint's `podiums` array. Unlike the legacy singular `podium`, these carry
+/// no `tournament_name` — the champion panel supplies it from the tournament.
+struct BracketPodium: Codable, Sendable, Hashable, Identifiable {
+    let bracketId: Int
+    let position: Int
+    let name: String
+    let type: String?
+    let typeLabel: String?
     let first: PodiumEntry
     let second: PodiumEntry?
     let third: PodiumEntry?
 
+    var id: Int { bracketId }
+
     enum CodingKeys: String, CodingKey {
-        case tournamentName = "tournament_name"
-        case first
-        case second
-        case third
+        case position, name, type, first, second, third
+        case bracketId = "bracket_id"
+        case typeLabel = "type_label"
     }
 }
 
 struct StandingsBundle: Sendable {
     let result: StandingsResult
-    let podium: Podium?
+    let podiums: [BracketPodium]
     let classification: Classification?
+}
+
+// MARK: - Ranking (final placement across brackets)
+
+struct RankingResponse: Codable, Sendable {
+    let tournamentId: Int
+    let tournamentName: String
+    let available: Bool
+    let ranking: [RankingEntry]
+
+    enum CodingKeys: String, CodingKey {
+        case tournamentId = "tournament_id"
+        case tournamentName = "tournament_name"
+        case available
+        case ranking
+    }
+
+    init(tournamentId: Int, tournamentName: String, available: Bool, ranking: [RankingEntry]) {
+        self.tournamentId = tournamentId
+        self.tournamentName = tournamentName
+        self.available = available
+        self.ranking = ranking
+    }
+
+    // Tolerant: default available=false and ranking=[] if the API omits them.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        tournamentId = try c.decodeIfPresent(Int.self, forKey: .tournamentId) ?? 0
+        tournamentName = try c.decodeIfPresent(String.self, forKey: .tournamentName) ?? ""
+        available = try c.decodeIfPresent(Bool.self, forKey: .available) ?? false
+        ranking = try c.decodeIfPresent([RankingEntry].self, forKey: .ranking) ?? []
+    }
+}
+
+struct RankingEntry: Codable, Sendable, Identifiable, Hashable {
+    let place: Int
+    let teamId: Int
+    let teamSeasonId: Int
+    let teamName: String
+    let teamLogo: String?
+    let bracketName: String?
+    let stageLabel: String?
+
+    var id: Int { teamSeasonId }
+
+    enum CodingKeys: String, CodingKey {
+        case place
+        case teamId = "team_id"
+        case teamSeasonId = "team_season_id"
+        case teamName = "team_name"
+        case teamLogo = "team_logo"
+        case bracketName = "bracket_name"
+        case stageLabel = "stage_label"
+    }
 }
 
 // Group Standing Model
@@ -510,21 +572,21 @@ final class APIService: Sendable {
                     // Single group named "DEFAULT" means no real groups — treat as flat
                     if groups.count == 1, groups[0].name.uppercased() == "DEFAULT" {
                         print("✅ Decoded standings as flat (single DEFAULT group)")
-                        return StandingsBundle(result: .flat(groups[0].standings), podium: response.podium, classification: response.classification)
+                        return StandingsBundle(result: .flat(groups[0].standings), podiums: response.podiums ?? [], classification: response.classification)
                     }
                     print("✅ Decoded standings as group standings")
-                    return StandingsBundle(result: .groups(groups), podium: response.podium, classification: response.classification)
+                    return StandingsBundle(result: .groups(groups), podiums: response.podiums ?? [], classification: response.classification)
                 }
                 if let standings = response.standings, !standings.isEmpty {
                     print("✅ Decoded standings as wrapped response")
-                    return StandingsBundle(result: .flat(standings), podium: response.podium, classification: response.classification)
+                    return StandingsBundle(result: .flat(standings), podiums: response.podiums ?? [], classification: response.classification)
                 }
             }
 
             // Fallback: Try to decode as direct array
             if let standings = try? decoder.decode([TeamStanding].self, from: data) {
                 print("✅ Decoded standings as direct array")
-                return StandingsBundle(result: .flat(standings), podium: nil, classification: nil)
+                return StandingsBundle(result: .flat(standings), podiums: [], classification: nil)
             }
 
             // If neither worked, throw detailed error
@@ -559,6 +621,17 @@ final class APIService: Sendable {
         }
     }
     
+    func fetchRanking(for tournamentId: Int) async throws -> RankingResponse {
+        guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/ranking.json") else {
+            throw APIError.invalidURL
+        }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+            throw APIError.invalidResponse
+        }
+        return try JSONDecoder().decode(RankingResponse.self, from: data)
+    }
+
     func fetchGames(for tournamentId: Int) async throws -> [Game] {
         guard let url = URL(string: "\(APIConfig.apiURL)/tournaments/\(tournamentId)/games.json") else {
             throw APIError.invalidURL
