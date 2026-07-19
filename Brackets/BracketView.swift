@@ -115,17 +115,39 @@ struct BracketView: View {
         }
     }
 
+    /// Number of density lines drawn in a stage's selector icon (decreasing as the
+    /// bracket narrows). The Final uses a trophy instead.
+    private func stageLineCount(_ name: String) -> Int {
+        switch name {
+        case "16vos de Final": return 8
+        case "Octavos de Final": return 6
+        case "Cuartos de Final": return 4
+        case "Semifinal": return 2
+        default: return 3
+        }
+    }
+
+    private func stageItems() -> [StageItem] {
+        rounds.map { round in
+            StageItem(
+                label: roundLabel(round.name),
+                lineCount: stageLineCount(round.name),
+                isFinal: round.name == "Final"
+            )
+        }
+    }
+
     // MARK: - Content
 
     @ViewBuilder
     private func bracketContent() -> some View {
-        let labels = rounds.map { roundLabel($0.name) }
+        let stages = stageItems()
         // GeometryReader bounds this whole area to the screen width, so the wide
         // rounds HStack can't expand the layout (which would otherwise stretch the
         // StageSelector's own GeometryReader and shift the columns).
         GeometryReader { geo in
             VStack(spacing: 0) {
-                StageSelector(labels: labels, windowProgress: $windowProgress, maxWindow: maxWindow)
+                StageSelector(stages: stages, windowProgress: $windowProgress, maxWindow: maxWindow)
                     .padding(.horizontal, AppTheme.Layout.screenPadding)
                     .padding(.top, AppTheme.Spacing.medium)
                     .padding(.bottom, 12)
@@ -736,50 +758,78 @@ private struct BracketLiveBadge: View {
 
 // MARK: - Stage Selector
 
-/// Apple Sports–style stage bar: a row of stage labels with a draggable 2-wide
-/// highlight marking the two stages currently visible. Bound to the same
-/// `windowProgress` the bracket content uses, so selector-drag and content-swipe
-/// stay in sync.
+/// One stage in the selector: its label, the number of density lines to draw in
+/// its icon, and whether it's the Final (drawn as a trophy).
+struct StageItem: Hashable {
+    let label: String
+    let lineCount: Int
+    let isFinal: Bool
+}
+
+/// Apple Sports–style stage bar: a row of stage labels above a track of density
+/// icons (trophy for the Final), with a frosted 2-wide window that marks the two
+/// visible stages. Bound to the same `windowProgress` the bracket content uses, so
+/// selector-drag and content-swipe stay in sync.
 struct StageSelector: View {
-    let labels: [String]
+    let stages: [StageItem]
     @Binding var windowProgress: CGFloat
     let maxWindow: CGFloat
 
     @State private var dragStart: CGFloat?
 
     var body: some View {
+        VStack(spacing: 8) {
+            labelsRow
+            iconTrack
+        }
+    }
+
+    // Stage labels (the two under the window are highlighted).
+    private var labelsRow: some View {
         GeometryReader { geo in
-            let n = max(labels.count, 1)
-            let segW = geo.size.width / CGFloat(n)
+            let segW = geo.size.width / CGFloat(max(stages.count, 1))
+            HStack(spacing: 0) {
+                ForEach(Array(stages.enumerated()), id: \.offset) { i, stage in
+                    Text(stage.label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(isActive(i) ? AppTheme.Colors.primaryText : Color(white: 0.45))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(width: segW)
+                }
+            }
+        }
+        .frame(height: 18)
+    }
+
+    // Icon track with the frosted sliding window and chevrons.
+    private var iconTrack: some View {
+        GeometryReader { geo in
+            let segW = geo.size.width / CGFloat(max(stages.count, 1))
             let h = geo.size.height
 
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(white: 0.10))
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(white: 0.08))
 
-                // 2-wide highlight window with chevron affordances
-                HStack {
+                // Frosted 2-wide window with chevron affordances (behind the icons).
+                HStack(spacing: 0) {
                     Image(systemName: "chevron.left")
                     Spacer()
                     Image(systemName: "chevron.right")
                 }
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(maxWindow > 0 ? Color(white: 0.7) : .clear)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 6)
                 .frame(width: segW * 2, height: h - 8)
-                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
-                .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(AppTheme.Colors.accent, lineWidth: 2))
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(white: 0.2)))
                 .offset(x: windowProgress * segW)
 
-                // Stage labels (drawn over the highlight)
+                // Density icons, drawn over the window so the active ones read dark.
                 HStack(spacing: 0) {
-                    ForEach(Array(labels.enumerated()), id: \.offset) { i, label in
-                        Text(label)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(isActive(i) ? AppTheme.Colors.primaryText : Color(white: 0.45))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .frame(width: segW)
+                    ForEach(Array(stages.enumerated()), id: \.offset) { i, stage in
+                        stageIcon(stage, active: isActive(i))
+                            .frame(width: segW, height: h)
                     }
                 }
             }
@@ -788,6 +838,23 @@ struct StageSelector: View {
             .gesture(dragGesture(segW: segW))
         }
         .frame(height: 44)
+    }
+
+    @ViewBuilder
+    private func stageIcon(_ stage: StageItem, active: Bool) -> some View {
+        if stage.isFinal {
+            Image(systemName: "trophy.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(active ? Color(red: 0.98, green: 0.74, blue: 0.18) : Color(white: 0.5))
+        } else {
+            VStack(spacing: 2) {
+                ForEach(0..<max(stage.lineCount, 1), id: \.self) { _ in
+                    Capsule()
+                        .fill(active ? Color(white: 0.9) : Color(white: 0.5))
+                        .frame(width: 18, height: 1.5)
+                }
+            }
+        }
     }
 
     private func isActive(_ i: Int) -> Bool {
@@ -813,10 +880,16 @@ struct StageSelector: View {
 
 #Preview("Stage selector") {
     struct Wrap: View {
-        @State var progress: CGFloat = 0
+        @State var progress: CGFloat = 3
         var body: some View {
             StageSelector(
-                labels: ["16vos", "8vos", "4tos", "Semis", "Final"],
+                stages: [
+                    StageItem(label: "16vos", lineCount: 8, isFinal: false),
+                    StageItem(label: "8vos", lineCount: 6, isFinal: false),
+                    StageItem(label: "4tos", lineCount: 4, isFinal: false),
+                    StageItem(label: "Semis", lineCount: 2, isFinal: false),
+                    StageItem(label: "Final", lineCount: 0, isFinal: true),
+                ],
                 windowProgress: $progress,
                 maxWindow: 3
             )
