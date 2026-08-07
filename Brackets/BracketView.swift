@@ -104,6 +104,13 @@ struct BracketView: View {
         step0 * (pow(2, d) - 1) / 2
     }
 
+    /// Pair separation for a condensed column: cards within a pair (2j, 2j+1) move
+    /// closer by this amount and the gap to the next pair widens by it. Fades to 0
+    /// as the column spreads out (d → 1), so it only affects the left column.
+    private func pairDelta(_ d: CGFloat) -> CGFloat {
+        14 * (1 - d)
+    }
+
     private func roundLabel(_ name: String) -> String {
         switch name {
         case "16vos de Final": return "16vos"
@@ -223,8 +230,9 @@ struct BracketView: View {
 
     private func roundColumn(round: BracketRound, roundIndex: Int) -> some View {
         let d = distance(roundIndex)
-        let topOffset = topPad(d)
-        let spacing = spacing(d)
+        let delta = pairDelta(d)
+        let topOffset = topPad(d) + delta / 2
+        let baseGap = spacing(d)
 
         let isLastRound = roundIndex == rounds.count - 1
 
@@ -237,9 +245,13 @@ struct BracketView: View {
                         .padding(.bottom, 10)
                 }
 
-                VStack(spacing: spacing) {
-                    ForEach(Array(round.matchups.enumerated()), id: \.offset) { _, matchup in
+                VStack(spacing: 0) {
+                    ForEach(Array(round.matchups.enumerated()), id: \.offset) { i, matchup in
                         matchupCard(matchup: matchup)
+                        if i < round.matchups.count - 1 {
+                            // Cards 2j/2j+1 sit close (a pair); wider gap to the next pair.
+                            Spacer().frame(height: i.isMultiple(of: 2) ? baseGap - delta : baseGap + delta)
+                        }
                     }
                 }
 
@@ -410,14 +422,17 @@ struct BracketView: View {
     // MARK: - Connector Lines
 
     private func connectorsColumn(roundIndex: Int, matchups: [BracketMatchup]) -> some View {
-        let spacing = spacing(distance(roundIndex))
+        let d = distance(roundIndex)
+        let delta = pairDelta(d)
+        let intraGap = spacing(d) - delta   // within a pair (matches the card layout)
+        let interGap = spacing(d) + delta   // between pairs
         let cardH = matchupCardHeight
         let pairCount = matchups.count / 2
 
         return VStack(spacing: 0) {
             ForEach(0..<max(pairCount, 1), id: \.self) { i in
-                connectorPair(cardHeight: cardH, spacing: spacing)
-                    .padding(.bottom, i < pairCount - 1 ? spacing : 0)
+                connectorPair(cardHeight: cardH, spacing: intraGap)
+                    .padding(.bottom, i < pairCount - 1 ? interGap : 0)
             }
         }
         .frame(width: connectorWidth)
