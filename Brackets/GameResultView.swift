@@ -9,6 +9,8 @@ struct GameResultView: View {
     let game: Game
     let tournamentId: Int
     var tournamentName: String? = nil
+    /// Drives the share card's right-edge label; falls back to the stage when absent.
+    var gender: Gender? = nil
     @Environment(\.dismiss) private var dismiss
 
     @State private var gameDetail: GameDetailResponse?
@@ -43,6 +45,9 @@ struct GameResultView: View {
                                 }
                         }
                         Spacer()
+                        if let detail = gameDetail {
+                            ShareGameButton(detail: detail, tournamentName: tournamentName, gender: gender)
+                        }
                     }
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)

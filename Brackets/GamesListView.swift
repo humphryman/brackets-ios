@@ -211,7 +211,7 @@ struct GamesListView: View {
                                                     .buttonStyle(.plain)
                                                 } else if game.isFinished {
                                                     NavigationLink {
-                                                        GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
+                                                        GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name, gender: tournament.gender)
                                                     } label: {
                                                         GameCard(game: game)
                                                             .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -219,7 +219,7 @@ struct GamesListView: View {
                                                     .buttonStyle(.plain)
                                                 } else {
                                                     NavigationLink {
-                                                        UpcomingGameView(game: game, tournamentId: tournament.id)
+                                                        UpcomingGameView(game: game, tournamentId: tournament.id, gender: tournament.gender)
                                                     } label: {
                                                         GameCard(game: game)
                                                             .padding(.horizontal, AppTheme.Layout.screenPadding)

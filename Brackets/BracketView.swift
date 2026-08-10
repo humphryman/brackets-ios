@@ -329,9 +329,9 @@ struct BracketView: View {
                 if game.isLive {
                     LiveGameDetailView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
                 } else if game.isFinished {
-                    GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name)
+                    GameResultView(game: game, tournamentId: tournament.id, tournamentName: tournament.name, gender: tournament.gender)
                 } else {
-                    UpcomingGameView(game: game, tournamentId: tournament.id)
+                    UpcomingGameView(game: game, tournamentId: tournament.id, gender: tournament.gender)
                 }
             } label: {
                 card

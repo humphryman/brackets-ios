@@ -38,9 +38,10 @@ enum AppConfig {
         static let customersAPIURL: String = "https://getbrackets.app/api/v1/customers"
         static let customersAPIToken = "96cd10d4e7a3d0be2babc010c30dbb725f82f788978f2ec9a02e5cc4ef167657"
 
-        // Network timeouts
-        static let requestTimeout: TimeInterval = 30
-        static let resourceTimeout: TimeInterval = 60
+        // Network timeouts. `nonisolated` so non-MainActor callers (e.g. ShareImageLoader,
+        // an actor) can build a URLSession configuration without hopping to the main actor.
+        nonisolated static let requestTimeout: TimeInterval = 30
+        nonisolated static let resourceTimeout: TimeInterval = 60
     }
     
     // MARK: - Design System
@@ -167,6 +168,33 @@ enum AppConfig {
         // Pagination
         static let defaultPageSize = 20
         static let maxPageSize = 100
+    }
+
+    // MARK: - Sharing
+
+    enum Sharing {
+        /// Facebook App ID required by Instagram's story-sharing deep link.
+        /// Replace with the real ID — an empty value makes the Instagram button
+        /// fall back to the system share sheet.
+        static let facebookAppID = ""
+
+        /// Design size of a share card, in points. Rendered at `renderScale` to reach
+        /// Instagram's 1080 × 1920 story canvas. Designing at 360pt keeps type sizes
+        /// natural instead of doing arithmetic in 1080pt space.
+        static let cardSize = CGSize(width: 360, height: 640)
+
+        /// 360 × 640 @ 3x == 1080 × 1920 px (9:16).
+        static let renderScale: CGFloat = 3
+
+        /// How long the rendered image stays on the pasteboard for Instagram to pick up.
+        static let pasteboardExpiration: TimeInterval = 300
+
+        static let websiteLabel = "getbrackets.app"
+
+        static var instagramStoriesURL: URL? {
+            guard !facebookAppID.isEmpty else { return nil }
+            return URL(string: "instagram-stories://share?source_application=\(facebookAppID)")
+        }
     }
 }
 

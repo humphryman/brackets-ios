@@ -702,11 +702,17 @@ private struct PodiumCard: View {
 #Preview("Group card") {
     ZStack {
         Color.black.ignoresSafeArea()
-        let sample = (1...4).map { i in
-            TeamStanding(
-                id: i, teamName: "Equipo \(i)", total: 5, wins: 5 - i, losses: i - 1,
-                pointsFor: 400 + i, pointsAgainst: 380 + i, tie: 0, diff: 20 - i,
-                avg: 1.1 - Double(i) / 20.0, tieBreaker: nil, tiebreaker: nil, teamLogo: nil
+        let sample: [TeamStanding] = (1...4).map { (i: Int) -> TeamStanding in
+            let wins: Int = 5 - i
+            let losses: Int = i - 1
+            let pointsFor: Int = 400 + i
+            let pointsAgainst: Int = 380 + i
+            let diff: Int = 20 - i
+            let avg: Double = 1.1 - Double(i) / 20.0
+            return TeamStanding(
+                id: i, teamName: "Equipo \(i)", total: 5, wins: wins, losses: losses,
+                pointsFor: pointsFor, pointsAgainst: pointsAgainst, tie: 0, diff: diff,
+                avg: avg, tieBreaker: nil, tiebreaker: nil, teamLogo: nil
             )
         }
         GroupStandingsCard(
