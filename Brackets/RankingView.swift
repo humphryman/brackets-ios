@@ -139,6 +139,10 @@ struct RankingButton: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.black)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(Color(red: 26 / 255, green: 23 / 255, blue: 211 / 255), lineWidth: 1.5)
