@@ -176,7 +176,7 @@ enum AppConfig {
         /// Facebook App ID required by Instagram's story-sharing deep link.
         /// Replace with the real ID — an empty value makes the Instagram button
         /// fall back to the system share sheet.
-        static let facebookAppID = ""
+        static let facebookAppID = "1594301755443784"
 
         /// Design size of a share card, in points. Rendered at `renderScale` to reach
         /// Instagram's 1080 × 1920 story canvas. Designing at 360pt keeps type sizes
