@@ -80,13 +80,33 @@ struct TournamentWinner: Codable, Sendable, Hashable {
 enum Gender: Int, Codable, CaseIterable, Sendable {
     case male = 0
     case female = 1
-    
+    case mixed = 2
+    // Fallback for any future/unrecognized gender value from the API.
+    // Excluded from `allCases` so it never surfaces as a gender tab.
+    case unknown = -1
+
+    static var allCases: [Gender] {
+        [.male, .female, .mixed]
+    }
+
+    // Tolerant decoding: unrecognized raw values become `.unknown`
+    // instead of throwing and aborting the whole tournaments decode.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(Int.self)
+        self = Gender(rawValue: rawValue) ?? .unknown
+    }
+
     var displayName: String {
         switch self {
         case .male:
             return "Varonil"
         case .female:
             return "Femenil"
+        case .mixed:
+            return "Mixto"
+        case .unknown:
+            return "Otro"
         }
     }
 }

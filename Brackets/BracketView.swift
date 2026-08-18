@@ -862,11 +862,11 @@ struct StageSelector: View {
                 .font(.system(size: 14))
                 .foregroundStyle(active ? Color(red: 0.98, green: 0.74, blue: 0.18) : Color(white: 0.5))
         } else {
-            VStack(spacing: 2) {
+            VStack(spacing: 1.5) {
                 ForEach(0..<max(stage.lineCount, 1), id: \.self) { _ in
                     Capsule()
                         .fill(active ? Color(white: 0.9) : Color(white: 0.5))
-                        .frame(width: 18, height: 1.5)
+                        .frame(width: 18, height: 1)
                 }
             }
         }
