@@ -189,7 +189,7 @@ enum AppConfig {
         /// How long the rendered image stays on the pasteboard for Instagram to pick up.
         static let pasteboardExpiration: TimeInterval = 300
 
-        static let websiteLabel = "getbrackets.app"
+        static let websiteLabel = "@bracketsApp"
 
         static var instagramStoriesURL: URL? {
             guard !facebookAppID.isEmpty else { return nil }

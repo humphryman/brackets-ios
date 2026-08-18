@@ -18,6 +18,7 @@ struct UpcomingGameView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var selectedTeamIndex: Int = 0
+    @State private var isSharePresented = false
 
     var body: some View {
         ZStack {
@@ -45,9 +46,6 @@ struct UpcomingGameView: View {
                                 }
                         }
                         Spacer()
-                        if let detail = gameDetail {
-                            ShareGameButton(detail: detail, gender: gender)
-                        }
                     }
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -84,6 +82,13 @@ struct UpcomingGameView: View {
         .navigationBarHidden(true)
         .task {
             await loadGameDetail()
+        }
+        .sheet(isPresented: $isSharePresented) {
+            if let detail = gameDetail {
+                ShareGameSheet(detail: detail, tournamentName: nil, gender: gender)
+                    .presentationDetents([.large])
+                    .presentationBackground(AppTheme.Colors.background)
+            }
         }
     }
 
@@ -178,6 +183,8 @@ struct UpcomingGameView: View {
             if let venue = detail.game.venue {
                 VenueLabel(venue: venue)
             }
+
+            shareGameButton
         }
         .padding(AppTheme.Layout.cardPadding)
         .background(
@@ -185,6 +192,31 @@ struct UpcomingGameView: View {
                 .fill(Color(white: 0.1))
                 .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
         )
+    }
+
+    private var shareGameButton: some View {
+        Button {
+            isSharePresented = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+                    // The glyph's arrow makes it sit visually low; nudge up to centre it.
+                    .offset(y: -1)
+                Text("Compartir juego")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(AppTheme.Colors.primaryText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                    .fill(Color(red: 40.0 / 255.0, green: 40.0 / 255.0, blue: 40.0 / 255.0))
+                    .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
     }
 
     // MARK: - Section 2: Key Stats

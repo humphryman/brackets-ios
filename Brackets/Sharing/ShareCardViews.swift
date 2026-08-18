@@ -88,12 +88,16 @@ struct ScoreboardShareCard: View {
                 if model.isUpcoming {
                     upcomingStack
                 } else {
-                    ShareTeamLogo(image: model.teamALogo, name: model.teamAName, size: 92)
+                    ShareTeamLogo(image: model.teamALogo, name: model.teamAName, size: 76)
+                    scoreName(model.teamAName, isWinner: model.isWinner(.a))
+                        .padding(.top, 3)
                     numeral(model.teamAScore, isWinner: model.isWinner(.a))
                     RuleLabel(text: "Score Final", fill: AppTheme.Colors.accent, textColor: .black, ruleColor: AppTheme.Colors.accent)
                         .padding(.vertical, 2)
                     numeral(model.teamBScore, isWinner: model.isWinner(.b))
-                    ShareTeamLogo(image: model.teamBLogo, name: model.teamBName, size: 92)
+                    scoreName(model.teamBName, isWinner: model.isWinner(.b))
+                        .padding(.bottom, 3)
+                    ShareTeamLogo(image: model.teamBLogo, name: model.teamBName, size: 76)
                 }
 
                 Spacer(minLength: 0)
@@ -118,6 +122,18 @@ struct ScoreboardShareCard: View {
             // Barlow Condensed carries a lot of built-in leading; pull the numerals in
             // so they nearly touch the rule, as in the reference.
             .padding(.vertical, -14)
+    }
+
+    /// Small team name sitting between the crest and its score. Matches the score's
+    /// colour so each team's name, score and win/loss state read as one unit.
+    private func scoreName(_ name: String, isWinner: Bool) -> some View {
+        Text(name.uppercased())
+            .font(ShareFont.condensed(.semibold, size: 18))
+            .foregroundStyle(isWinner ? .white : Color.white.opacity(0.55))
+            .multilineTextAlignment(.center)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Symmetric matchup: each team's crest sits directly with its own name, the date rule
@@ -468,11 +484,13 @@ private struct ShareBrandMark: View {
                 .clipShape(Circle())
 
             Text(AppConfig.Sharing.websiteLabel)
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(tint.opacity(0.75))
                 .lineLimit(1)
                 .fixedSize()
         }
+        // Shift the whole mark right; the logo stays centred over the handle.
+        .offset(x: 32)
     }
 }
 

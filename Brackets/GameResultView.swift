@@ -18,6 +18,7 @@ struct GameResultView: View {
     @State private var errorMessage: String?
     @State private var selectedTeamIndex: Int = 0
     @State private var selectedStatIndex: Int = 0
+    @State private var isSharePresented = false
 
     var body: some View {
         ZStack {
@@ -45,9 +46,6 @@ struct GameResultView: View {
                                 }
                         }
                         Spacer()
-                        if let detail = gameDetail {
-                            ShareGameButton(detail: detail, tournamentName: tournamentName, gender: gender)
-                        }
                     }
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -86,6 +84,13 @@ struct GameResultView: View {
         .navigationBarHidden(true)
         .task {
             await loadGameDetail()
+        }
+        .sheet(isPresented: $isSharePresented) {
+            if let detail = gameDetail {
+                ShareGameSheet(detail: detail, tournamentName: tournamentName, gender: gender)
+                    .presentationDetents([.large])
+                    .presentationBackground(AppTheme.Colors.background)
+            }
         }
     }
 
@@ -203,6 +208,8 @@ struct GameResultView: View {
             if let venue = detail.game.venue {
                 VenueLabel(venue: venue)
             }
+
+            shareResultButton
         }
         .padding(AppTheme.Layout.cardPadding)
         .background(
@@ -210,6 +217,31 @@ struct GameResultView: View {
                 .fill(Color(white: 0.1))
                 .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
         )
+    }
+
+    private var shareResultButton: some View {
+        Button {
+            isSharePresented = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 14, weight: .semibold))
+                    // The glyph's arrow makes it sit visually low; nudge up to centre it.
+                    .offset(y: -1)
+                Text("Compartir resultado")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundStyle(AppTheme.Colors.primaryText)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                    .fill(Color(red: 40.0 / 255.0, green: 40.0 / 255.0, blue: 40.0 / 255.0))
+                    .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 4)
     }
 
     // MARK: - Section 2: Player Stats
