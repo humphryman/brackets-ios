@@ -230,7 +230,9 @@ struct SpotlightShareCard: View {
     /// Name over score, with the crest tucked beside the name — the score is the anchor,
     /// so it gets the largest optical size on the card.
     private func teamBlock(name: String, logo: UIImage?, score: Int?, isWinner: Bool) -> some View {
-        let ink = isWinner ? Color.black : Color.black.opacity(0.5)
+        // Loser drops to a muted olive (#3F6212) instead of dimmed black, so it reads
+        // as recessed against the lime panel while staying legible.
+        let ink = isWinner ? Color.black : Color(red: 0.247, green: 0.384, blue: 0.071)
 
         return VStack(alignment: .leading, spacing: -10) {
             HStack(spacing: 10) {
