@@ -7,6 +7,7 @@ import SwiftUI
 
 struct BracketView: View {
     let tournament: Tournament
+    @Environment(\.openURL) private var openURL
     @State private var games: [Game] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -76,7 +77,7 @@ struct BracketView: View {
     // MARK: - Layout Constants
 
     private let matchupCardWidth: CGFloat = 180
-    private let matchupCardHeight: CGFloat = 118
+    private let matchupCardHeight: CGFloat = 153
     private let connectorWidth: CGFloat = 36
 
     private var columnWidth: CGFloat {
@@ -314,8 +315,20 @@ struct BracketView: View {
                 placeholderName: matchup.awayPlaceholder
             )
 
+            // Footer: venue (Maps link when coords exist)
+            if let venue = matchup.venue {
+                Rectangle()
+                    .fill(Color(white: 0.2))
+                    .frame(height: 1)
+                    .padding(.top, 6)
+                venueRow(venue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 6)
+                    .padding(.bottom, 10)
+            }
         }
-        .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: matchup.scheduledTime == nil ? .center : .top)
+        .frame(width: matchupCardWidth, height: matchupCardHeight, alignment: (matchup.scheduledTime == nil && matchup.venue == nil) ? .center : .top)
         .background(Color(white: 0.09))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(alignment: .top) {
@@ -394,6 +407,37 @@ struct BracketView: View {
                     .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(isWinner ? AppTheme.Colors.accentText : Color(white: 0.5))
             )
+    }
+
+    @ViewBuilder
+    private func venueRow(_ venue: Venue) -> some View {
+        if let mapsURL = venue.googleMapsURL {
+            Button {
+                openURL(mapsURL)
+            } label: {
+                venueContent(venue, linked: true)
+            }
+            .buttonStyle(.plain)
+        } else {
+            venueContent(venue, linked: false)
+        }
+    }
+
+    private func venueContent(_ venue: Venue, linked: Bool) -> some View {
+        HStack(spacing: 3) {
+            if linked {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 10))
+                    .foregroundStyle(AppTheme.Colors.accent)
+            }
+            Text(venue.name)
+                .font(.system(size: 11))
+                .foregroundStyle(linked ? AppTheme.Colors.accent : Color(white: 0.45))
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
     }
 
     @ViewBuilder

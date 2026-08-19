@@ -176,17 +176,6 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                // Stage badge — top right
-                if let stage = tournament.stage {
-                    Text(stage)
-                        .font(.system(size: 11, weight: .bold))
-                        .italic()
-                        .foregroundStyle(AppTheme.Colors.accentText)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
-                        .padding(10)
-                }
             }
             .frame(maxWidth: .infinity)
             .frame(height: 140)
