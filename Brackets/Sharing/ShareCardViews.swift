@@ -490,7 +490,7 @@ private struct ShareBrandMark: View {
                 .fixedSize()
         }
         // Shift the whole mark right; the logo stays centred over the handle.
-        .offset(x: 32)
+        .offset(x: 12)
     }
 }
 
