@@ -360,30 +360,9 @@ struct UpcomingGameView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Segmented team tab selector
-                HStack(spacing: 0) {
-                    ForEach(Array(teams.enumerated()), id: \.element.id) { index, team in
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                selectedTeamIndex = index
-                            }
-                        } label: {
-                            Text(team.teamName.uppercased())
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(selectedTeamIndex == index ? AppTheme.Colors.accentText : Color(white: 0.5))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    Capsule()
-                                        .fill(selectedTeamIndex == index ? AppTheme.Colors.accent : Color.clear)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(3)
-                .background(
-                    Capsule()
-                        .fill(Color(white: 0.18))
+                SegmentedController(
+                    segments: teams.map { $0.teamName.uppercased() },
+                    selection: $selectedTeamIndex
                 )
 
                 // Player grid

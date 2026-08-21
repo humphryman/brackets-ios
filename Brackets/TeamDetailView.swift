@@ -9,14 +9,6 @@ enum TeamDetailTab: String, CaseIterable {
     case games = "Juegos"
     case players = "Jugadores"
     case stats = "Stats"
-
-    var icon: String {
-        switch self {
-        case .games: return "basketball"
-        case .players: return "person.3"
-        case .stats: return "chart.bar"
-        }
-    }
 }
 
 struct TeamDetailView: View {
@@ -26,7 +18,6 @@ struct TeamDetailView: View {
     var rank: Int = 0
     @Environment(\.dismiss) private var dismiss
     @State private var selectedTab: TeamDetailTab = .games
-    @Namespace private var tabAnimation
     @State private var teamSeason: TeamSeasonDetail?
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -96,38 +87,7 @@ struct TeamDetailView: View {
     // MARK: - Tab Selector
 
     private var tabSelector: some View {
-        HStack(spacing: 0) {
-            ForEach(TeamDetailTab.allCases, id: \.self) { tab in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedTab = tab
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(tab.rawValue)
-                            .font(.system(size: 14, weight: .bold))
-                    }
-                    .foregroundStyle(selectedTab == tab ? AppTheme.Colors.accentText : Color(white: 0.5))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background {
-                        if selectedTab == tab {
-                            Capsule()
-                                .fill(AppTheme.Colors.accent)
-                                .matchedGeometryEffect(id: "teamTab", in: tabAnimation)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(3)
-        .background(
-            Capsule()
-                .fill(Color(white: 0.18))
-        )
+        SegmentedController(options: TeamDetailTab.allCases, selection: $selectedTab) { $0.rawValue }
     }
 
     // MARK: - Tab Content

@@ -54,6 +54,25 @@ struct AppTheme {
         /// Elevated surface fill used behind tiles and image placeholders
         /// Hex: #141414
         static let surface = Color(red: 20/255, green: 20/255, blue: 20/255)
+
+        // MARK: Design-system palette
+        // Values come from the Figma Design System file (Segmented Controller,
+        // node 115:124). Named after their Figma variables so the two stay traceable.
+
+        /// `color/gray-300` — label of an unselected segment. Hex: #D1D5DB
+        static let gray300 = Color(red: 209/255, green: 213/255, blue: 219/255)
+
+        /// `color/gray-600` — hairline around a segmented track. Hex: #4B5563
+        static let gray600 = Color(red: 75/255, green: 85/255, blue: 99/255)
+
+        /// `color/gray-700` — segmented track fill. Hex: #252525, same value as `outline`.
+        static let gray700 = outline
+
+        /// `color/sky/sky-900` — selection accent. Hex: #1A17D3
+        static let sky900 = Color(red: 26/255, green: 23/255, blue: 211/255)
+
+        /// `color/sky/sky-900-26%` — fill behind a selected segment. Hex: #1A17D3 at 26%
+        static let sky900Muted = sky900.opacity(0.26)
     }
     
     // MARK: - Typography

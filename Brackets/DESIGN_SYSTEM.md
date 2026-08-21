@@ -68,6 +68,12 @@ VStack {
   - Usage: Badges, highlights, winner indicators, interactive elements
   - This is the signature color of the app - use it for emphasis!
 
+#### Design-system palette
+
+Values mirrored from the Figma Design System file, named after their Figma variables:
+`gray300` (#D1D5DB), `gray600` (#4B5563), `gray700` (#252525, same value as `outline`),
+`sky900` (#1A17D3) and `sky900Muted` (`sky900` at 26%).
+
 #### Backgrounds
 - **Primary**: Black (`#000000`)
 - **Secondary**: Dark Gray (`rgb(0.12, 0.12, 0.12)`)
@@ -150,6 +156,17 @@ AppTheme.ScreenHeader(title: "Resultado", onLeading: { dismiss() })
 // Custom tint, or a close button instead of a back chevron
 AppTheme.ScreenHeader(title: "En Vivo", tint: .red, onLeading: { dismiss() })
 AppTheme.ScreenHeader(title: "Compartir", leadingIcon: "xmark", onLeading: { dismiss() })
+```
+
+### SegmentedController
+Two or three mutually exclusive options on a dark track — from the Figma Design System
+(node `115:124`). The selected segment is a `sky900Muted` fill with a 2pt `sky900` border
+and a white label; the others are plain `gray300` labels. `width: .fill` (default) spans
+the parent and splits it evenly between segments; `width: .intrinsic` hugs the labels.
+
+```swift
+SegmentedController(segments: teams.map(\.teamName), selection: $selectedTeamIndex)
+SegmentedController(segments: ["Label", "Label", "Label"], selection: $index, width: .intrinsic)
 ```
 
 ### AppTheme.PositionCircle
