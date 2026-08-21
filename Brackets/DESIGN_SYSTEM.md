@@ -97,6 +97,20 @@ VStack {
 | Small Caption | 12pt | Semibold | Labels, stats |
 | Tiny Caption | 10pt | Semibold | Tiny labels |
 
+#### Barlow Condensed
+
+Screen titles use Barlow Condensed (registered at runtime by `ShareFont`, falls back to
+the system font). It reads smaller than the system font at the same point size, so the
+title sizes run larger than the system sizes they replaced.
+
+Every screen title is the same size — `AppTheme.HeaderMetrics.titleSize` (32pt SemiBold) —
+and uppercased.
+
+```swift
+Text("Ligas Activas".uppercased())
+    .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
+```
+
 ### Spacing Scale
 
 | Name | Value | Usage |
@@ -120,6 +134,23 @@ VStack {
 | Max (Pill) | 1000pt | Capsule shapes |
 
 ## Reusable Components
+
+### AppTheme.ScreenHeader
+Standard screen title bar: leading control, centered Barlow Condensed title (uppercased),
+optional trailing control. The title is centered on the **full** width of the bar — it
+sits in its own layer instead of in a row with the controls, so its center never depends
+on which controls are present. `HeaderMetrics.titleInset` keeps it clear of them: a long
+title shrinks to 80% to try to fit, then truncates with an ellipsis, so it can never slide
+under the back button. Padding stays with the caller.
+
+```swift
+AppTheme.ScreenHeader(title: "Resultado", onLeading: { dismiss() })
+    .padding(.horizontal, AppTheme.Layout.screenPadding)
+
+// Custom tint, or a close button instead of a back chevron
+AppTheme.ScreenHeader(title: "En Vivo", tint: .red, onLeading: { dismiss() })
+AppTheme.ScreenHeader(title: "Compartir", leadingIcon: "xmark", onLeading: { dismiss() })
+```
 
 ### AppTheme.PositionCircle
 Displays a position number in a lime green circle.

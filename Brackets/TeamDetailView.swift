@@ -57,34 +57,11 @@ struct TeamDetailView: View {
 
             VStack(spacing: 0) {
                 // Header
-                ZStack {
-                    // Centered title
-                    Text("Detalle de Equipo")
-                        .font(AppTheme.Typography.headline)
-                        .foregroundStyle(AppTheme.Colors.primaryText)
-
-                    // Back button — leading
-                    HStack {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Circle()
-                                .fill(Color.white.opacity(0.08))
-                                .frame(width: 36, height: 36)
-                                .overlay {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(AppTheme.Colors.primaryText)
-                                }
-                        }
-
-                        Spacer()
-                    }
-                }
-                .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.top, AppTheme.Layout.large)
-                .padding(.bottom, AppTheme.Layout.itemSpacing)
-                .zIndex(1)
+                AppTheme.ScreenHeader(title: "Detalle de Equipo", onLeading: { dismiss() })
+                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    .padding(.top, AppTheme.Layout.large)
+                    .padding(.bottom, AppTheme.Layout.itemSpacing)
+                    .zIndex(1)
 
                 VStack(spacing: AppTheme.Spacing.large) {
                     teamHeroCard

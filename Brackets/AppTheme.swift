@@ -72,6 +72,12 @@ struct AppTheme {
         static let caption = Font.system(size: 14, weight: .regular)
         static let smallCaption = Font.system(size: 12, weight: .semibold)
         static let tinyCaption = Font.system(size: 10, weight: .semibold)
+
+        /// Barlow Condensed — screen titles and section titles.
+        /// Registered at runtime by `ShareFont`; falls back to the system font.
+        static func condensed(_ weight: ShareFont.Weight, size: CGFloat) -> Font {
+            ShareFont.condensed(weight, size: size)
+        }
     }
     
     // MARK: - Spacing
@@ -234,6 +240,85 @@ extension AppTheme {
         }
     }
     
+    // MARK: Screen Header
+
+    /// Metrics shared by every screen header.
+    enum HeaderMetrics {
+        /// Side of the circular leading/trailing controls.
+        static let control: CGFloat = 36
+
+        /// Screen title size. Barlow Condensed reads smaller than the system font at the
+        /// same point size, so this runs larger than the sizes it replaced.
+        static let titleSize: CGFloat = 32
+
+        /// Gap the title keeps from either control, so it is never optically crowded.
+        static let titleInset: CGFloat = control + AppTheme.Spacing.small
+    }
+
+    /// Circular icon control used on the edges of `ScreenHeader`.
+    struct HeaderButton: View {
+        let icon: String
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                Circle()
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: HeaderMetrics.control, height: HeaderMetrics.control)
+                    .overlay {
+                        Image(systemName: icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+                    }
+            }
+        }
+    }
+
+    /// Standard screen title bar: leading control, centered title, optional trailing
+    /// control. Titles are uppercased.
+    ///
+    /// The title is centered on the **full** width of the bar — it sits in its own layer
+    /// rather than in a row with the controls, so its center never depends on which
+    /// controls are present. `titleInset` keeps it clear of them: a long title shrinks to
+    /// 80% to try to fit and truncates with an ellipsis after that, so it can never slide
+    /// underneath the back button.
+    ///
+    /// Callers keep their own padding — this view only lays out the bar itself.
+    struct ScreenHeader: View {
+        let title: String
+        var tint: Color = AppTheme.Colors.primaryText
+        var leadingIcon: String? = "chevron.left"
+        var onLeading: (() -> Void)?
+        var trailingIcon: String?
+        var onTrailing: (() -> Void)?
+
+        var body: some View {
+            ZStack {
+                Text(title.uppercased())
+                    .font(AppTheme.Typography.condensed(.semibold, size: HeaderMetrics.titleSize))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .truncationMode(.tail)
+                    .padding(.horizontal, HeaderMetrics.titleInset)
+                    .frame(maxWidth: .infinity)
+
+                HStack(spacing: 0) {
+                    if let leadingIcon, let onLeading {
+                        HeaderButton(icon: leadingIcon, action: onLeading)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    if let trailingIcon, let onTrailing {
+                        HeaderButton(icon: trailingIcon, action: onTrailing)
+                    }
+                }
+            }
+            .frame(minHeight: HeaderMetrics.control)
+        }
+    }
+
     /// Empty state view
     struct EmptyStateView: View {
         let icon: String

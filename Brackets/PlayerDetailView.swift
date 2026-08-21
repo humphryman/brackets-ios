@@ -54,28 +54,10 @@ struct PlayerDetailView: View {
     // MARK: - Header
 
     private var header: some View {
-        ZStack {
-            Text("Detalles de Jugador")
-                .font(AppTheme.Typography.headline)
-                .foregroundStyle(AppTheme.Colors.primaryText)
-
-            HStack {
-                Button { dismiss() } label: {
-                    Circle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: 36, height: 36)
-                        .overlay {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
-                }
-                Spacer()
-            }
-        }
-        .padding(.horizontal, AppTheme.Layout.screenPadding)
-        .padding(.top, AppTheme.Layout.large)
-        .padding(.bottom, AppTheme.Layout.itemSpacing)
+        AppTheme.ScreenHeader(title: "Detalles de Jugador", onLeading: { dismiss() })
+            .padding(.horizontal, AppTheme.Layout.screenPadding)
+            .padding(.top, AppTheme.Layout.large)
+            .padding(.bottom, AppTheme.Layout.itemSpacing)
     }
 
     // MARK: - Content
@@ -154,13 +136,13 @@ struct PlayerDetailView: View {
         .layoutPriority(1)
     }
 
+    /// Logo centred over the team name; the pair as a whole hugs the trailing edge.
     private func teamBadge(_ team: String) -> some View {
         let name = team.trimmingCharacters(in: .whitespaces)
 
-        return VStack(alignment: .trailing, spacing: 6) {
+        return VStack(spacing: 6) {
             if let url = teamLogoURL {
                 teamLogo(url)
-                    .frame(width: 40, height: 40)
             }
 
             Text(name)
@@ -168,7 +150,7 @@ struct PlayerDetailView: View {
                 .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.8))
                 .lineLimit(1)
                 .truncationMode(.tail)
-                .multilineTextAlignment(.trailing)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: 96, alignment: .trailing)
     }
@@ -177,14 +159,16 @@ struct PlayerDetailView: View {
         AsyncImage(url: url) { phase in
             switch phase {
             case .success(let image):
+                // Fill, don't fit: many logos ship with an opaque square background,
+                // and only a filled frame gets clipped into an actual circle.
                 image
                     .resizable()
-                    .scaledToFit()
-                    .padding(5)
+                    .scaledToFill()
             default:
                 Color.clear
             }
         }
+        .frame(width: 40, height: 40)
         .background(Circle().fill(Color.black.opacity(0.45)))
         .clipShape(Circle())
         .overlay {

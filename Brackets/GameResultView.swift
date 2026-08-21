@@ -27,30 +27,10 @@ struct GameResultView: View {
 
             VStack(spacing: 0) {
                 // Header
-                ZStack {
-                    Text("Resultado")
-                        .font(AppTheme.Typography.headline)
-                        .foregroundStyle(AppTheme.Colors.primaryText)
-
-                    HStack {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Circle()
-                                .fill(Color.white.opacity(0.08))
-                                .frame(width: 36, height: 36)
-                                .overlay {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundStyle(AppTheme.Colors.primaryText)
-                                }
-                        }
-                        Spacer()
-                    }
-                }
-                .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.top, AppTheme.Layout.large)
-                .padding(.bottom, AppTheme.Layout.itemSpacing)
+                AppTheme.ScreenHeader(title: "Resultado", onLeading: { dismiss() })
+                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    .padding(.top, AppTheme.Layout.large)
+                    .padding(.bottom, AppTheme.Layout.itemSpacing)
 
                 if isLoading {
                     Spacer()

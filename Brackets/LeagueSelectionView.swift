@@ -76,8 +76,8 @@ struct LeagueSelectionView: View {
                     VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
                         // Header
                         VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                            Text("Ligas Activas")
-                                .font(.system(size: 28, weight: .bold))
+                            Text("Ligas Activas".uppercased())
+                                .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
                                 .foregroundStyle(AppTheme.Colors.primaryText)
 
                             Text("Selecciona una liga para ver sus categorias.")
@@ -186,30 +186,11 @@ struct LeagueSelectionView: View {
 
             // Header bar — back button + title matching first screen style
             if showContent && !isBrowsingTournament {
-                ZStack {
-                    Text(customer.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.primaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-
-                    HStack {
-                        Button {
-                            dismissCustomer()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(12)
-                                .background(Circle().fill(.black.opacity(0.15)))
-                        }
-                        Spacer()
-                    }
-                }
-                .padding(.horizontal, AppTheme.Layout.extraLarge)
-                .padding(.top, 10)
-                .padding(.bottom, 12)
-                .transition(.opacity)
+                AppTheme.ScreenHeader(title: customer.name, onLeading: { dismissCustomer() })
+                    .padding(.horizontal, AppTheme.Layout.extraLarge)
+                    .padding(.top, 10)
+                    .padding(.bottom, 12)
+                    .transition(.opacity)
             }
         }
         .offset(x: dragOffset)

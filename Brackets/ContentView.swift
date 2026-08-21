@@ -34,8 +34,8 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
                             // Header
                             VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                                Text(leagueName)
-                                    .font(.system(size: 28, weight: .bold))
+                                Text(leagueName.uppercased())
+                                    .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
 
                                 Text("Selecciona una categoría")

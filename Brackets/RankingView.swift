@@ -40,8 +40,8 @@ struct RankingView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ranking Final")
-                    .font(.system(size: 22, weight: .bold))
+                Text("Ranking Final".uppercased())
+                    .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
                     .foregroundStyle(AppTheme.Colors.primaryText)
                 Text(response.tournamentName)
                     .font(.system(size: 13, weight: .medium))

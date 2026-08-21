@@ -85,32 +85,10 @@ struct TopStatDetailView: View {
     // MARK: - Header
 
     private var header: some View {
-        ZStack {
-            Text(categoryName)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(AppTheme.Colors.primaryText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    Circle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: 36, height: 36)
-                        .overlay {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
-                }
-                Spacer()
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        AppTheme.ScreenHeader(title: categoryName, onLeading: { dismiss() })
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
     }
 
     // MARK: - Filter card

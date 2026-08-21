@@ -22,27 +22,7 @@ struct TournamentResultsView: View {
                 // Header
                 VStack(alignment: .leading, spacing: 8) {
                     // Back button and Title on same line
-                    ZStack {
-                        Text("Resultados")
-                            .font(AppTheme.Typography.headline)
-                            .foregroundStyle(AppTheme.Colors.primaryText)
-
-                        HStack {
-                            Button {
-                                dismiss()
-                            } label: {
-                                Circle()
-                                    .fill(Color.white.opacity(0.08))
-                                    .frame(width: 36, height: 36)
-                                    .overlay {
-                                        Image(systemName: "chevron.left")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundStyle(AppTheme.Colors.primaryText)
-                                    }
-                            }
-                            Spacer()
-                        }
-                    }
+                    AppTheme.ScreenHeader(title: "Resultados", onLeading: { dismiss() })
                     
                     // Subtitle
                     Text("Historial de partidos")

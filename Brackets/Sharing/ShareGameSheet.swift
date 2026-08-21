@@ -100,30 +100,10 @@ struct ShareGameSheet: View {
     // MARK: - Header
 
     private var header: some View {
-        ZStack {
-            Text("Compartir")
-                .font(AppTheme.Typography.headline)
-                .foregroundStyle(AppTheme.Colors.primaryText)
-
-            HStack {
-                Button {
-                    dismiss()
-                } label: {
-                    Circle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: 36, height: 36)
-                        .overlay {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-                        }
-                }
-                Spacer()
-            }
-        }
-        .padding(.horizontal, AppTheme.Layout.screenPadding)
-        .padding(.top, AppTheme.Layout.large)
-        .padding(.bottom, AppTheme.Layout.itemSpacing)
+        AppTheme.ScreenHeader(title: "Compartir", leadingIcon: "xmark", onLeading: { dismiss() })
+            .padding(.horizontal, AppTheme.Layout.screenPadding)
+            .padding(.top, AppTheme.Layout.large)
+            .padding(.bottom, AppTheme.Layout.itemSpacing)
     }
 
     // MARK: - Actions
