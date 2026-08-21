@@ -46,6 +46,14 @@ struct AppTheme {
         /// UI Element colors
         static let separator = Color(white: 0.2)
         static let loading = accent
+
+        /// Subtle 1pt outline for containers and tiles
+        /// Hex: #252525
+        static let outline = Color(red: 37/255, green: 37/255, blue: 37/255)
+
+        /// Elevated surface fill used behind tiles and image placeholders
+        /// Hex: #141414
+        static let surface = Color(red: 20/255, green: 20/255, blue: 20/255)
     }
     
     // MARK: - Typography
