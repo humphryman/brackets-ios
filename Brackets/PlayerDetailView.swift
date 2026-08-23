@@ -11,6 +11,8 @@ struct PlayerDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var detail: PlayerSeasonDetailResponse?
     @State private var teamLogoURL: URL?
+    @State private var statGridWidth: CGFloat = 0
+    @State private var showAllStats = false
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -185,7 +187,7 @@ struct PlayerDetailView: View {
         return HStack(spacing: 0) {
             infoItem(value: info.number != nil ? "#\(info.number!)" : "-", label: "Número")
             Spacer()
-            infoItem(value: formatDOB(player.dob), label: "Nacimiento")
+            infoItem(value: formatDOB(player.dob), label: "F. Nacimiento")
             Spacer()
             infoItem(value: player.position?.isEmpty == false ? player.position! : "-", label: "Posición")
             Spacer()
@@ -209,23 +211,18 @@ struct PlayerDetailView: View {
 
             Text(label)
                 .font(.system(size: 11))
-                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .foregroundStyle(AppTheme.Colors.gray400)
         }
     }
 
     // MARK: - Total Stats Card
 
     private func totalStatsCard(_ detail: PlayerSeasonDetailResponse) -> some View {
-        let info = detail.playerSeason
-
-        // Order: points first, then remaining active stats
-        var orderedKeys: [String] = []
-        if info.activeStats.contains("points") {
-            orderedKeys.append("points")
-        }
-        for key in info.activeStats where key != "points" {
-            orderedKeys.append(key)
-        }
+        let cells = statCells(detail)
+        // Two full rows fit comfortably; past that the grid turns into a wall of numbers.
+        let collapsedLimit = 6
+        let isCollapsible = cells.count > collapsedLimit
+        let visible = isCollapsible && !showAllStats ? Array(cells.prefix(collapsedLimit)) : cells
 
         return VStack(spacing: 16) {
             Text("Stats Totales")
@@ -233,45 +230,10 @@ struct PlayerDetailView: View {
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Stat tiles — horizontal carousel
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(Array(orderedKeys.enumerated()), id: \.offset) { _, key in
-                        statBox(
-                            value: "\(info.totalStats[key] ?? 0)",
-                            label: detail.longNameStats[key] ?? key
-                        )
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
+            statGrid(visible)
 
-            // Per-game averages from total_averages: PPG, APG, RPG
-            let perGameStats: [(key: String, label: String)] = [
-                ("ppg", "PPG"),
-                ("apg", "APG"),
-                ("rpg", "RPG")
-            ]
-            let available = perGameStats.compactMap { stat -> (key: String, label: String, value: Double)? in
-                guard let value = info.totalAverages[stat.key] else { return nil }
-                return (stat.key, stat.label, value)
-            }
-
-            if !available.isEmpty {
-                HStack(spacing: 0) {
-                    ForEach(available, id: \.key) { stat in
-                        VStack(spacing: 4) {
-                            Text(String(format: "%.1f", stat.value))
-                                .font(ShareFont.condensed(.semibold, size: 18))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
-
-                            Text(stat.label)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.secondaryText)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
+            if isCollapsible {
+                showAllStatsButton(total: cells.count)
             }
         }
         .padding(16)
@@ -282,6 +244,87 @@ struct PlayerDetailView: View {
         )
     }
 
+    /// Per-game averages lead with PPG, then the season totals with points first.
+    private func statCells(_ detail: PlayerSeasonDetailResponse) -> [StatCell] {
+        let info = detail.playerSeason
+        var cells: [StatCell] = []
+
+        for (key, label) in [("ppg", "PPG"), ("apg", "APG"), ("rpg", "RPG")] {
+            guard let value = info.totalAverages[key] else { continue }
+            cells.append(StatCell(id: key, value: String(format: "%.1f", value), label: label))
+        }
+
+        let totalKeys = (info.activeStats.contains("points") ? ["points"] : [])
+            + info.activeStats.filter { $0 != "points" }
+        for key in totalKeys {
+            cells.append(
+                StatCell(
+                    id: key,
+                    value: "\(info.totalStats[key] ?? 0)",
+                    label: detail.longNameStats[key] ?? key
+                )
+            )
+        }
+
+        return cells
+    }
+
+    /// Three per row, wrapping. A short last row keeps the column width of the rows
+    /// above and centres itself, so five stats read as 3 + 2 centred.
+    private func statGrid(_ cells: [StatCell]) -> some View {
+        let columns = 3
+        let spacing: CGFloat = 10
+        let rows = stride(from: 0, to: cells.count, by: columns).map {
+            Array(cells[$0..<min($0 + columns, cells.count)])
+        }
+        let columnWidth = statGridWidth > 0
+            ? (statGridWidth - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+            : nil
+
+        return VStack(spacing: spacing) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: spacing) {
+                    ForEach(row) { cell in
+                        statBox(value: cell.value, label: cell.label)
+                            .frame(width: columnWidth)
+                            .frame(maxWidth: columnWidth == nil ? .infinity : nil)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: StatGridWidthKey.self, value: proxy.size.width)
+            }
+        )
+        .onPreferenceChange(StatGridWidthKey.self) { statGridWidth = $0 }
+    }
+
+    /// Same lime link treatment as `VenueLabel`, plus a chevron and the total so the
+    /// control reads as "expands in place" rather than "opens somewhere else".
+    private func showAllStatsButton(total: Int) -> some View {
+        Button {
+            withAnimation(AppTheme.Animation.standard) {
+                showAllStats.toggle()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .rotationEffect(.degrees(showAllStats ? 180 : 0))
+
+                Text(showAllStats ? "Mostrar menos" : "Mostrar todas las stats (\(total))")
+                    .font(.system(size: 13))
+                    .underline()
+            }
+            .foregroundStyle(AppTheme.Colors.accent)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func statBox(value: String, label: String) -> some View {
         VStack(spacing: 6) {
             Text(value)
@@ -290,16 +333,16 @@ struct PlayerDetailView: View {
 
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .foregroundStyle(AppTheme.Colors.gray400)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
         .padding(.horizontal, 8)
-        .frame(width: 84, height: 72)
+        .frame(height: 72)
+        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 14)
                 .fill(AppTheme.Colors.surface)
-                .strokeBorder(AppTheme.Colors.outline, lineWidth: 1)
         )
     }
 
@@ -541,5 +584,24 @@ struct PlayerDetailView: View {
         case .groups(let groups):
             return groups.flatMap { $0.standings }
         }
+    }
+}
+
+// MARK: - Stat Grid Support
+
+/// One value/label pair in the "Stats Totales" grid.
+private struct StatCell: Identifiable {
+    let id: String
+    let value: String
+    let label: String
+}
+
+/// Carries the grid's available width up so short rows can keep the column width of
+/// the full rows above them.
+private struct StatGridWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }

@@ -62,6 +62,9 @@ struct AppTheme {
         /// `color/gray-300` — label of an unselected segment. Hex: #D1D5DB
         static let gray300 = Color(red: 209/255, green: 213/255, blue: 219/255)
 
+        /// `color/gray-400` — labels under a stat value. Hex: #9CA3AF
+        static let gray400 = Color(red: 156/255, green: 163/255, blue: 175/255)
+
         /// `color/gray-600` — hairline around a segmented track. Hex: #4B5563
         static let gray600 = Color(red: 75/255, green: 85/255, blue: 99/255)
 
