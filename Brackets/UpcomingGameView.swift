@@ -219,7 +219,7 @@ struct UpcomingGameView: View {
         VStack(spacing: 0) {
             // Title
             Text("Promedios por equipo")
-                .font(.system(size: 18, weight: .bold))
+                .font(AppTheme.Typography.condensed(.semibold, size: 24))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, AppTheme.Layout.cardPadding)
@@ -355,7 +355,7 @@ struct UpcomingGameView: View {
 
             VStack(spacing: AppTheme.Spacing.large) {
                 Text("Roster")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: 24))
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
 

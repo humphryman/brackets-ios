@@ -12,7 +12,7 @@ struct TiebreakerSheet: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            AppTheme.Colors.background.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {

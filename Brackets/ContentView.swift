@@ -18,7 +18,7 @@ struct ContentView: View {
     var body: some View {
         if embedded {
             ZStack {
-                Color.black.ignoresSafeArea()
+                AppTheme.Colors.background.ignoresSafeArea()
                 allTournamentsContent
             }
             .task {

@@ -24,27 +24,8 @@ struct TeamDetailView: View {
 
     var body: some View {
         ZStack {
-            ZStack {
-                AppTheme.Colors.background
-
-                // Radial glow in top-right corner
-                RadialGradient(
-                    colors: [
-                        AppTheme.Colors.accentGradient.opacity(0.18),
-                        AppTheme.Colors.accentGradient.opacity(0.16),
-                        AppTheme.Colors.accentGradient.opacity(0.14),
-                        AppTheme.Colors.accentGradient.opacity(0.11),
-                        AppTheme.Colors.accentGradient.opacity(0.08),
-                        AppTheme.Colors.accentGradient.opacity(0.04),
-                        AppTheme.Colors.accentGradient.opacity(0.01),
-                        .clear
-                    ],
-                    center: .topTrailing,
-                    startRadius: 0,
-                    endRadius: 550
-                )
-            }
-            .ignoresSafeArea()
+            AppTheme.Colors.background
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header
@@ -147,8 +128,8 @@ struct TeamDetailView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(Color(white: 0.08).opacity(0.5))
-                .stroke(Color(white: 1.0).opacity(0.10), lineWidth: 1)
+                .fill(AppTheme.Colors.gray800)
+                .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
         )
     }
 

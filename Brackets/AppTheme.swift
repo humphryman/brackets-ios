@@ -68,8 +68,12 @@ struct AppTheme {
         /// `color/gray-600` — hairline around a segmented track. Hex: #4B5563
         static let gray600 = Color(red: 75/255, green: 85/255, blue: 99/255)
 
-        /// `color/gray-700` — segmented track fill. Hex: #252525, same value as `outline`.
+        /// `color/gray-700` — segmented track fill and card outlines. Hex: #252525,
+        /// same value as `outline`.
         static let gray700 = outline
+
+        /// `color/gray-800` — card fill. Hex: #1A1A1A
+        static let gray800 = Color(red: 26/255, green: 26/255, blue: 26/255)
 
         /// `color/sky/sky-900` — selection accent. Hex: #1A17D3
         static let sky900 = Color(red: 26/255, green: 23/255, blue: 211/255)

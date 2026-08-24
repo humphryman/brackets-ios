@@ -52,7 +52,7 @@ struct LeagueSelectionView: View {
         ZStack {
             if isLoading {
                 ZStack {
-                    Color.black.ignoresSafeArea()
+                    AppTheme.Colors.background.ignoresSafeArea()
                     Image("AppLogo")
                         .resizable()
                         .scaledToFit()
@@ -152,7 +152,7 @@ struct LeagueSelectionView: View {
 
         return ZStack(alignment: .topLeading) {
             // Background fades in behind the banner
-            Color.black
+            AppTheme.Colors.background
                 .ignoresSafeArea()
                 .opacity(isExpanded ? 1 : 0)
 
@@ -164,7 +164,7 @@ struct LeagueSelectionView: View {
                         .toolbar(.hidden)
                         .padding(.top, headerHeight)
                 }
-                .background(Color.black.ignoresSafeArea())
+                .background(AppTheme.Colors.background.ignoresSafeArea())
                 .ignoresSafeArea()
             }
 
@@ -261,7 +261,7 @@ struct LeagueSelectionView: View {
             }
             .opacity(showHeader ? 0 : 1)
         }
-        .background(showHeader ? Color.black : Color.clear)
+        .background(showHeader ? AppTheme.Colors.background : Color.clear)
     }
 
     // MARK: - Shared Card Visuals

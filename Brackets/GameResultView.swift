@@ -194,8 +194,10 @@ struct GameResultView: View {
         .padding(AppTheme.Layout.cardPadding)
         .background(
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(Color(white: 0.1))
-                .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+                .fill(AppTheme.Colors.gray800)
+                // strokeBorder, not stroke: keeps the full 1pt line inside the card so it
+                // renders as #252525 instead of half-compositing over the background.
+                .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
         )
     }
 
@@ -215,7 +217,7 @@ struct GameResultView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
                     .fill(Color(red: 40.0 / 255.0, green: 40.0 / 255.0, blue: 40.0 / 255.0))
                     .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
             )
@@ -239,7 +241,7 @@ struct GameResultView: View {
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
                 Text("Stats")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: 24))
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -326,8 +328,8 @@ struct GameResultView: View {
             .padding(AppTheme.Layout.cardPadding)
             .background(
                 RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                    .fill(Color(white: 0.1))
-                    .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
+                    .fill(AppTheme.Colors.gray800)
+                    .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
             )
         }
     }
