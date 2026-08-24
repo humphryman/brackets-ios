@@ -342,12 +342,9 @@ struct GameResultView: View {
     private func playerOfTheGameCard(potg: PlayerOfTheGame, detail: GameDetailResponse) -> some View {
         let card = VStack(spacing: AppTheme.Spacing.medium) {
             Text("Jugador del Partido")
-                .font(.system(size: 16, weight: .heavy))
-                .foregroundStyle(AppTheme.Colors.accent)
-                .textCase(.uppercase)
-                .tracking(1)
-                .frame(maxWidth: .infinity)
-                .padding(.top, AppTheme.Spacing.large)
+                .font(AppTheme.Typography.condensed(.semibold, size: 24))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             potgHeroImage(potg: potg)
 
@@ -357,6 +354,12 @@ struct GameResultView: View {
                 potgStatsGrid(stats: stats, shortNames: detail.shortNameStats)
             }
         }
+        .padding(AppTheme.Layout.cardPadding)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                .fill(AppTheme.Colors.gray800)
+                .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
+        )
 
         if let psId = potg.playerSeasonId {
             NavigationLink {
@@ -370,100 +373,108 @@ struct GameResultView: View {
         }
     }
 
+    /// Same treatment as the hero on Detalles de Jugador: the photo carries the name and
+    /// the team identity on a dark scrim instead of repeating them underneath.
     @ViewBuilder
     private func potgHeroImage(potg: PlayerOfTheGame) -> some View {
-        HStack(alignment: .top, spacing: 0) {
-            // Left side column with vertical tournament name label
-            Color.clear
-                .frame(width: 20)
-                .overlay {
-                    if let tName = tournamentName {
-                        Text(tName)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.primaryText)
-                            .tracking(2)
-                            .textCase(.uppercase)
-                            .fixedSize()
-                            .rotationEffect(.degrees(-90))
-                    }
-                }
-
-            // Hero image — 4:3 aspect
-            ZStack(alignment: .bottomTrailing) {
-                Color(white: 0.12)
-                    .aspectRatio(4.0/3.0, contentMode: .fit)
-                    .overlay {
-                        if let imageURL = potg.fullImageURL, let url = URL(string: imageURL) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image.resizable().scaledToFill()
-                                default:
-                                    potgInitials(firstName: potg.firstName, lastName: potg.lastName)
-                                }
-                            }
-                        } else {
+        Rectangle()
+            .fill(AppTheme.Colors.surface)
+            .aspectRatio(4.0 / 3.0, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .overlay {
+                if let imageURL = potg.fullImageURL, let url = URL(string: imageURL) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        default:
                             potgInitials(firstName: potg.firstName, lastName: potg.lastName)
                         }
                     }
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
-
-                if let logoURL = potg.fullTeamLogoURL, let url = URL(string: logoURL) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let img):
-                            img.resizable().scaledToFill()
-                        default:
-                            Color(white: 0.18)
-                        }
-                    }
-                    .frame(width: 56, height: 56)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                    .padding(.trailing, 16)
-                    .padding(.bottom, 16)
+                } else {
+                    potgInitials(firstName: potg.firstName, lastName: potg.lastName)
                 }
             }
+            .overlay {
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0.9),
+                        .black.opacity(0.45),
+                        .clear
+                    ],
+                    startPoint: .bottom,
+                    endPoint: .center
+                )
+            }
+            .overlay(alignment: .bottom) {
+                HStack(alignment: .bottom, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(potg.firstName.trimmingCharacters(in: .whitespaces))
+                            .font(AppTheme.Typography.condensed(.semibold, size: 28))
+                            .foregroundStyle(AppTheme.Colors.primaryText)
+
+                        Text(potg.lastName.trimmingCharacters(in: .whitespaces))
+                            .font(AppTheme.Typography.condensed(.semibold, size: 18))
+                            .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.85))
+
+                        if let tName = tournamentName {
+                            Text(tName)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.gray400)
+                                .padding(.top, 2)
+                        }
+                    }
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
+
+                    Spacer(minLength: 12)
+
+                    potgTeamBadge(potg: potg)
+                }
+                .padding(16)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                    .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
+            }
+    }
+
+    private func potgTeamBadge(potg: PlayerOfTheGame) -> some View {
+        VStack(spacing: 6) {
+            if let logoURL = potg.fullTeamLogoURL, let url = URL(string: logoURL) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    default:
+                        Color.clear
+                    }
+                }
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Color.black.opacity(0.45)))
+                .clipShape(Circle())
+                .overlay { Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 1) }
+            }
+
+            if let team = potg.teamName?.trimmingCharacters(in: .whitespaces), !team.isEmpty {
+                Text(team)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.8))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .multilineTextAlignment(.center)
+            }
         }
+        .frame(maxWidth: 96, alignment: .trailing)
     }
 
     @ViewBuilder
     private func potgInfoRow(potg: PlayerOfTheGame) -> some View {
-        HStack(spacing: AppTheme.Spacing.medium) {
-            Spacer(minLength: 0)
-
-            if let num = potg.playerNumber {
-                VStack(spacing: 2) {
-                    Text("\(num)")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.primaryText)
-                    if let team = potg.teamName {
-                        Text(team)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.5))
-                            .tracking(1)
-                            .textCase(.uppercase)
-                    }
-                }
-
-                Rectangle()
-                    .fill(Color(white: 0.3))
-                    .frame(width: 1, height: 44)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(potg.firstName)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-                    .textCase(.uppercase)
-                Text(potg.lastName)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(Color(white: 0.55))
-                    .textCase(.uppercase)
-            }
-
-            Spacer(minLength: 0)
+        if let num = potg.playerNumber {
+            Badge("#\(num)", style: .gray)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
