@@ -190,7 +190,7 @@ struct UpcomingGameView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
                     .fill(Color(red: 40.0 / 255.0, green: 40.0 / 255.0, blue: 40.0 / 255.0))
                     .stroke(Color(white: 1.0).opacity(0.18), lineWidth: 1)
             )
