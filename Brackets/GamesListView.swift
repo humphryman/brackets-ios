@@ -190,12 +190,10 @@ struct GamesListView: View {
                                                     .font(.system(size: 16, weight: .bold))
                                                     .foregroundStyle(AppTheme.Colors.primaryText)
 
-                                                Text(dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos")
-                                                    .font(.system(size: 12, weight: .semibold))
-                                                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                                                    .padding(.horizontal, 10)
-                                                    .padding(.vertical, 4)
-                                                    .background(Capsule().fill(Color(white: 0.2)))
+                                                Badge(
+                                                    dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos",
+                                                    style: .gray
+                                                )
                                             }
                                             .padding(.horizontal, AppTheme.Layout.screenPadding)
 

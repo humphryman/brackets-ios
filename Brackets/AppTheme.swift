@@ -75,6 +75,15 @@ struct AppTheme {
         /// `color/gray-800` — card fill. Hex: #1A1A1A
         static let gray800 = Color(red: 26/255, green: 26/255, blue: 26/255)
 
+        /// `color/lime-400` — badge fill. Hex: #A3FF12, same value as `accent`.
+        static let lime400 = accent
+
+        /// `color/lime-900` — fill behind an outlined lime badge. Hex: #365314
+        static let lime900 = Color(red: 54/255, green: 83/255, blue: 20/255)
+
+        /// `color/orange/orange-500` — warning badge accent. Hex: #F97316
+        static let orange500 = Color(red: 249/255, green: 115/255, blue: 22/255)
+
         /// `color/sky/sky-900` — selection accent. Hex: #1A17D3
         static let sky900 = Color(red: 26/255, green: 23/255, blue: 211/255)
 
