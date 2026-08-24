@@ -247,12 +247,10 @@ struct TeamGamesTabView: View {
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
 
-                                Text(dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(Capsule().fill(Color(white: 0.2)))
+                                Badge(
+                                    dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos",
+                                    style: .gray
+                                )
                             }
                             .padding(.horizontal, AppTheme.Layout.screenPadding)
 
@@ -530,15 +528,7 @@ struct TeamStatsTabView: View {
                     Spacer()
 
                     HStack(spacing: 6) {
-                        Text(category.shortName)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Color(white: 0.4))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule()
-                                    .fill(Color(white: 0.18))
-                            )
+                        Badge(category.shortName, style: .gray)
                         Text("\(entry.total)")
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.accent)

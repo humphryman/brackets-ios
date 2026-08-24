@@ -20,8 +20,6 @@ private extension DateFormatter {
 private enum GameCardPalette {
     static let cardBackground = Color(white: 0.11)
     static let semifinalBanner = Color(red: 0.23, green: 0.21, blue: 0.90)
-    static let stageTagFill = Color(white: 0.2)
-    static let groupTagFill = Color(red: 35/255, green: 14/255, blue: 46/255)
 }
 
 /// A single filter chip — either a group ("Grupo 1") or a playoff bracket ("Playoffs").
@@ -517,10 +515,10 @@ struct GameCard: View {
                 if stageTagText != nil || groupTagText != nil {
                     HStack(spacing: 8) {
                         if let stageTagText {
-                            tag(stageTagText, fill: GameCardPalette.stageTagFill, textColor: AppTheme.Colors.secondaryText)
+                            Badge(stageTagText, style: .gray)
                         }
                         if let groupTagText {
-                            tag(groupTagText, fill: GameCardPalette.groupTagFill, textColor: .white)
+                            Badge(groupTagText, style: .blue)
                         }
                     }
                 }
@@ -529,15 +527,6 @@ struct GameCard: View {
         }
         .background(GameCardPalette.cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
-    }
-
-    private func tag(_ text: String, fill: Color, textColor: Color) -> some View {
-        Text(text)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(textColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Capsule().fill(fill))
     }
 }
 
