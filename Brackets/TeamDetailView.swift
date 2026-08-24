@@ -453,11 +453,11 @@ struct TeamStatsTabView: View {
 
                 VStack(spacing: 2) {
                     Text(category.longName ?? "")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accent)
+                        .font(AppTheme.Typography.condensed(.semibold, size: 24))
+                        .foregroundStyle(AppTheme.Colors.primaryText)
                     Text("TEAM LEADERS")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.45))
+                        .foregroundStyle(AppTheme.Colors.gray400)
                 }
 
                 Spacer()
@@ -485,10 +485,10 @@ struct TeamStatsTabView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(top.firstName)
-                            .font(.system(size: 16))
+                            .font(.system(size: 24, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.primaryText)
                         Text(top.lastName)
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 16))
                             .foregroundStyle(AppTheme.Colors.primaryText)
                     }
 
@@ -520,11 +520,11 @@ struct TeamStatsTabView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.firstName)
-                            .font(.system(size: 12))
-                            .foregroundStyle(AppTheme.Colors.secondaryText)
-                        Text(entry.lastName)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.primaryText)
+                        Text(entry.lastName)
+                            .font(.system(size: 12))
+                            .foregroundStyle(AppTheme.Colors.gray400)
                     }
 
                     Spacer()
