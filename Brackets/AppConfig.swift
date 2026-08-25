@@ -34,6 +34,11 @@ enum AppConfig {
             "\(baseURL)/api"
         }
 
+        /// Query params stripped from the selected league's URL, forwarded onto the
+        /// tournaments-list request only. Set alongside `baseURL` when a league is
+        /// picked; in-memory like `baseURL`, re-derived on each selection.
+        nonisolated(unsafe) static var forwardedTournamentQueryItems: [URLQueryItem] = []
+
         // Customers (league list) API
         static let customersAPIURL: String = "https://getbrackets.app/api/v1/customers"
         static let customersAPIToken = "96cd10d4e7a3d0be2babc010c30dbb725f82f788978f2ec9a02e5cc4ef167657"

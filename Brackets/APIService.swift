@@ -393,10 +393,18 @@ final class APIService: Sendable {
     }
     
     func fetchTournaments() async throws -> [Tournament] {
-        guard let url = URL(string: "\(APIConfig.apiURL)/tournaments.json") else {
+        guard var components = URLComponents(string: "\(APIConfig.apiURL)/tournaments.json") else {
             throw APIError.invalidURL
         }
-        
+        // Forward the params stripped from the selected league's URL, if any.
+        let forwarded = AppConfig.API.forwardedTournamentQueryItems
+        if !forwarded.isEmpty {
+            components.queryItems = (components.queryItems ?? []) + forwarded
+        }
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             

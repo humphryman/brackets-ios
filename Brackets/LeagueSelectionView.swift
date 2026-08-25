@@ -359,7 +359,17 @@ struct LeagueSelectionView: View {
     // MARK: - Actions
 
     private func selectCustomer(_ customer: Customer) {
-        AppConfig.API.baseURL = customer.url
+        // Split the league URL into its param-free base (used as the API base URL,
+        // unchanged behavior) and any query params, which are forwarded onto the
+        // tournaments-list request on the next screen.
+        if var components = URLComponents(string: customer.url) {
+            AppConfig.API.forwardedTournamentQueryItems = components.queryItems ?? []
+            components.query = nil
+            AppConfig.API.baseURL = components.string ?? customer.url
+        } else {
+            AppConfig.API.forwardedTournamentQueryItems = []
+            AppConfig.API.baseURL = customer.url
+        }
         selectedCustomer = customer
         showHeader = true
         showContent = true
