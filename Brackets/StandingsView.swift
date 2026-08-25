@@ -9,12 +9,14 @@ import SwiftUI
 
 enum StandingsSubTab: Hashable {
     case champion
+    case ranking
     case standings
     case classification
 
     var title: String {
         switch self {
         case .champion: return "Campeón"
+        case .ranking: return "Ranking final"
         case .standings: return "Grupos"
         case .classification: return "Clasificación"
         }
@@ -260,7 +262,6 @@ struct StandingsView: View {
     @State private var didInitSubTab = false
     @State private var selectedPodiumName: String?
     @State private var ranking: RankingResponse?
-    @State private var showRanking = false
 
     init(tournament: Tournament) {
         self.tournament = tournament
@@ -275,7 +276,7 @@ struct StandingsView: View {
         !(bundle?.classification?.teams.isEmpty ?? true)
     }
 
-    private var showsRankingButton: Bool {
+    private var hasRankingTab: Bool {
         guard let ranking else { return false }
         return ranking.available && !ranking.ranking.isEmpty
     }
@@ -284,6 +285,7 @@ struct StandingsView: View {
     private var availableTabs: [StandingsSubTab] {
         var tabs: [StandingsSubTab] = []
         if hasChampionTab { tabs.append(.champion) }
+        if hasRankingTab { tabs.append(.ranking) }
         tabs.append(.standings)
         if hasClassificationTab { tabs.append(.classification) }
         return tabs
@@ -309,6 +311,12 @@ struct StandingsView: View {
                     switch selectedSubTab {
                     case .champion:
                         championTab(bundle)
+                    case .ranking:
+                        if let ranking {
+                            RankingTable(response: ranking)
+                        } else {
+                            standingsScroll(bundle.result)
+                        }
                     case .classification:
                         if let classification = bundle.classification {
                             ClassificationView(classification: classification)
@@ -337,34 +345,26 @@ struct StandingsView: View {
         .task {
             ranking = try? await APIService.shared.fetchRanking(for: tournament.id)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if showsRankingButton {
-                RankingButton { showRanking = true }
-                    .padding(.horizontal, AppTheme.Layout.screenPadding)
-                    .padding(.top, AppTheme.Spacing.small)
-                    .padding(.bottom, StandingsLayout.tabBarClearance)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-        .fullScreenCover(isPresented: $showRanking) {
-            // `ranking` is bound to button-gating, not presentation, so present via
-            // `showRanking` (only set from the button, which requires ranking != nil).
-            // Guard anyway so a nil ranking can never strand the user on a blank cover.
-            if let ranking {
-                RankingView(response: ranking)
-            } else {
-                Color.clear.onAppear { showRanking = false }
-            }
-        }
     }
 
     @ViewBuilder
     private func championTab(_ bundle: StandingsBundle) -> some View {
         let podiums = bundle.podiums.sorted { $0.position < $1.position }
         if let selected = podiums.first(where: { $0.name == selectedPodiumName }) ?? podiums.first {
+            let names = podiums.map(\.name)
             VStack(spacing: 0) {
-                ChipCarousel(items: podiums.map(\.name), label: { $0 }, selected: $selectedPodiumName)
-                    .padding(.bottom, AppTheme.Spacing.medium)
+                SegmentedController(
+                    segments: names,
+                    selection: Binding(
+                        get: { names.firstIndex(of: selected.name) ?? 0 },
+                        set: { selectedPodiumName = names[$0] }
+                    ),
+                    width: .intrinsic
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+                .padding(.bottom, AppTheme.Spacing.medium)
+
                 ChampionPanel(podium: selected)
             }
         } else {

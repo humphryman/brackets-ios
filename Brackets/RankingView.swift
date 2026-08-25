@@ -14,59 +14,23 @@ private enum RankingCol {
     static let rowVPadding: CGFloat = 12
 }
 
-/// Full-screen final ranking list. Receives pre-fetched data — no loading state.
-struct RankingView: View {
+/// Final ranking table — column header plus scrolling rows. Receives pre-fetched data,
+/// so it has no loading state of its own. Lives inside the Standings tab bar.
+struct RankingTable: View {
     let response: RankingResponse
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack {
-            AppTheme.Colors.background.ignoresSafeArea()
+        VStack(spacing: 0) {
+            columnHeader
 
-            VStack(spacing: 0) {
-                header
-                columnHeader
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(response.ranking.enumerated()), id: \.element.id) { index, entry in
-                            RankingRow(entry: entry, striped: index.isMultiple(of: 2))
-                        }
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(response.ranking.enumerated()), id: \.element.id) { index, entry in
+                        RankingRow(entry: entry, striped: index.isMultiple(of: 2))
                     }
                 }
             }
         }
-    }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Ranking Final".uppercased())
-                    .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
-                    .foregroundStyle(AppTheme.Colors.primaryText)
-                Text(response.tournamentName)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
-            }
-            Spacer(minLength: 8)
-            Button {
-                dismiss()
-            } label: {
-                Circle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 36, height: 36)
-                    .overlay {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.primaryText)
-                    }
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, AppTheme.Layout.screenPadding)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
     }
 
     private var columnHeader: some View {
@@ -124,36 +88,8 @@ private struct RankingRow: View {
     }
 }
 
-/// Full-width navy pill button that opens the final ranking.
-struct RankingButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                Text("Ranking Final")
-                    .font(.system(size: 15, weight: .bold))
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.black)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(Color(red: 26 / 255, green: 23 / 255, blue: 211 / 255), lineWidth: 1.5)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-#Preview("Ranking view") {
-    RankingView(response: RankingResponse(
+#Preview("Ranking table") {
+    RankingTable(response: RankingResponse(
         tournamentId: 45,
         tournamentName: "Femenil 2008-09",
         available: true,
@@ -166,12 +102,4 @@ struct RankingButton: View {
             RankingEntry(place: 25, teamId: 420, teamSeasonId: 893, teamName: "Cometas Cumbres", teamLogo: nil, bracketName: "Bronze", stageLabel: "Campeón"),
         ]
     ))
-}
-
-#Preview("Ranking button") {
-    ZStack {
-        Color.black.ignoresSafeArea()
-        RankingButton { }
-            .padding()
-    }
 }
