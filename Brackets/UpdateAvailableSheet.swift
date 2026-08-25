@@ -19,13 +19,13 @@ struct UpdateAvailableSheet: View {
 
             VStack(spacing: 8) {
                 Text("Actualización disponible")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: 24))
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .multilineTextAlignment(.center)
 
                 Text("Hay una nueva versión de Brackets (\(newVersion)). Actualiza para obtener las últimas mejoras.")
                     .font(.system(size: 15))
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .foregroundStyle(AppTheme.Colors.gray400)
                     .multilineTextAlignment(.center)
             }
 
@@ -40,7 +40,10 @@ struct UpdateAvailableSheet: View {
                         .foregroundStyle(AppTheme.Colors.accentText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
+                        .background(
+                            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
+                                .fill(AppTheme.Colors.accent)
+                        )
                 }
                 .buttonStyle(.plain)
 
