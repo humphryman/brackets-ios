@@ -97,7 +97,7 @@ struct StatsLeadersView: View {
                 VStack(spacing: 0) {
                     // Title
                     Text(category.name ?? "")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppTheme.Typography.condensed(.semibold, size: 24))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppTheme.Spacing.medium)
