@@ -10,51 +10,36 @@ import SwiftUI
 
 // MARK: - Bracket color palette
 
-/// Per-bracket colors, assigned by bracket order (position). Drives the seed
-/// badge circle and the legend pill for each bracket.
+/// Per-bracket colors, assigned by bracket order (position). One recipe drives both the
+/// legend badge and the seed circle, so a bracket reads the same in either place.
 struct ClassificationBracketColor {
-    let badgeFill: Color   // solid seed-badge circle
-    let badgeText: Color   // number inside the circle
-    let pillFill: Color    // legend pill background
-    let pillText: Color    // legend pill text
+    let fill: Color      // circle / badge background
+    let stroke: Color    // outline
+    let text: Color      // number inside the circle
+    let badge: Badge.Style
 }
 
 enum ClassificationPalette {
+    /// Three entries, matching the three outlined `Badge` styles. Tournaments with more
+    /// brackets cycle back through them.
     static let entries: [ClassificationBracketColor] = [
-        // 1 — green (accent)
         ClassificationBracketColor(
-            badgeFill: AppTheme.Colors.accent,
-            badgeText: AppTheme.Colors.accentText,
-            pillFill: AppTheme.Colors.accent.opacity(0.18),
-            pillText: AppTheme.Colors.accent
+            fill: AppTheme.Colors.lime900,
+            stroke: AppTheme.Colors.lime400,
+            text: AppTheme.Colors.primaryText,
+            badge: .limeOutline
         ),
-        // 2 — blue / indigo (#1A17D3)
         ClassificationBracketColor(
-            badgeFill: Color(red: 0.102, green: 0.090, blue: 0.827),
-            badgeText: .white,
-            pillFill: Color(red: 0.102, green: 0.090, blue: 0.827).opacity(0.35),
-            pillText: Color(red: 0.68, green: 0.72, blue: 1.0)
+            fill: AppTheme.Colors.sky900.opacity(0.3),
+            stroke: AppTheme.Colors.sky900,
+            text: AppTheme.Colors.primaryText,
+            badge: .blue
         ),
-        // 3 — orange / amber
         ClassificationBracketColor(
-            badgeFill: Color(red: 0.94, green: 0.62, blue: 0.11),
-            badgeText: .black,
-            pillFill: Color(red: 0.94, green: 0.62, blue: 0.11).opacity(0.18),
-            pillText: Color(red: 0.96, green: 0.72, blue: 0.28)
-        ),
-        // 4 — purple
-        ClassificationBracketColor(
-            badgeFill: Color(red: 0.63, green: 0.36, blue: 0.95),
-            badgeText: .white,
-            pillFill: Color(red: 0.63, green: 0.36, blue: 0.95).opacity(0.30),
-            pillText: Color(red: 0.78, green: 0.58, blue: 1.0)
-        ),
-        // 5 — teal
-        ClassificationBracketColor(
-            badgeFill: Color(red: 0.13, green: 0.71, blue: 0.67),
-            badgeText: .black,
-            pillFill: Color(red: 0.13, green: 0.71, blue: 0.67).opacity(0.22),
-            pillText: Color(red: 0.34, green: 0.83, blue: 0.79)
+            fill: AppTheme.Colors.orange500.opacity(0.3),
+            stroke: AppTheme.Colors.orange500,
+            text: AppTheme.Colors.primaryText,
+            badge: .orange
         ),
     ]
 
@@ -115,46 +100,19 @@ struct ClassificationAvgPill: View {
     }
 }
 
-// MARK: - Legend card
+// MARK: - Legend
 
-/// One bracket's legend: "#{position} · {name}" + a colored capacity pill.
-struct ClassificationLegendCard: View {
-    let bracket: ClassificationBracket
-    let color: ClassificationBracketColor
-
-    private var pillText: String {
-        let label = bracket.typeLabel ?? bracket.type ?? ""
-        return "\(label) \(bracket.filled)/\(bracket.capacity)"
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            (
-                Text("#\(bracket.position) · ")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(AppTheme.Colors.primaryText)
-                + Text(bracket.name)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(AppTheme.Colors.primaryText)
+extension ClassificationBracket {
+    /// "Gold - Octavos": bracket name and the short form of its stage.
+    var badgeLabel: String {
+        let stage = (typeLabel ?? type ?? "")
+            .replacingOccurrences(
+                of: " de final",
+                with: "",
+                options: [.caseInsensitive]
             )
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-
-            Text(pillText)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(color.pillText)
-                .lineLimit(1)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(color.pillFill))
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(white: 0.1))
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
+            .trimmingCharacters(in: .whitespaces)
+        return stage.isEmpty ? name : "\(name) - \(stage)"
     }
 }
 
@@ -173,20 +131,12 @@ struct ClassificationRow: View {
 
             Text(team.name)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.primaryText)
+                .foregroundStyle(team.classified ? AppTheme.Colors.primaryText : AppTheme.Colors.gray400)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if let groupText {
-                Text(groupText)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(
-                        Capsule().fill(Color(red: 0.180, green: 0.051, blue: 0.031))
-                    )
+                Badge(groupText, style: team.classified ? .gray : .dark)
             }
 
             Text(team.place.map(String.init) ?? "")
@@ -199,7 +149,6 @@ struct ClassificationRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .opacity(team.classified ? 1 : 0.55)
     }
 
     @ViewBuilder
@@ -207,9 +156,10 @@ struct ClassificationRow: View {
         if let color, let seed = team.seed {
             Text("\(seed)")
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(color.badgeText)
+                .foregroundStyle(color.text)
                 .frame(width: ClassCol.badge, height: ClassCol.badge)
-                .background(Circle().fill(color.badgeFill))
+                .background(Circle().fill(color.fill))
+                .overlay(Circle().strokeBorder(color.stroke, lineWidth: 1.5))
         } else {
             Text("—")
                 .font(.system(size: 15, weight: .regular))
@@ -261,11 +211,11 @@ struct ClassificationView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Tabla de clasificación")
-                .font(.system(size: 28, weight: .bold))
+                .font(AppTheme.Typography.condensed(.semibold, size: 24))
                 .foregroundStyle(AppTheme.Colors.primaryText)
             Text("Orden por lugar a través de los grupos. Los equipos resaltados clasifican.")
                 .font(.system(size: 15, weight: .regular))
-                .foregroundStyle(AppTheme.Colors.secondaryText)
+                .foregroundStyle(AppTheme.Colors.gray400)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 14)
@@ -273,15 +223,18 @@ struct ClassificationView: View {
     }
 
     private var legend: some View {
-        VStack(spacing: 10) {
-            ForEach(Array(orderedBrackets.enumerated()), id: \.element.id) { index, bracket in
-                ClassificationLegendCard(
-                    bracket: bracket,
-                    color: ClassificationPalette.entries[index % ClassificationPalette.entries.count]
-                )
-                .padding(.horizontal, 6)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(orderedBrackets.enumerated()), id: \.element.id) { index, bracket in
+                    Badge(
+                        bracket.badgeLabel,
+                        style: ClassificationPalette.entries[index % ClassificationPalette.entries.count].badge
+                    )
+                }
             }
+            .padding(.horizontal, 14)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
     private var table: some View {
