@@ -24,12 +24,21 @@ private enum GameCardPalette {
     static let groupTagFill = Color(red: 35/255, green: 14/255, blue: 46/255)
 }
 
-/// A single filter chip — either a group ("Grupo 1") or a playoff bracket ("Playoffs").
+/// A single filter chip — the regular season ("Temporada Regular"), a group
+/// ("Grupo 1"), or a playoff bracket ("Playoffs").
 struct GameGroupChip: Identifiable, Equatable, Hashable {
-    enum Kind { case group, bracket }
+    enum Kind { case regularSeason, group, bracket }
     let name: String
     let kind: Kind
-    var id: String { "\(kind == .group ? "g" : "b")-\(name)" }
+    var id: String {
+        let prefix: String
+        switch kind {
+        case .regularSeason: prefix = "r"
+        case .group: prefix = "g"
+        case .bracket: prefix = "b"
+        }
+        return "\(prefix)-\(name)"
+    }
 }
 
 
@@ -89,7 +98,20 @@ struct GamesListView: View {
             }
             .map { GameGroupChip(name: $0, kind: .bracket) }
 
-        return groupChips + bracketChips
+        let otherChips = groupChips + bracketChips
+
+        // Ungrouped regular-season games (no group, no bracket) have no chip of their
+        // own, so with playoffs/groups present they'd be unreachable. Give them a
+        // "Temporada Regular" chip — but only when other chips exist, so a plain
+        // regular-season tournament stays chip-free (all games already show).
+        let hasUngroupedRegular = all.contains { $0.group == nil && $0.bracket == nil }
+        let regularChips = (hasUngroupedRegular && !otherChips.isEmpty)
+            ? [GameGroupChip(name: "Temporada Regular", kind: .regularSeason)]
+            : []
+
+        // Playoffs first — so it leads and becomes the default selection when present —
+        // then regular season, then groups.
+        return bracketChips + regularChips + groupChips
     }
 
     private func trailingInt(_ s: String) -> Int? {
@@ -107,6 +129,7 @@ struct GamesListView: View {
 
     private func matches(_ game: Game, _ chip: GameGroupChip) -> Bool {
         switch chip.kind {
+        case .regularSeason: return game.group == nil && game.bracket == nil
         case .group: return game.group == chip.name
         case .bracket: return game.bracket == chip.name
         }
