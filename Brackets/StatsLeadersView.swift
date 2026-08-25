@@ -102,7 +102,7 @@ struct StatsLeadersView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, AppTheme.Spacing.medium)
 
-                    Divider().overlay(Color(white: 0.2))
+                    Divider().overlay(AppTheme.Colors.gray700)
 
                     // Podium (top 3) or fallback rows
                     if top3.count >= 3 {
@@ -114,17 +114,23 @@ struct StatsLeadersView: View {
                         ForEach(Array(top3.enumerated()), id: \.element.id) { index, stat in
                             statRowLink(stat: stat, rank: index + 1)
                             if index < top3.count - 1 {
-                                Divider().overlay(Color(white: 0.15)).padding(.horizontal, AppTheme.Layout.cardPadding)
+                                Divider().overlay(AppTheme.Colors.gray700).padding(.horizontal, AppTheme.Layout.cardPadding)
                             }
                         }
                     }
 
-                    // Rest of the players — zebra-striped rows
+                    // Rest of the players — hairline between each row
                     if !rest.isEmpty {
-                        Divider().overlay(Color(white: 0.2))
+                        Divider().overlay(AppTheme.Colors.gray700)
                     }
                     ForEach(Array(rest.enumerated()), id: \.element.id) { index, stat in
                         statRowLink(stat: stat, rank: index + 4)
+
+                        if index < rest.count - 1 {
+                            Divider()
+                                .overlay(AppTheme.Colors.gray700)
+                                .padding(.horizontal, AppTheme.Layout.cardPadding)
+                        }
                     }
 
                     // Keep the footer at the bottom of the card when content is short
@@ -132,7 +138,7 @@ struct StatsLeadersView: View {
 
                     // Footer link → full list
                     if !category.stats.isEmpty {
-                        Divider().overlay(Color(white: 0.15)).padding(.horizontal, AppTheme.Layout.cardPadding)
+                        Divider().overlay(AppTheme.Colors.gray700).padding(.horizontal, AppTheme.Layout.cardPadding)
                         NavigationLink {
                             TopStatDetailView(tournament: tournament, stat: statKey, categoryName: category.name ?? "")
                         } label: {
@@ -148,7 +154,8 @@ struct StatsLeadersView: View {
                 .frame(minHeight: proxy.size.height, alignment: .top)
                 .background(
                     RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                        .fill(Color(white: 0.1))
+                        .fill(AppTheme.Colors.gray800)
+                        .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
                 )
                 .padding(.horizontal, 6)
             }
@@ -180,20 +187,20 @@ struct StatsLeadersView: View {
                     .lineLimit(1)
                 Text(stat.teamName)
                     .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.secondaryText)
+                    .foregroundStyle(AppTheme.Colors.gray400)
                     .lineLimit(1)
             }
 
             Spacer()
 
             Text(formatScore(stat.score))
-                .font(.system(size: 18, weight: .bold))
+                .font(AppTheme.Typography.condensed(.semibold, size: 26))
                 .foregroundStyle(AppTheme.Colors.primaryText)
         }
         .padding(.horizontal, AppTheme.Layout.cardPadding)
         .padding(.vertical, AppTheme.Spacing.medium)
         .frame(maxWidth: .infinity)
-        .background(rank % 2 == 0 ? Color(white: 0.12) : Color(white: 0.086))
+        .background(AppTheme.Colors.gray800)
     }
 
     private func circularAvatar(_ player: Player, size: CGFloat) -> some View {
@@ -228,7 +235,7 @@ struct StatsLeadersView: View {
             NavigationLink {
                 PlayerDetailView(stat: second, tournamentId: tournament.id)
             } label: {
-                podiumPlayer(stat: second, rank: 2, imageSize: 70, offsetY: 20)
+                podiumPlayer(stat: second, rank: 2, imageSize: 84, offsetY: 22)
             }
             .buttonStyle(.plain)
 
@@ -236,7 +243,7 @@ struct StatsLeadersView: View {
             NavigationLink {
                 PlayerDetailView(stat: first, tournamentId: tournament.id)
             } label: {
-                podiumPlayer(stat: first, rank: 1, imageSize: 90, offsetY: 0)
+                podiumPlayer(stat: first, rank: 1, imageSize: 108, offsetY: 0)
             }
             .buttonStyle(.plain)
 
@@ -244,7 +251,7 @@ struct StatsLeadersView: View {
             NavigationLink {
                 PlayerDetailView(stat: third, tournamentId: tournament.id)
             } label: {
-                podiumPlayer(stat: third, rank: 3, imageSize: 70, offsetY: 20)
+                podiumPlayer(stat: third, rank: 3, imageSize: 72, offsetY: 30)
             }
             .buttonStyle(.plain)
         }
@@ -253,27 +260,20 @@ struct StatsLeadersView: View {
     }
 
     private func podiumPlayer(stat: PlayerStatEntry, rank: Int, imageSize: CGFloat, offsetY: CGFloat) -> some View {
-        VStack(spacing: 6) {
-            // Crown for #1
-            if rank == 1 {
-                CrownIcon()
-                    .fill(AppTheme.Colors.accent)
-                    .frame(width: 28, height: 20)
-            }
+        let metal = PodiumMetal(rank: rank)
 
+        return VStack(spacing: 1) {
             // Player image with rank badge
             ZStack(alignment: .bottom) {
                 podiumAvatar(stat.player, size: imageSize, rank: rank)
 
-                // Rank badge
+                // Rank badge — dark disc ringed in the place's metal
                 Text("\(rank)")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.accentText)
+                    .foregroundStyle(metal.color)
                     .frame(width: 24, height: 24)
-                    .background(
-                        Circle()
-                            .fill(AppTheme.Colors.accent)
-                    )
+                    .background(Circle().fill(AppTheme.Colors.gray800))
+                    .overlay(Circle().strokeBorder(metal.color, lineWidth: 1.5))
                     .offset(y: 12)
             }
 
@@ -282,25 +282,26 @@ struct StatsLeadersView: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .lineLimit(1)
-                .padding(.top, 8)
+                // clears the rank badge, which overhangs the avatar by 12
+                .padding(.top, 16)
 
             Text(stat.teamName)
                 .font(.system(size: 11))
-                .foregroundStyle(Color(white: 0.5))
+                .foregroundStyle(AppTheme.Colors.gray400)
                 .lineLimit(1)
 
             // Score
             Text(formatScore(stat.score))
-                .font(.system(size: 24, weight: .heavy))
+                .font(AppTheme.Typography.condensed(.semibold, size: 34))
                 .foregroundStyle(AppTheme.Colors.primaryText)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
         .offset(y: offsetY)
     }
 
     private func podiumAvatar(_ player: Player, size: CGFloat, rank: Int) -> some View {
-        let borderColor = rank == 1 ? AppTheme.Colors.accent : Color(white: 0.3)
-        let borderWidth: CGFloat = rank == 1 ? 3 : 2
+        let metal = PodiumMetal(rank: rank)
 
         return Group {
             if let picture = player.picture,
@@ -313,18 +314,28 @@ struct StatsLeadersView: View {
                             .scaledToFill()
                             .frame(width: size, height: size)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(borderColor, lineWidth: borderWidth))
                     default:
-                        podiumInitials(player, size: size, borderColor: borderColor, borderWidth: borderWidth)
+                        podiumInitials(player, size: size)
                     }
                 }
             } else {
-                podiumInitials(player, size: size, borderColor: borderColor, borderWidth: borderWidth)
+                podiumInitials(player, size: size)
             }
         }
+        .background {
+            if metal.isGold {
+                GoldGlow()
+                    // Kept close to the photo so it never reaches the neighbouring
+                    // places, and lifted slightly so it reads as light from above.
+                    .frame(width: size * 1.34, height: size * 1.34)
+                    .offset(y: -10)
+                    .allowsHitTesting(false)
+            }
+        }
+        .overlay { metal.ring(width: metal.isGold ? 3 : 2) }
     }
 
-    private func podiumInitials(_ player: Player, size: CGFloat, borderColor: Color, borderWidth: CGFloat) -> some View {
+    private func podiumInitials(_ player: Player, size: CGFloat) -> some View {
         Circle()
             .fill(Color(white: 0.15))
             .frame(width: size, height: size)
@@ -333,7 +344,6 @@ struct StatsLeadersView: View {
                     .font(.system(size: size * 0.3, weight: .bold))
                     .foregroundStyle(Color(white: 0.4))
             )
-            .overlay(Circle().stroke(borderColor, lineWidth: borderWidth))
     }
 
     private func avatarPlaceholder(_ player: Player) -> some View {
@@ -369,33 +379,63 @@ struct StatsLeadersView: View {
         }
     }
 }
- 
-// MARK: - Custom Crown Shape
 
-struct CrownIcon: Shape {
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width
-        let h = rect.height
+// MARK: - Podium Metals
 
-        var path = Path()
+/// Gold, silver and bronze for the three podium places. Only gold moves: a highlight
+/// sweeps across its ring so first place reads as the shiny one.
+private struct PodiumMetal {
+    let rank: Int
 
-        // Angular crown: 5 points up, 2 valleys
-        // Left base
-        path.move(to: CGPoint(x: 0, y: h))
-        // Left peak
-        path.addLine(to: CGPoint(x: 0, y: h * 0.35))
-        // Left valley
-        path.addLine(to: CGPoint(x: w * 0.25, y: h * 0.55))
-        // Center peak (tallest)
-        path.addLine(to: CGPoint(x: w * 0.5, y: 0))
-        // Right valley
-        path.addLine(to: CGPoint(x: w * 0.75, y: h * 0.55))
-        // Right peak
-        path.addLine(to: CGPoint(x: w, y: h * 0.35))
-        // Right base
-        path.addLine(to: CGPoint(x: w, y: h))
-        path.closeSubpath()
+    var isGold: Bool { rank == 1 }
 
-        return path
+    var color: Color {
+        switch rank {
+        case 1:  AppTheme.Colors.gold
+        case 2:  AppTheme.Colors.silver
+        default: AppTheme.Colors.bronze
+        }
+    }
+
+    func ring(width: CGFloat) -> some View {
+        Circle().strokeBorder(color, lineWidth: width)
+    }
+}
+
+/// A soft gold halo that breathes behind the first-place photo: two offset radial
+/// gradients drifting against each other, so the light shifts instead of just pulsing.
+private struct GoldGlow: View {
+    @State private var isBreathing = false
+
+    var body: some View {
+        ZStack {
+            halo(opacity: 0.55, blur: 18)
+                .scaleEffect(isBreathing ? 1.06 : 0.92)
+
+            halo(opacity: 0.30, blur: 30)
+                .scaleEffect(isBreathing ? 0.94 : 1.10)
+        }
+        .opacity(isBreathing ? 1.0 : 0.72)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
+                isBreathing = true
+            }
+        }
+    }
+
+    private func halo(opacity: Double, blur: CGFloat) -> some View {
+        GeometryReader { proxy in
+            RadialGradient(
+                stops: [
+                    .init(color: AppTheme.Colors.goldHighlight.opacity(opacity), location: 0.0),
+                    .init(color: AppTheme.Colors.gold.opacity(opacity * 0.8), location: 0.45),
+                    .init(color: AppTheme.Colors.gold.opacity(0), location: 1.0)
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: proxy.size.width / 2
+            )
+            .blur(radius: blur)
+        }
     }
 }

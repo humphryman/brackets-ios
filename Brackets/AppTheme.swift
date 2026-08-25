@@ -84,6 +84,20 @@ struct AppTheme {
         /// `color/orange/orange-500` — warning badge accent. Hex: #F97316
         static let orange500 = Color(red: 249/255, green: 115/255, blue: 22/255)
 
+        // MARK: Podium metals
+
+        /// First place. Hex: #E7B44C
+        static let gold = Color(red: 231/255, green: 180/255, blue: 76/255)
+
+        /// Highlight that sweeps across `gold` on the podium ring. Hex: #FFF1C2
+        static let goldHighlight = Color(red: 255/255, green: 241/255, blue: 194/255)
+
+        /// Second place. Hex: #C7CBD1
+        static let silver = Color(red: 199/255, green: 203/255, blue: 209/255)
+
+        /// Third place. Hex: #C08243
+        static let bronze = Color(red: 192/255, green: 130/255, blue: 67/255)
+
         /// `color/sky/sky-900` — selection accent. Hex: #1A17D3
         static let sky900 = Color(red: 26/255, green: 23/255, blue: 211/255)
 
