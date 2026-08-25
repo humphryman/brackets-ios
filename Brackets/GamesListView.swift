@@ -155,15 +155,20 @@ struct GamesListView: View {
             } else if let _ = gamesResponse {
                 VStack(spacing: 0) {
                     // Top filter (Próximos / Resultados / En Vivo)
-                    GameFilterView(selectedFilter: $selectedFilter, filters: availableFilters)
-                        .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    Tabs(
+                        options: availableFilters,
+                        selection: $selectedFilter,
+                        dot: { $0 == .live ? AppTheme.Colors.live : nil }
+                    ) { $0.rawValue }
                         .padding(.top, AppTheme.Spacing.medium)
                         .padding(.bottom, AppTheme.Spacing.small)
 
-                    // Group / bracket carousel
-                    ChipCarousel(items: chips, label: \.name, selected: $selectedChip)
-                        .padding(.bottom, AppTheme.Spacing.medium)
-                        .onChange(of: selectedFilter) { selectFirstChip() }
+                    // Group / bracket carousel — takes no room when there is nothing
+                    // to filter by
+                    if !chips.isEmpty {
+                        ChipCarousel(items: chips, label: \.name, selected: $selectedChip)
+                            .padding(.bottom, AppTheme.Spacing.medium)
+                    }
 
                     if filteredGames.isEmpty {
                         AppTheme.EmptyStateView(
@@ -238,6 +243,9 @@ struct GamesListView: View {
                         }
                     }
                 }
+                // On the VStack, not the carousel: the carousel disappears when a filter
+                // has no chips, and the reset still has to run on the next switch.
+                .onChange(of: selectedFilter) { selectFirstChip() }
             } else {
                 AppTheme.EmptyStateView(
                     icon: "sportscourt",
@@ -371,84 +379,6 @@ struct GamesListView: View {
         f.dateFormat = "d"
         let day = f.string(from: date)
         return "\(weekday), \(day) de \(month)"
-    }
-}
-
-/// Filter buttons at the top
-struct GameFilterView: View {
-    @Binding var selectedFilter: GameFilter
-    var filters: [GameFilter] = GameFilter.allCases
-
-    var body: some View {
-        HStack(spacing: AppTheme.Spacing.small) {
-            ForEach(filters, id: \.self) { filter in
-                if filter == .live {
-                    LiveFilterButton(isSelected: selectedFilter == filter) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            selectedFilter = filter
-                        }
-                    }
-                } else {
-                    FilterButton(
-                        title: filter.rawValue,
-                        isSelected: selectedFilter == filter
-                    ) {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            selectedFilter = filter
-                        }
-                    }
-                }
-            }
-
-            Spacer()
-        }
-    }
-}
-
-/// Live filter button with red dot
-struct LiveFilterButton: View {
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Circle()
-                .fill(Color.red)
-                .frame(width: 10, height: 10)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-            .background(
-                Capsule()
-                    .fill(isSelected ? Color.red.opacity(0.3) : Color.clear)
-            )
-            .overlay(
-                Capsule()
-                    .stroke(Color.red, lineWidth: 1.5)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-/// Individual filter button
-struct FilterButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(isSelected ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? AppTheme.Colors.accent : Color(white: 0.2))
-                )
-        }
-        .buttonStyle(.plain)
     }
 }
 

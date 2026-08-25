@@ -65,6 +65,9 @@ struct AppTheme {
         /// `color/gray-400` — labels under a stat value. Hex: #9CA3AF
         static let gray400 = Color(red: 156/255, green: 163/255, blue: 175/255)
 
+        /// `color/gray-500` — resting underline of a tab bar. Hex: #6B7280
+        static let gray500 = Color(red: 107/255, green: 114/255, blue: 128/255)
+
         /// `color/gray-600` — hairline around a segmented track. Hex: #4B5563
         static let gray600 = Color(red: 75/255, green: 85/255, blue: 99/255)
 

@@ -302,8 +302,7 @@ struct StandingsView: View {
             } else if let bundle = bundle, !bundle.result.isEmpty {
                 VStack(spacing: 0) {
                     if availableTabs.count > 1 {
-                        StandingsSubTabBar(tabs: availableTabs, selected: $selectedSubTab)
-                            .padding(.horizontal, AppTheme.Layout.screenPadding)
+                        Tabs(options: availableTabs, selection: $selectedSubTab) { $0.title }
                             .padding(.bottom, AppTheme.Spacing.medium)
                     }
 
@@ -462,41 +461,6 @@ struct StandingsView: View {
 }
 
 // MARK: - Sub-tab bar
-
-struct StandingsSubTabBar: View {
-    let tabs: [StandingsSubTab]
-    @Binding var selected: StandingsSubTab
-
-    var body: some View {
-        HStack(spacing: AppTheme.Spacing.small) {
-            ForEach(tabs, id: \.self) { tab in
-                subTabButton(title: tab.title, value: tab)
-            }
-            Spacer()
-        }
-    }
-
-    @ViewBuilder
-    private func subTabButton(title: String, value: StandingsSubTab) -> some View {
-        let isSelected = selected == value
-        Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                selected = value
-            }
-        } label: {
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(isSelected ? AppTheme.Colors.accentText : AppTheme.Colors.primaryText)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? AppTheme.Colors.accent : Color(white: 0.15))
-                )
-        }
-        .buttonStyle(.plain)
-    }
-}
 
 // MARK: - Champion Panel
 

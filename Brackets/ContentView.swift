@@ -30,32 +30,31 @@ struct ContentView: View {
                     AppTheme.Colors.background
                         .ignoresSafeArea()
 
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
-                            // Header
-                            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                                Text(leagueName.uppercased())
-                                    .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
-                                    .foregroundStyle(AppTheme.Colors.primaryText)
+                    VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
+                        // Header
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                            Text(leagueName.uppercased())
+                                .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
+                                .foregroundStyle(AppTheme.Colors.primaryText)
 
-                                Text("Selecciona una categoría")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(AppTheme.Colors.secondaryText)
-                            }
-                            .padding(.horizontal, AppTheme.Layout.extraLarge)
-                            .padding(.top, AppTheme.Layout.large)
+                            Text("Selecciona una categoría")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(AppTheme.Colors.secondaryText)
+                        }
+                        .padding(.horizontal, AppTheme.Layout.extraLarge)
+                        .padding(.top, AppTheme.Layout.large)
 
-                            if viewModel.showsGenderTabs {
-                                GenderSelectorView(
-                                    selectedGender: $viewModel.selectedGender,
-                                    genders: viewModel.availableGenders
-                                )
-                                .padding(.horizontal, AppTheme.Layout.extraLarge)
-                            }
+                        if viewModel.showsGenderTabs {
+                            Tabs(
+                                options: viewModel.availableGenders,
+                                selection: $viewModel.selectedGender,
+                                contentInset: AppTheme.Layout.extraLarge
+                            ) { $0.displayName }
+                        }
 
+                        ScrollView {
                             tournamentsContent
-
-                            Spacer(minLength: 40)
+                                .padding(.bottom, 40)
                         }
                     }
                 }
@@ -92,26 +91,32 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                VStack(spacing: 16) {
-                    if viewModel.showsGenderTabs {
-                        GenderSelectorView(
-                            selectedGender: $viewModel.selectedGender,
-                            genders: viewModel.availableGenders
-                        )
-                    }
-
-                    ForEach(viewModel.filteredTournaments) { tournament in
-                        tournamentListCard(for: tournament)
-                            .onTapGesture {
-                                selectedTournament = tournament
-                                isBrowsingTournament = true
-                            }
-                    }
+            VStack(spacing: 0) {
+                // Pinned above the list, like the tab bars on Games and Standings. It
+                // sits outside the padded stack so it can bleed to the edge when the
+                // tabs overflow.
+                if viewModel.showsGenderTabs {
+                    Tabs(
+                        options: viewModel.availableGenders,
+                        selection: $viewModel.selectedGender
+                    ) { $0.displayName }
+                    .padding(.top, 12)
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                .padding(.bottom, 40)
+
+                ScrollView {
+                    VStack(spacing: 16) {
+                        ForEach(viewModel.filteredTournaments) { tournament in
+                            tournamentListCard(for: tournament)
+                                .onTapGesture {
+                                    selectedTournament = tournament
+                                    isBrowsingTournament = true
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.top, 16)
+                    .padding(.bottom, 40)
+                }
             }
             .navigationDestination(
                 item: Binding(
@@ -288,35 +293,6 @@ struct ContentView: View {
                 }
             }
             .padding(.horizontal, AppTheme.Layout.extraLarge)
-        }
-    }
-}
-
-struct GenderSelectorView: View {
-    @Binding var selectedGender: Gender
-    var genders: [Gender] = Gender.allCases
-
-    var body: some View {
-        HStack(spacing: AppTheme.Spacing.small) {
-            ForEach(genders, id: \.self) { gender in
-                let isSelected = selectedGender == gender
-                Button {
-                    withAnimation(AppTheme.Animation.spring) {
-                        selectedGender = gender
-                    }
-                } label: {
-                    Text(gender.displayName)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(isSelected ? AppTheme.Colors.accentText : AppTheme.Colors.secondaryText)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule().fill(isSelected ? AppTheme.Colors.accent : Color(white: 0.15))
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-            Spacer()
         }
     }
 }
