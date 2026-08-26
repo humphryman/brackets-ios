@@ -46,7 +46,7 @@ enum StandingsCol {
 
 /// Two-tone surfaces for the standings card: a lighter header band and darker rows.
 enum StandingsSurface {
-    static let header = Color(white: 0.16)   // title + column-label band (lighter)
+    static let header = AppTheme.Colors.gray700   // title + column-label band (lighter)
     static let rows = Color(white: 0.10)     // team-rows area (darker)
 }
 
@@ -116,7 +116,7 @@ struct StandingsTableHeader: View {
             Text(usesAverage ? "AVG" : "DIF").frame(width: StandingsCol.last)
         }
         .font(AppTheme.Typography.tinyCaption)
-        .foregroundStyle(AppTheme.Colors.secondaryText)
+        .foregroundStyle(AppTheme.Colors.gray400)
         .textCase(.uppercase)
     }
 }
@@ -175,7 +175,7 @@ struct StandingsTableRow: View {
     private func numeric(_ value: Int, width: CGFloat = StandingsCol.narrow) -> some View {
         Text("\(value)")
             .font(.system(size: 14, weight: .regular))
-            .foregroundStyle(AppTheme.Colors.secondaryText)
+            .foregroundStyle(AppTheme.Colors.gray400)
             .frame(width: width)
     }
 }
@@ -226,7 +226,7 @@ struct GroupStandingsCard<Row: View>: View {
             Button(action: onToggle) {
                 HStack {
                     Text(title)
-                        .font(AppTheme.Typography.headline)
+                        .font(AppTheme.Typography.condensed(.semibold, size: 22))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                     Spacer()
                     Image(systemName: "chevron.right")
@@ -516,28 +516,22 @@ private struct PodiumCard: View {
     enum Style {
         case gold, silver, bronze
 
+        /// The metal itself — badge, logo ring, card border and place pill.
         var primary: Color {
             switch self {
-            case .gold: return AppTheme.Colors.accent
-            case .silver: return Color(white: 0.55)
-            case .bronze: return Color(red: 0.78, green: 0.42, blue: 0.18)
+            case .gold: return AppTheme.Colors.gold
+            case .silver: return AppTheme.Colors.silver
+            case .bronze: return AppTheme.Colors.bronze
             }
         }
 
-        var pillTextColor: Color {
-            switch self {
-            case .gold: return AppTheme.Colors.accentText
-            default: return .white
-            }
-        }
+        /// All three metals are light enough that the dark accent text reads best
+        /// on them — white on silver in particular would wash out.
+        var pillTextColor: Color { AppTheme.Colors.accentText }
 
-        var cardFill: Color {
-            switch self {
-            case .gold: return Color(white: 0.10)
-            case .silver: return Color(white: 0.12)
-            case .bronze: return Color(red: 0.16, green: 0.08, blue: 0.04)
-            }
-        }
+        /// The card behind the metal: the same hue held back to a tint so the
+        /// border and badge stay the brightest things on the card.
+        var cardFill: Color { primary.opacity(0.12) }
     }
 
     let entry: PodiumEntry
@@ -559,9 +553,9 @@ private struct PodiumCard: View {
             .padding(.bottom, -18)
 
             if style == .gold {
-                Image(systemName: "star.fill")
+                Image(systemName: "trophy.fill")
                     .font(.system(size: 22))
-                    .foregroundStyle(Color(red: 0.98, green: 0.74, blue: 0.18))
+                    .foregroundStyle(AppTheme.Colors.gold)
             }
 
             // Logo in colored ring
