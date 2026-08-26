@@ -7,11 +7,22 @@
 
 import SwiftUI
 
+/// Geometry for the peeking card carousel.
+private enum Carousel {
+    /// Sliver of the neighbouring card left visible on each side.
+    static let peek: CGFloat = 14
+    /// Gap between two cards.
+    static let gap: CGFloat = 8
+    /// Inset each card keeps from the screen edge. The peek lives inside it, so the
+    /// centred card is exactly `screenWidth - 2 * sideInset` wide on every page.
+    static var sideInset: CGFloat { peek + gap }
+}
+
 struct StatsLeadersView: View {
     let tournament: Tournament
 
     @State private var categories: [StatCategory] = []
-    @State private var currentPage: Int = 0
+    @State private var currentPage: Int? = 0
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -52,14 +63,24 @@ struct StatsLeadersView: View {
         VStack(spacing: 0) {
             // Carousel fills the available content area; each page scrolls internally,
             // so the tournament header and floating tab bar stay visible.
-            TabView(selection: $currentPage) {
-                ForEach(Array(activeCategories.enumerated()), id: \.element.id) { index, category in
-                    categoryPage(category)
-                        .tag(index)
+            // Symmetric `safeAreaPadding` is what keeps the current card centred:
+            // each card is sized to the padded container, so the inset it leaves on
+            // either side is exactly where its neighbours show through. The first and
+            // last cards simply have nothing to peek on their outer side.
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: Carousel.gap) {
+                    ForEach(Array(activeCategories.enumerated()), id: \.element.id) { index, category in
+                        categoryPage(category)
+                            .containerRelativeFrame(.horizontal, count: 1, spacing: Carousel.gap)
+                            .id(index)
+                    }
                 }
+                .scrollTargetLayout()
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .animation(.easeInOut(duration: 0.3), value: currentPage)
+            .scrollTargetBehavior(.viewAligned)
+            .safeAreaPadding(.horizontal, Carousel.sideInset)
+            .scrollPosition(id: $currentPage)
+            .scrollIndicators(.hidden)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Page indicator dots — centered in the space between the card and the tab bar
@@ -157,7 +178,6 @@ struct StatsLeadersView: View {
                         .fill(AppTheme.Colors.gray800)
                         .strokeBorder(AppTheme.Colors.gray700, lineWidth: 1)
                 )
-                .padding(.horizontal, 6)
             }
         }
     }
@@ -282,6 +302,7 @@ struct StatsLeadersView: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 // clears the rank badge, which overhangs the avatar by 12
                 .padding(.top, 16)
 
@@ -289,11 +310,14 @@ struct StatsLeadersView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(AppTheme.Colors.gray400)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
             // Score
             Text(formatScore(stat.score))
                 .font(AppTheme.Typography.condensed(.semibold, size: 34))
                 .foregroundStyle(AppTheme.Colors.primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
