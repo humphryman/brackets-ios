@@ -353,17 +353,21 @@ struct StandingsView: View {
         if let selected = podiums.first(where: { $0.name == selectedPodiumName }) ?? podiums.first {
             let names = podiums.map(\.name)
             VStack(spacing: 0) {
-                SegmentedController(
-                    segments: names,
-                    selection: Binding(
-                        get: { names.firstIndex(of: selected.name) ?? 0 },
-                        set: { selectedPodiumName = names[$0] }
-                    ),
-                    width: .intrinsic
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.bottom, AppTheme.Spacing.medium)
+                // A lone playoff bracket has nothing to switch between, so the
+                // control is dropped rather than shown with a single segment.
+                if podiums.count >= 2 {
+                    SegmentedController(
+                        segments: names,
+                        selection: Binding(
+                            get: { names.firstIndex(of: selected.name) ?? 0 },
+                            set: { selectedPodiumName = names[$0] }
+                        ),
+                        width: .intrinsic
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, AppTheme.Layout.screenPadding)
+                    .padding(.bottom, AppTheme.Spacing.medium)
+                }
 
                 ChampionPanel(podium: selected)
             }
