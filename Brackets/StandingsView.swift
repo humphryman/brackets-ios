@@ -291,6 +291,19 @@ struct StandingsView: View {
         return tabs
     }
 
+    /// The standings tab reads "Grupos" for grouped standings and "Posiciones"
+    /// for regular (flat) standings. A lone "DEFAULT" group is already normalized
+    /// to `.flat`, so it correctly reads "Posiciones".
+    private var standingsTabTitle: String {
+        if case .groups = bundle?.result { return "Grupos" }
+        return "Posiciones"
+    }
+
+    /// Tab-bar label — the standings tab is context-aware; the rest use their fixed title.
+    private func tabTitle(_ tab: StandingsSubTab) -> String {
+        tab == .standings ? standingsTabTitle : tab.title
+    }
+
     var body: some View {
         ZStack {
             if isLoading {
@@ -304,7 +317,7 @@ struct StandingsView: View {
             } else if let bundle = bundle, !bundle.result.isEmpty {
                 VStack(spacing: 0) {
                     if availableTabs.count > 1 {
-                        Tabs(options: availableTabs, selection: $selectedSubTab) { $0.title }
+                        Tabs(options: availableTabs, selection: $selectedSubTab) { tabTitle($0) }
                             .padding(.bottom, AppTheme.Spacing.medium)
                     }
 
