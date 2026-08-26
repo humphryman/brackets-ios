@@ -42,11 +42,19 @@ struct BracketView: View {
     var body: some View {
         VStack(spacing: 0) {
             if brackets.count >= 2 {
-                ChipCarousel(items: brackets.map(\.name), label: { $0 }, selected: $selectedBracketName)
-                    .padding(.vertical, AppTheme.Spacing.small)
-                    .onChange(of: selectedBracketName) {
-                        windowProgress = 0
-                    }
+                let names = brackets.map(\.name)
+                SegmentedController(
+                    segments: names,
+                    selection: Binding(
+                        get: { names.firstIndex(of: selectedBracketName ?? "") ?? 0 },
+                        set: { selectedBracketName = names[$0] }
+                    )
+                )
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+                .padding(.vertical, AppTheme.Spacing.small)
+                .onChange(of: selectedBracketName) {
+                    windowProgress = 0
+                }
             }
             ZStack {
             if isLoading {
