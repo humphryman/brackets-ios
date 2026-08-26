@@ -12,6 +12,10 @@ private enum RankingCol {
     static let result: CGFloat = 96
     static let hSpacing: CGFloat = 10
     static let rowVPadding: CGFloat = 12
+    /// Inset from the card edge, matching `StandingsTableBody`.
+    static let hPadding: CGFloat = 14
+    /// Gap between the card and the screen edge, matching `GroupStandingsCard`.
+    static let cardInset: CGFloat = 6
 }
 
 /// Final ranking table — column header plus scrolling rows. Receives pre-fetched data,
@@ -20,16 +24,28 @@ struct RankingTable: View {
     let response: RankingResponse
 
     var body: some View {
-        VStack(spacing: 0) {
-            columnHeader
-
-            ScrollView {
-                LazyVStack(spacing: 0) {
+        ScrollView {
+            // The header rides along as a pinned section header, so the column
+            // labels stay put on a long ranking while the card keeps its corners.
+            LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                Section {
                     ForEach(Array(response.ranking.enumerated()), id: \.element.id) { index, entry in
-                        RankingRow(entry: entry, striped: index.isMultiple(of: 2))
+                        RankingRow(entry: entry)
+                        if index < response.ranking.count - 1 {
+                            Divider()
+                                .overlay(AppTheme.Colors.separator)
+                                .padding(.horizontal, RankingCol.hPadding)
+                        }
                     }
+                } header: {
+                    columnHeader
                 }
             }
+            .background(StandingsSurface.rows)
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
+            .padding(.horizontal, RankingCol.cardInset)
+            .padding(.top, AppTheme.Spacing.small)
+            .padding(.bottom, AppTheme.Layout.large)
         }
     }
 
@@ -44,17 +60,18 @@ struct RankingTable: View {
             Text("RESULTADO")
                 .frame(width: RankingCol.result, alignment: .leading)
         }
-        .font(.system(size: 11, weight: .semibold))
-        .foregroundStyle(AppTheme.Colors.secondaryText)
-        .padding(.horizontal, AppTheme.Layout.screenPadding)
-        .padding(.vertical, 10)
+        .font(AppTheme.Typography.tinyCaption)
+        .foregroundStyle(AppTheme.Colors.gray400)
+        .textCase(.uppercase)
+        .padding(.horizontal, RankingCol.hPadding)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(StandingsSurface.header)
     }
 }
 
 private struct RankingRow: View {
     let entry: RankingEntry
-    let striped: Bool
 
     var body: some View {
         HStack(spacing: RankingCol.hSpacing) {
@@ -82,9 +99,8 @@ private struct RankingRow: View {
                 .minimumScaleFactor(0.85)
                 .frame(width: RankingCol.result, alignment: .leading)
         }
-        .padding(.horizontal, AppTheme.Layout.screenPadding)
+        .padding(.horizontal, RankingCol.hPadding)
         .padding(.vertical, RankingCol.rowVPadding)
-        .background(striped ? Color(white: 0.13) : StandingsSurface.rows)
     }
 }
 
