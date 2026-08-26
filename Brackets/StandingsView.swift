@@ -47,7 +47,7 @@ enum StandingsCol {
 /// Two-tone surfaces for the standings card: a lighter header band and darker rows.
 enum StandingsSurface {
     static let header = AppTheme.Colors.gray700   // title + column-label band (lighter)
-    static let rows = Color(white: 0.10)     // team-rows area (darker)
+    static let rows = AppTheme.Colors.gray800    // team-rows area (darker)
 }
 
 /// AVG value rendered as accent-green text on a subtle green-tinted pill.
