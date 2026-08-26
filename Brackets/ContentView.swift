@@ -166,15 +166,17 @@ struct ContentView: View {
                     ZStack {
                         Color.black.opacity(0.65)
 
-                        VStack(spacing: 2) {
+                        VStack(spacing: 0) {
                             Text(winner.teamName.uppercased())
-                                .font(.system(size: 22, weight: .heavy))
+                                .font(AppTheme.Typography.display(size: 22))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.5)
+                                .displayTightLeading(size: 22)
                             Text("CAMPEÓN")
-                                .font(.system(size: 18, weight: .heavy))
+                                .font(AppTheme.Typography.display(size: 18))
                                 .foregroundStyle(.white)
+                                .displayTightLeading(size: 18)
                         }
                         .padding(.horizontal, 16)
                     }

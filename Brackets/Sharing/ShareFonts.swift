@@ -3,13 +3,15 @@
 //  Brackets
 //
 //  Barlow Condensed (SIL Open Font License 1.1 — see Brackets/Fonts/OFL.txt).
+//  Poppins (SIL Open Font License 1.1 — see Brackets/Fonts/OFL-Poppins.txt).
 //
 
 import CoreText
 import SwiftUI
 import UIKit
 
-/// Barlow Condensed, registered at runtime.
+/// The app's bundled type, registered at runtime: Barlow Condensed for titles and
+/// numerals, and Poppins Black — the design system's `Display` face — for the champion.
 ///
 /// Registration is done in code rather than via the `UIAppFonts` Info.plist key for the
 /// same reason `LSApplicationQueriesSchemes` was avoided: this target sets
@@ -19,12 +21,23 @@ import UIKit
 /// synchronized file group handles automatically.
 enum ShareFont {
 
-    enum Weight: String {
+    enum Weight: String, CaseIterable {
         case regular   = "BarlowCondensed-Regular"
         case medium    = "BarlowCondensed-Medium"
         case semibold  = "BarlowCondensed-SemiBold"
         case bold      = "BarlowCondensed-Bold"
         case extraBold = "BarlowCondensed-ExtraBold"
+    }
+
+    /// `Display` in the design system. Reserved for naming the champion — nothing else
+    /// uses it, so it ships as the single Black weight rather than a family.
+    enum Display: String, CaseIterable {
+        case black = "Poppins-Black"
+    }
+
+    /// Every bundled face, by resource name.
+    private static var bundledFaces: [String] {
+        Weight.allCases.map(\.rawValue) + Display.allCases.map(\.rawValue)
     }
 
     private static var didRegister = false
@@ -35,11 +48,11 @@ enum ShareFont {
         guard !didRegister else { return }
         didRegister = true
 
-        for weight in [Weight.regular, .medium, .semibold, .bold, .extraBold] {
-            guard let url = Bundle.main.url(forResource: weight.rawValue, withExtension: "ttf") else {
-                // Never fatal: `condensed(_:size:)` falls back to the system font, so a
-                // missing face costs typography, not a working share card.
-                debugPrint("ShareFont: missing resource \(weight.rawValue).ttf")
+        for face in bundledFaces {
+            guard let url = Bundle.main.url(forResource: face, withExtension: "ttf") else {
+                // Never fatal: the accessors fall back to the system font, so a missing
+                // face costs typography, not a working screen.
+                debugPrint("ShareFont: missing resource \(face).ttf")
                 continue
             }
             var error: Unmanaged<CFError>?
@@ -49,7 +62,7 @@ enum ShareFont {
                 let cfError = error?.takeRetainedValue()
                 let code = (cfError as Error?).map { ($0 as NSError).code }
                 if code != Int(CTFontManagerError.alreadyRegistered.rawValue) {
-                    debugPrint("ShareFont: could not register \(weight.rawValue): \(String(describing: cfError))")
+                    debugPrint("ShareFont: could not register \(face): \(String(describing: cfError))")
                 }
             }
         }
@@ -64,6 +77,18 @@ enum ShareFont {
             return .custom(weight.rawValue, size: size)
         }
         return .system(size: size, weight: .bold, design: .default)
+    }
+
+    /// Poppins Black at `size` — the design system's `Display` face. Falls back to the
+    /// system font at `.black` so a missing resource degrades to a heavy title rather
+    /// than a mismatched one.
+    static func display(_ weight: Display = .black, size: CGFloat) -> Font {
+        registerIfNeeded()
+
+        if UIFont(name: weight.rawValue, size: size) != nil {
+            return .custom(weight.rawValue, size: size)
+        }
+        return .system(size: size, weight: .black, design: .default)
     }
 
     /// Big-number treatment: condensed, tight, and non-scaling so a 3-digit score keeps

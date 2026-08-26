@@ -130,6 +130,20 @@ struct AppTheme {
         static func condensed(_ weight: ShareFont.Weight, size: CGFloat) -> Font {
             ShareFont.condensed(weight, size: size)
         }
+
+        /// `Display` — Poppins Black. Reserved for naming the champion; nothing else
+        /// uses it. Registered at runtime by `ShareFont`; falls back to the system font.
+        static func display(size: CGFloat) -> Font {
+            ShareFont.display(size: size)
+        }
+
+        /// Leading trimmed from between two wrapped lines of `Display`, as a fraction
+        /// of the font size. See `displayTightLeading(size:)`.
+        static let displayLineTrim: CGFloat = 0.42
+
+        /// Leading trimmed from below a `Display` line, as a fraction of the font size.
+        /// Held under the 0.40 em descent so the trim only ever eats empty space.
+        static let displayBlockTrim: CGFloat = 0.38
     }
     
     // MARK: - Spacing
@@ -411,5 +425,24 @@ extension View {
             .buttonStyle(.borderedProminent)
             .tint(AppTheme.Colors.accent)
             .foregroundStyle(AppTheme.Colors.accentText)
+    }
+}
+
+
+// MARK: - Display Leading
+
+extension View {
+    /// Pulls stacked `Display` lines together.
+    ///
+    /// Poppins sets a 1.5 em line box against a 0.713 em cap height, so untouched it
+    /// leaves ~0.79 em of air around every all-caps line and two stacked lines drift
+    /// far apart. The trim is deliberately one-sided: all-caps Spanish has no
+    /// descenders, so the full 0.40 em below the baseline is dead space, but `Ó`, `Ñ`
+    /// and `Ü` climb to ~1.0 em and leave under 0.1 em of headroom — taking it off the
+    /// top would run the accent into the line above.
+    func displayTightLeading(size: CGFloat) -> some View {
+        self
+            .lineSpacing(-size * AppTheme.Typography.displayLineTrim)
+            .padding(.bottom, -size * AppTheme.Typography.displayBlockTrim)
     }
 }

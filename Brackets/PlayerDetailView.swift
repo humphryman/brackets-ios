@@ -356,12 +356,21 @@ struct PlayerDetailView: View {
         let statColumnWidth: CGFloat = 44
         let headerHeight: CGFloat = 36
         let rowHeight: CGFloat = 52
+        // Same inset from the card edge that `StandingsTableBody` uses.
+        let cardPadding: CGFloat = 14
 
-        return VStack(spacing: 16) {
+        // Matches `GroupStandingsCard`: a gray700 title band over a gray700 column-label
+        // band, then gray800 rows — minus the chevron, since these cards never collapse.
+        let lastIndex = sortedStats.count - 1
+
+        return VStack(spacing: 0) {
             Text(title)
-                .font(ShareFont.condensed(.semibold, size: 24))
+                .font(AppTheme.Typography.condensed(.semibold, size: 22))
                 .foregroundStyle(AppTheme.Colors.primaryText)
+                .padding(.horizontal, cardPadding)
+                .padding(.vertical, 14)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background(StandingsSurface.header)
 
             // Table: fixed opponent column | scrollable stats column
             HStack(alignment: .top, spacing: 0) {
@@ -369,16 +378,16 @@ struct PlayerDetailView: View {
                 VStack(spacing: 0) {
                     // Header
                     Text("Opponent")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.5))
+                        .font(AppTheme.Typography.tinyCaption)
+                        .foregroundStyle(AppTheme.Colors.gray400)
+                        .textCase(.uppercase)
                         .frame(height: headerHeight)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-
-                    Divider().background(Color(white: 0.2))
+                        .padding(.horizontal, cardPadding)
+                        .background(StandingsSurface.header)
 
                     // Opponent rows
-                    ForEach(sortedStats) { game in
+                    ForEach(Array(sortedStats.enumerated()), id: \.element.id) { index, game in
                         VStack(spacing: 0) {
                             HStack(spacing: 8) {
                                 opponentCircle(game)
@@ -391,38 +400,40 @@ struct PlayerDetailView: View {
                             }
                             .frame(height: rowHeight)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 12)
+                            .padding(.horizontal, cardPadding)
                             .opacity(game.played ? 1.0 : 0.5)
 
-                            Divider().background(Color(white: 0.15))
+                            if index < lastIndex {
+                                Divider().overlay(AppTheme.Colors.separator)
+                            }
                         }
                     }
                 }
                 .frame(width: 140)
 
-                // Vertical separator
+                // Vertical separator marking the frozen column
                 Rectangle()
-                    .fill(Color(white: 0.2))
+                    .fill(AppTheme.Colors.separator)
                     .frame(width: 1)
 
                 // Stats columns
-                let needsScroll = CGFloat(info.activeStats.count) * statColumnWidth > 200
+                let minStatsWidth = CGFloat(info.activeStats.count) * statColumnWidth
                 let statsContent = VStack(spacing: 0) {
                     // Stat headers
                     HStack(spacing: 0) {
                         ForEach(info.activeStats, id: \.self) { key in
                             Text(detail.shortNameStats[key] ?? key.uppercased())
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Color(white: 0.5))
+                                .font(AppTheme.Typography.tinyCaption)
+                                .foregroundStyle(AppTheme.Colors.gray400)
+                                .textCase(.uppercase)
                                 .frame(minWidth: statColumnWidth, maxWidth: .infinity, alignment: .center)
                         }
                     }
                     .frame(height: headerHeight)
-
-                    Divider().background(Color(white: 0.2))
+                    .background(StandingsSurface.header)
 
                     // Stat value rows
-                    ForEach(sortedStats) { game in
+                    ForEach(Array(sortedStats.enumerated()), id: \.element.id) { index, game in
                         VStack(spacing: 0) {
                             HStack(spacing: 0) {
                                 ForEach(info.activeStats, id: \.self) { key in
@@ -436,31 +447,27 @@ struct PlayerDetailView: View {
                             .frame(height: rowHeight)
                             .opacity(game.played ? 1.0 : 0.5)
 
-                            Divider().background(Color(white: 0.15))
+                            if index < lastIndex {
+                                Divider().overlay(AppTheme.Colors.separator)
+                            }
                         }
                     }
                 }
 
-                if needsScroll {
-                    ScrollView(.horizontal, showsIndicators: true) {
-                        statsContent
-                    }
-                } else {
+                // Sized against the scroll view's own width rather than a fixed
+                // threshold: the columns spread across whatever room is left when the
+                // stats fit, and only overflow into a scroll when they genuinely
+                // outgrow it.
+                ScrollView(.horizontal, showsIndicators: true) {
                     statsContent
+                        .containerRelativeFrame(.horizontal, alignment: .leading) { width, _ in
+                            max(width, minStatsWidth)
+                        }
                 }
             }
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(white: 0.2), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(StandingsSurface.rows)
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large)
-                .fill(Color(white: 0.08))
-                .stroke(Color(white: 1.0).opacity(0.12), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
     }
 
     @ViewBuilder

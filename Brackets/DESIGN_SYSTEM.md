@@ -117,6 +117,20 @@ Text("Ligas Activas".uppercased())
     .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
 ```
 
+#### Display
+
+`Display` is Poppins Black, bundled with full Latin Extended coverage so Spanish
+accents (`Ó`, `Ñ`, `Á`, `¿`) render in the face rather than falling back. Like Barlow
+it is registered at runtime by `ShareFont` and falls back to the system font.
+
+It is reserved for **naming the champion** — the `ChampionPanel` title — and is used
+nowhere else. Reach for `condensed` or the system scale for every other title.
+
+```swift
+Text(podium.first.teamName.uppercased())
+    .font(AppTheme.Typography.display(size: 32))
+```
+
 ### Spacing Scale
 
 | Name | Value | Usage |

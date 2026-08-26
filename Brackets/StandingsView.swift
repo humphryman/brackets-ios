@@ -475,16 +475,18 @@ struct ChampionPanel: View {
         ScrollView {
             VStack(spacing: 28) {
                 // Title block
-                VStack(spacing: 4) {
+                VStack(spacing: 0) {
                     Text(podium.first.teamName.uppercased())
-                        .font(.system(size: 32, weight: .heavy))
+                        .font(AppTheme.Typography.display(size: 32))
                         .foregroundStyle(.white)
                         .lineLimit(2)
                         .minimumScaleFactor(0.5)
                         .multilineTextAlignment(.center)
+                        .displayTightLeading(size: 32)
                     Text("CAMPEÓN")
-                        .font(.system(size: 32, weight: .heavy))
+                        .font(AppTheme.Typography.display(size: 32))
                         .foregroundStyle(.white)
+                        .displayTightLeading(size: 32)
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.top, 8)
