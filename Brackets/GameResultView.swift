@@ -19,6 +19,12 @@ struct GameResultView: View {
     @State private var selectedTeamIndex: Int = 0
     @State private var selectedStatIndex: Int = 0
     @State private var isSharePresented = false
+    /// Player whose per-game stats sheet is open, tapped from the stats table.
+    @State private var statSheetPlayer: PlayerGameStat?
+    /// Set while the stats sheet is dismissing so the push happens after it closes —
+    /// presenting a sheet and pushing in the same run loop drops the push.
+    @State private var pendingPlayerDetail: PlayerSeasonRoute?
+    @State private var playerDetailRoute: PlayerSeasonRoute?
 
     var body: some View {
         ZStack {
@@ -72,6 +78,44 @@ struct GameResultView: View {
                     .presentationBackground(AppTheme.Colors.background)
             }
         }
+        .sheet(item: $statSheetPlayer, onDismiss: {
+            if let route = pendingPlayerDetail {
+                pendingPlayerDetail = nil
+                playerDetailRoute = route
+            }
+        }) { player in
+            playerStatsSheet(for: player)
+                .presentationDetents([.fraction(0.6), .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(AppTheme.Colors.gray950)
+        }
+        .navigationDestination(item: $playerDetailRoute) { route in
+            PlayerDetailView(playerSeasonId: route.id, tournamentId: tournamentId)
+        }
+    }
+
+    /// Builds the per-game stats sheet from the currently selected team's data.
+    @ViewBuilder
+    private func playerStatsSheet(for player: PlayerGameStat) -> some View {
+        let teams = gameDetail?.game.teamStats ?? []
+        let team = teams.indices.contains(selectedTeamIndex) ? teams[selectedTeamIndex] : nil
+
+        PlayerGameStatsSheet(
+            player: player,
+            teamName: team?.teamName ?? "",
+            teamLogoURL: team?.fullImageURL,
+            activeStats: gameDetail?.game.activeStats ?? [],
+            longNameStats: gameDetail?.longNameStats ?? [:],
+            shortNameStats: gameDetail?.shortNameStats ?? [:],
+            // TODO: wire up the athlete share card; the button is inert until then.
+            onShare: nil,
+            onOpenPlayerDetail: {
+                if let psId = player.playerSeasonId {
+                    pendingPlayerDetail = PlayerSeasonRoute(id: psId)
+                }
+                statSheetPlayer = nil
+            }
+        )
     }
 
     // MARK: - Data Loading
@@ -270,9 +314,9 @@ struct GameResultView: View {
                         Divider().background(Color(white: 0.2))
 
                         ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
-                            if let psId = player.playerSeasonId {
-                                NavigationLink {
-                                    PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                            if player.playerSeasonId != nil {
+                                Button {
+                                    statSheetPlayer = player
                                 } label: {
                                     playerRow(player: player, index: index, rowHeight: rowHeight)
                                 }
@@ -373,7 +417,7 @@ struct GameResultView: View {
         }
     }
 
-    /// Same treatment as the hero on Detalles de Jugador: the photo carries the name and
+    /// Same treatment as the hero on Perfil del Atleta: the photo carries the name and
     /// the team identity on a dark scrim instead of repeating them underneath.
     @ViewBuilder
     private func potgHeroImage(potg: PlayerOfTheGame) -> some View {

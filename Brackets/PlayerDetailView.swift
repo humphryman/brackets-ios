@@ -56,7 +56,7 @@ struct PlayerDetailView: View {
     // MARK: - Header
 
     private var header: some View {
-        AppTheme.ScreenHeader(title: "Detalles de Jugador", onLeading: { dismiss() })
+        AppTheme.ScreenHeader(title: "Perfil del Atleta", onLeading: { dismiss() })
             .padding(.horizontal, AppTheme.Layout.screenPadding)
             .padding(.top, AppTheme.Layout.large)
             .padding(.bottom, AppTheme.Layout.itemSpacing)
