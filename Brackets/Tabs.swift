@@ -38,7 +38,7 @@ struct Tabs: View {
     private enum Metrics {
         static let paddingH: CGFloat = 12
         static let paddingV: CGFloat = 16
-        static let labelSize: CGFloat = 14
+        static let labelSize: CGFloat = 18
         static let rail: CGFloat = 1
         static let indicator: CGFloat = 2
         static let dot: CGFloat = 6
@@ -162,7 +162,7 @@ struct Tabs: View {
             }
 
             Text(label)
-                .font(.system(size: Metrics.labelSize, weight: .semibold))
+                .font(ShareFont.condensed(.semibold, size: Metrics.labelSize))
                 .foregroundStyle(isSelected ? AppTheme.Colors.primaryText : AppTheme.Colors.gray400)
                 .lineLimit(1)
         }
