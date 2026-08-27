@@ -202,7 +202,7 @@ struct ShareDestinationRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(alignment: .top, spacing: AppTheme.Spacing.large) {
-                button(title: "Instagram\nStory", systemImage: "camera.circle.fill", isPrimary: true, action: onInstagram)
+                instagramButton
                 button(title: "Guardar", systemImage: "arrow.down.to.line", action: onSave)
                 button(title: "Más", systemImage: "square.and.arrow.up", action: onMore)
                 Spacer(minLength: 0)
@@ -212,26 +212,61 @@ struct ShareDestinationRow: View {
         .padding(.bottom, AppTheme.Layout.extraLarge)
     }
 
+    /// Instagram's own glyph, once `InstagramGlyph` is in the asset catalogue.
+    ///
+    /// Meta's mark may not be redrawn or recoloured, so it is shipped as their supplied
+    /// artwork rather than composed here — and it sits on the same neutral circle as the
+    /// other destinations, since a lime plate behind the full-colour glyph would both
+    /// clash and read as a tinted version of the mark.
+    ///
+    /// Until the asset is added, this falls back to the previous lime camera treatment,
+    /// so the button never renders blank.
+    @ViewBuilder
+    private var instagramButton: some View {
+        if let glyph = UIImage(named: "InstagramGlyph") {
+            button(title: "Instagram\nStory", action: onInstagram) {
+                Image(uiImage: glyph)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 30)
+            } plate: {
+                Color(white: 0.16)
+            }
+        } else {
+            button(title: "Instagram\nStory", systemImage: "camera.circle.fill", isPrimary: true, action: onInstagram)
+        }
+    }
+
     private func button(
         title: String,
         systemImage: String,
         isPrimary: Bool = false,
         action: @escaping () async -> Void
     ) -> some View {
+        button(title: title, action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(isPrimary ? AppTheme.Colors.accentText
+                                           : AppTheme.Colors.primaryText)
+        } plate: {
+            if isPrimary { AppTheme.Colors.accent } else { Color(white: 0.16) }
+        }
+    }
+
+    private func button<Icon: View, Plate: View>(
+        title: String,
+        action: @escaping () async -> Void,
+        @ViewBuilder icon: () -> Icon,
+        @ViewBuilder plate: () -> Plate
+    ) -> some View {
         Button {
             Task { await action() }
         } label: {
             VStack(spacing: 8) {
-                Circle()
-                    .fill(isPrimary ? AnyShapeStyle(AppTheme.Colors.accent)
-                                    : AnyShapeStyle(Color(white: 0.16)))
+                plate()
                     .frame(width: 58, height: 58)
-                    .overlay {
-                        Image(systemName: systemImage)
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundStyle(isPrimary ? AppTheme.Colors.accentText
-                                                       : AppTheme.Colors.primaryText)
-                    }
+                    .clipShape(Circle())
+                    .overlay { icon() }
 
                 Text(title)
                     .font(.system(size: 12, weight: .medium))

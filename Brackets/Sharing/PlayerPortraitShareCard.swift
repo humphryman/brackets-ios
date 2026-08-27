@@ -61,6 +61,9 @@ struct PlayerPortraitShareCard: View {
     private var gridRowSpacing: CGFloat { metric(full: 8, medium: 7, compact: 6) }
     private var blockSpacing: CGFloat { metric(full: 16, medium: 13, compact: 11) }
 
+    /// The date's treatment, applied to every footer line.
+    private static let footerFont: Font = .system(size: 10, weight: .medium)
+
     /// Steps the name block walks down until it fits the content column.
     ///
     /// Per-`Text` `minimumScaleFactor` cannot be used here: a long given name
@@ -123,7 +126,12 @@ struct PlayerPortraitShareCard: View {
                 tint: .white,
                 leadingInset: AthleteCardGeometry.panelHorizontal + 16,
                 trailingInset: AthleteCardGeometry.panelHorizontal + 16,
-                bottomInset: AthleteCardGeometry.panelVertical + 18
+                bottomInset: AthleteCardGeometry.panelVertical + 18,
+                // One flat type scale across tournament, date and venue: the athlete
+                // and their stat line carry the card, so the footer should not compete.
+                titleFont: Self.footerFont,
+                subtitleFont: Self.footerFont,
+                detailFont: Self.footerFont
             )
         }
         // Pins the export to the story canvas. `ImageRenderer.proposedSize` only
@@ -224,30 +232,56 @@ struct PlayerPortraitShareCard: View {
         }
     }
 
-    /// The game, deliberately reduced to one line of small type under a hairline.
+    /// The game, deliberately reduced to small type under a hairline: a crest and club
+    /// name either side of the score.
     private var scoreStrip: some View {
         VStack(spacing: 6) {
             Rectangle()
                 .fill(.white.opacity(0.18))
                 .frame(height: 1)
 
-            HStack(spacing: 6) {
-                ShareTeamLogo(image: model.teamALogo, name: model.teamAName, size: 22)
+            HStack(alignment: .top, spacing: 10) {
+                teamColumn(name: model.teamAName, logo: model.teamALogo)
 
-                Text(model.teamAScore.map(String.init) ?? "-")
-                    .font(ShareFont.condensed(.bold, size: 26))
-                    .foregroundStyle(model.teamAWon ? AppTheme.Colors.accent : .white.opacity(0.6))
+                HStack(spacing: 6) {
+                    Text(model.teamAScore.map(String.init) ?? "-")
+                        .foregroundStyle(model.teamAWon ? AppTheme.Colors.accent : .white.opacity(0.6))
 
-                Text("-")
-                    .font(ShareFont.condensed(.semibold, size: 18))
-                    .foregroundStyle(.white.opacity(0.35))
+                    Text("-")
+                        .font(ShareFont.condensed(.semibold, size: 18))
+                        .foregroundStyle(.white.opacity(0.35))
 
-                Text(model.teamBScore.map(String.init) ?? "-")
-                    .font(ShareFont.condensed(.bold, size: 26))
-                    .foregroundStyle(model.teamBWon ? AppTheme.Colors.accent : .white.opacity(0.6))
+                    Text(model.teamBScore.map(String.init) ?? "-")
+                        .foregroundStyle(model.teamBWon ? AppTheme.Colors.accent : .white.opacity(0.6))
+                }
+                .font(ShareFont.condensed(.bold, size: 26))
+                .fixedSize()
+                // Keeps the score optically level with the crests rather than with the
+                // top of the club names beneath them.
+                .padding(.top, 1)
 
-                ShareTeamLogo(image: model.teamBLogo, name: model.teamBName, size: 22)
+                teamColumn(name: model.teamBName, logo: model.teamBLogo)
             }
         }
+    }
+
+    /// Crest over club name. Each column takes an equal share of what the score leaves,
+    /// so two long club names can crowd their own column but never each other.
+    private func teamColumn(name: String, logo: UIImage?) -> some View {
+        VStack(spacing: 4) {
+            ShareTeamLogo(image: logo, name: name, size: 22)
+
+            Text(name.uppercased())
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                // A lower floor lets SwiftUI shrink the name onto a single line and
+                // truncate it ("DEPORTIVO GUADALUPE VIC…") instead of wrapping. Keeping
+                // the floor high forces the second line to be used first.
+                .minimumScaleFactor(0.85)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

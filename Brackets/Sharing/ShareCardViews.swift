@@ -510,6 +510,11 @@ struct ShareCardFooter: View {
     var leadingInset: CGFloat = CardGeometry.panelLeading + 16
     var trailingInset: CGFloat = CardGeometry.panelTrailing + 16
     var bottomInset: CGFloat = CardGeometry.panelBottom + 18
+    /// Type for the three lines. Defaults to the game cards' stepped scale; a card that
+    /// wants a flatter footer passes the same font for all three.
+    var titleFont: Font = .system(size: 12, weight: .heavy)
+    var subtitleFont: Font = .system(size: 10, weight: .medium)
+    var detailFont: Font = .system(size: 9, weight: .regular)
 
     var body: some View {
         VStack {
@@ -521,7 +526,7 @@ struct ShareCardFooter: View {
                 VStack(alignment: .leading, spacing: 2) {
                     if let title, !title.isEmpty {
                         Text(title.uppercased())
-                            .font(.system(size: 12, weight: .heavy))
+                            .font(titleFont)
                             .foregroundStyle(tint)
                             .lineLimit(1)
                             .minimumScaleFactor(0.65)
@@ -529,7 +534,7 @@ struct ShareCardFooter: View {
 
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(subtitleFont)
                             .foregroundStyle(tint.opacity(0.7))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
@@ -537,7 +542,7 @@ struct ShareCardFooter: View {
 
                     if let detail, !detail.isEmpty {
                         Text(detail)
-                            .font(.system(size: 9, weight: .regular))
+                            .font(detailFont)
                             .foregroundStyle(tint.opacity(0.55))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
