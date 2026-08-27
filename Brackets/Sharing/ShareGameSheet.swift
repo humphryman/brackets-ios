@@ -49,9 +49,6 @@ struct ShareGameSheet: View {
 
     @State private var model: ShareCardModel?
     @State private var selectedStyle: ShareCardStyle? = ShareCardStyle.allCases.first
-    @State private var isPreparing = false
-    @State private var activityImage: ShareableImage?
-    @State private var toast: String?
 
     var body: some View {
         ZStack {
@@ -63,19 +60,15 @@ struct ShareGameSheet: View {
                 if let model {
                     Spacer(minLength: AppTheme.Layout.sectionSpacing)
 
-                    ShareCardCarousel(model: model, selection: $selectedStyle)
+                    ShareCardCarousel(styles: ShareCardStyle.allCases, selection: $selectedStyle) { style in
+                        ShareCardContainer(style: style, model: model)
+                    }
 
                     // Anchors the action row to the bottom of the sheet, as in the
                     // reference: carousel floats in the space above it.
                     Spacer(minLength: AppTheme.Layout.sectionSpacing)
 
-                    ShareDestinationRow(
-                        onInstagram: { await shareToInstagram() },
-                        onSave: { await saveToPhotos() },
-                        onMore: { await presentActivitySheet() }
-                    )
-                    .disabled(isPreparing)
-                    .opacity(isPreparing ? 0.5 : 1)
+                    ShareExportSection(render: renderCurrent)
                 } else {
                     Spacer()
                     ProgressView()
@@ -84,16 +77,9 @@ struct ShareGameSheet: View {
                     Spacer()
                 }
             }
-
-            if let toast {
-                toastView(toast)
-            }
         }
         .task {
             model = await ShareCardModel.make(detail: detail, tournamentName: tournamentName, gender: gender)
-        }
-        .sheet(item: $activityImage) { shareable in
-            ActivityView(items: [shareable.image])
         }
     }
 
@@ -106,102 +92,29 @@ struct ShareGameSheet: View {
             .padding(.bottom, AppTheme.Layout.itemSpacing)
     }
 
-    // MARK: - Actions
+    // MARK: - Rendering
 
     private func renderCurrent() -> UIImage? {
         guard let model, let style = selectedStyle else { return nil }
         return ShareImageRenderer.render(style, model: model)
     }
-
-    private func shareToInstagram() async {
-        isPreparing = true
-        defer { isPreparing = false }
-
-        guard let image = renderCurrent() else {
-            showToast("No se pudo generar la imagen")
-            return
-        }
-
-        switch await InstagramStorySharer.share(image) {
-        case .opened:
-            break
-        case .unavailable:
-            // No Instagram, or no Facebook App ID configured yet — the system share
-            // sheet still gets the user there, just with an extra tap.
-            activityImage = ShareableImage(image: image)
-        case .failed:
-            showToast("No se pudo compartir")
-        }
-    }
-
-    private func saveToPhotos() async {
-        isPreparing = true
-        defer { isPreparing = false }
-
-        guard let image = renderCurrent() else {
-            showToast("No se pudo generar la imagen")
-            return
-        }
-
-        switch await PhotoSaver.save(image) {
-        case .saved:  showToast("Guardado en Fotos")
-        case .denied: showToast("Permite el acceso a Fotos en Ajustes")
-        case .failed: showToast("No se pudo guardar")
-        }
-    }
-
-    private func presentActivitySheet() async {
-        isPreparing = true
-        defer { isPreparing = false }
-
-        guard let image = renderCurrent() else {
-            showToast("No se pudo generar la imagen")
-            return
-        }
-        activityImage = ShareableImage(image: image)
-    }
-
-    // MARK: - Toast
-
-    private func showToast(_ message: String) {
-        toast = message
-        Task {
-            try? await Task.sleep(for: .seconds(2.5))
-            if toast == message { toast = nil }
-        }
-    }
-
-    private func toastView(_ message: String) -> some View {
-        VStack {
-            Spacer()
-            Text(message)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppTheme.Colors.primaryText)
-                .padding(.horizontal, AppTheme.Spacing.standard)
-                .padding(.vertical, AppTheme.Spacing.medium)
-                .background(
-                    Capsule().fill(Color(white: 0.18))
-                )
-                .padding(.bottom, 110)
-        }
-        .transition(.opacity)
-        .animation(AppTheme.Animation.quick, value: toast)
-    }
 }
 
 // MARK: - Carousel
 
-/// Paged, peeking carousel of the available card designs.
+/// Paged, peeking carousel of card designs.
 ///
 /// Each page renders the live SwiftUI card scaled down rather than a rasterized bitmap —
 /// sharper on device, and it avoids rendering images the user never shares.
-struct ShareCardCarousel: View {
-    let model: ShareCardModel
-    @Binding var selection: ShareCardStyle?
+///
+/// Generic over the style so every share surface gets the same paging behaviour; the
+/// caller supplies the card for a style and the styles to page through.
+struct ShareCardCarousel<Style: Identifiable & Hashable, Card: View>: View {
+    let styles: [Style]
+    @Binding var selection: Style?
+    @ViewBuilder let card: (Style) -> Card
 
-    private let styles = ShareCardStyle.allCases
-
-    private static let maxCardWidth: CGFloat = 260
+    private static var maxCardWidth: CGFloat { 260 }
 
     /// 9:16, from the card design size.
     private static var aspect: CGFloat {
@@ -219,7 +132,7 @@ struct ShareCardCarousel: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: AppTheme.Spacing.standard) {
                         ForEach(styles) { style in
-                            ShareCardThumbnail(style: style, model: model, width: cardWidth)
+                            ShareCardThumbnail(width: cardWidth) { card(style) }
                                 .id(style)
                         }
                     }
@@ -235,24 +148,26 @@ struct ShareCardCarousel: View {
             // sheet and strands the page dots at the bottom of the screen.
             .frame(height: Self.maxCardWidth * Self.aspect)
 
-            HStack(spacing: 7) {
-                ForEach(styles) { style in
-                    Circle()
-                        .fill(style == selection ? AppTheme.Colors.accent : Color(white: 0.3))
-                        .frame(width: 7, height: 7)
+            // A single design has nothing to page between, so the dots would only be noise.
+            if styles.count > 1 {
+                HStack(spacing: 7) {
+                    ForEach(styles) { style in
+                        Circle()
+                            .fill(style == selection ? AppTheme.Colors.accent : Color(white: 0.3))
+                            .frame(width: 7, height: 7)
+                    }
                 }
+                .animation(AppTheme.Animation.quick, value: selection)
             }
-            .animation(AppTheme.Animation.quick, value: selection)
         }
     }
 }
 
 /// A card scaled to fit the carousel. Sized by ratio so the layout inside the card is
 /// identical to what gets rasterized.
-struct ShareCardThumbnail: View {
-    let style: ShareCardStyle
-    let model: ShareCardModel
+struct ShareCardThumbnail<Content: View>: View {
     let width: CGFloat
+    @ViewBuilder let content: () -> Content
 
     var body: some View {
         let cardSize = AppConfig.Sharing.cardSize
@@ -260,7 +175,7 @@ struct ShareCardThumbnail: View {
 
         // `scaleEffect` renders about the center without changing the layout box, so the
         // frame must be the scaled size for the two to stay concentric.
-        ShareCardContainer(style: style, model: model)
+        content()
             .scaleEffect(scale)
             .frame(width: cardSize.width * scale, height: cardSize.height * scale)
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.large))
@@ -328,12 +243,4 @@ struct ShareDestinationRow: View {
         }
         .buttonStyle(.plain)
     }
-}
-
-// MARK: - Supporting types
-
-/// Identifiable box so the activity sheet can be driven by `.sheet(item:)`.
-private struct ShareableImage: Identifiable {
-    let id = UUID()
-    let image: UIImage
 }

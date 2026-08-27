@@ -22,17 +22,19 @@ struct PlayerGameStatsSheet: View {
     let player: PlayerGameStat
     let teamName: String
     let teamLogoURL: String?
-    /// Stat keys in the order the results table renders them.
-    let activeStats: [String]
-    /// Full stat names, keyed by stat key — the tile labels.
-    let longNameStats: [String: String]
-    /// Column header labels, keyed by stat key. Fallback when a long name is missing.
-    let shortNameStats: [String: String]
-    /// Placeholder until the athlete share card lands.
-    var onShare: (() -> Void)? = nil
+    /// Source for the stat columns and their labels, and for the game the share card
+    /// puts under the stat line.
+    let detail: GameDetailResponse
+    /// Footer context on the share cards.
+    var tournamentName: String?
     /// Called when the user wants the full player screen; the caller dismisses
     /// the sheet and pushes `PlayerDetailView`.
     let onOpenPlayerDetail: () -> Void
+
+    @State private var isSharePresented = false
+
+    /// Stat keys in the order the results table renders them.
+    private var activeStats: [String] { detail.game.activeStats ?? [] }
 
     /// Side of the square photo. Sized so the identity row costs roughly a fifth of
     /// the detent, leaving room for the stats card and the buttons.
@@ -59,6 +61,16 @@ struct PlayerGameStatsSheet: View {
                 .padding(.top, AppTheme.Spacing.standard)
                 .padding(.bottom, AppTheme.Spacing.standard)
             }
+        }
+        .sheet(isPresented: $isSharePresented) {
+            PlayerStatsShareSheet(
+                player: player,
+                teamName: teamName,
+                detail: detail,
+                tournamentName: tournamentName
+            )
+                .presentationDetents([.large])
+                .presentationBackground(AppTheme.Colors.background)
         }
     }
 
@@ -225,7 +237,7 @@ struct PlayerGameStatsSheet: View {
                 .font(ShareFont.condensed(.semibold, size: 26))
                 .foregroundStyle(AppTheme.Colors.primaryText)
 
-            Text(longNameStats[statKey] ?? shortNameStats[statKey] ?? statKey.uppercased())
+            Text(detail.longNameStats[statKey] ?? detail.shortNameStats[statKey] ?? statKey.uppercased())
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(AppTheme.Colors.gray400)
                 .lineLimit(1)
@@ -241,7 +253,7 @@ struct PlayerGameStatsSheet: View {
     private var actionButtons: some View {
         VStack(spacing: 10) {
             Button {
-                onShare?()
+                isSharePresented = true
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "square.and.arrow.up")

@@ -97,25 +97,24 @@ struct GameResultView: View {
     /// Builds the per-game stats sheet from the currently selected team's data.
     @ViewBuilder
     private func playerStatsSheet(for player: PlayerGameStat) -> some View {
-        let teams = gameDetail?.game.teamStats ?? []
-        let team = teams.indices.contains(selectedTeamIndex) ? teams[selectedTeamIndex] : nil
+        if let detail = gameDetail {
+            let teams = detail.game.teamStats ?? []
+            let team = teams.indices.contains(selectedTeamIndex) ? teams[selectedTeamIndex] : nil
 
-        PlayerGameStatsSheet(
-            player: player,
-            teamName: team?.teamName ?? "",
-            teamLogoURL: team?.fullImageURL,
-            activeStats: gameDetail?.game.activeStats ?? [],
-            longNameStats: gameDetail?.longNameStats ?? [:],
-            shortNameStats: gameDetail?.shortNameStats ?? [:],
-            // TODO: wire up the athlete share card; the button is inert until then.
-            onShare: nil,
-            onOpenPlayerDetail: {
-                if let psId = player.playerSeasonId {
-                    pendingPlayerDetail = PlayerSeasonRoute(id: psId)
+            PlayerGameStatsSheet(
+                player: player,
+                teamName: team?.teamName ?? "",
+                teamLogoURL: team?.fullImageURL,
+                detail: detail,
+                tournamentName: tournamentName,
+                onOpenPlayerDetail: {
+                    if let psId = player.playerSeasonId {
+                        pendingPlayerDetail = PlayerSeasonRoute(id: psId)
+                    }
+                    statSheetPlayer = nil
                 }
-                statSheetPlayer = nil
-            }
-        )
+            )
+        }
     }
 
     // MARK: - Data Loading

@@ -186,7 +186,9 @@ private struct SheetComponentsPreview: View {
 
             VStack(spacing: 0) {
                 Spacer(minLength: AppTheme.Layout.sectionSpacing)
-                ShareCardCarousel(model: .previewFinished, selection: $selection)
+                ShareCardCarousel(styles: ShareCardStyle.allCases, selection: $selection) { style in
+                    ShareCardContainer(style: style, model: .previewFinished)
+                }
                 Spacer(minLength: AppTheme.Layout.sectionSpacing)
                 ShareDestinationRow(onInstagram: {}, onSave: {}, onMore: {})
             }
