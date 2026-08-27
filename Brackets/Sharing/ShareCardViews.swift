@@ -19,7 +19,7 @@ import SwiftUI
 /// One source of truth for the card's frame. The panel, its contents, the footer and the
 /// rotated edge labels all derive from these, so the right-hand gutter is guaranteed to
 /// stay clear of the panel and nothing can drift out of frame.
-private enum CardGeometry {
+enum CardGeometry {
     static let panelLeading: CGFloat = 26
     /// Wide enough to leave a clean gutter for the oversized vertical label.
     static let panelTrailing: CGFloat = 76
@@ -80,7 +80,7 @@ struct ScoreboardShareCard: View {
                 .padding(.trailing, CardGeometry.panelTrailing)
                 .padding(.vertical, CardGeometry.panelTop)
 
-            ShareCardEdgeLabels(model: model, tint: AppTheme.Colors.accent, kickerTint: .white)
+            ShareCardEdgeLabels(kicker: model.kickerLabel, edgeLabel: model.edgeLabel, tint: AppTheme.Colors.accent, kickerTint: .white)
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
@@ -107,7 +107,7 @@ struct ScoreboardShareCard: View {
             .padding(.top, CardGeometry.panelTop + 24)
             .padding(.bottom, CardGeometry.panelBottom + 74)
 
-            ShareCardFooter(model: model, tint: .white)
+            ShareCardFooter.game(model, tint: .white)
         }
     }
 
@@ -194,7 +194,7 @@ struct SpotlightShareCard: View {
                 .padding(.trailing, CardGeometry.panelTrailing)
                 .padding(.vertical, CardGeometry.panelTop)
 
-            ShareCardEdgeLabels(model: model, tint: AppTheme.Colors.accent, kickerTint: .black)
+            ShareCardEdgeLabels(kicker: model.kickerLabel, edgeLabel: model.edgeLabel, tint: AppTheme.Colors.accent, kickerTint: .black)
 
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 0)
@@ -213,7 +213,7 @@ struct SpotlightShareCard: View {
             .padding(.top, CardGeometry.panelTop + 24)
             .padding(.bottom, CardGeometry.panelBottom + 74)
 
-            ShareCardFooter(model: model, tint: .black)
+            ShareCardFooter.game(model, tint: .black)
         }
     }
 
@@ -312,7 +312,7 @@ struct SpotlightShareCard: View {
 // MARK: - Shared pieces
 
 /// A label centred on a horizontal rule — the "SCORE FINAL" device from the references.
-private struct RuleLabel: View {
+struct RuleLabel: View {
     let text: String
     let fill: Color
     let textColor: Color
@@ -344,8 +344,11 @@ private struct RuleLabel: View {
 
 /// Rotated labels down both edges: a small kicker on the left, the oversized gender or
 /// stage on the right.
-private struct ShareCardEdgeLabels: View {
-    let model: ShareCardModel
+struct ShareCardEdgeLabels: View {
+    /// Small rotated label inside the panel's left edge.
+    let kicker: String
+    /// Oversized rotated label in the right-hand gutter. Nothing is drawn when nil.
+    let edgeLabel: String?
     let tint: Color
     let kickerTint: Color
 
@@ -353,7 +356,7 @@ private struct ShareCardEdgeLabels: View {
         ZStack {
             // Kicker, inside the panel along its left edge.
             HStack {
-                Text(model.kickerLabel.uppercased())
+                Text(kicker.uppercased())
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(kickerTint.opacity(0.7))
                     .kerning(1.6)
@@ -370,7 +373,7 @@ private struct ShareCardEdgeLabels: View {
             }
 
             // Oversized gender/stage, in the gutter to the right of the panel.
-            if let edgeLabel = model.edgeLabel {
+            if let edgeLabel {
                 HStack(spacing: 0) {
                     Spacer(minLength: 0)
 
@@ -391,7 +394,7 @@ private struct ShareCardEdgeLabels: View {
 /// Procedural ground. Layered gradients plus a generated diagonal grain stand in for the
 /// gritty sports photograph in the references; swap `textureImageName` for a real asset
 /// and it is used instead, no other change required.
-private struct ShareCardBackdrop: View {
+struct ShareCardBackdrop: View {
     enum Style { case dark, lime }
 
     let style: Style
@@ -470,7 +473,7 @@ private struct ShareCardBackdrop: View {
 
 /// Tournament name, date and venue along the bottom edge.
 /// Brackets mark over the site wordmark, pinned bottom-right on every card.
-private struct ShareBrandMark: View {
+struct ShareBrandMark: View {
     let tint: Color
 
     var body: some View {
@@ -494,9 +497,24 @@ private struct ShareBrandMark: View {
     }
 }
 
-private struct ShareCardFooter: View {
-    let model: ShareCardModel
+struct ShareCardFooter: View {
+    /// Heaviest line — the tournament on the game cards.
+    let title: String?
+    /// Middle line, typically the date.
+    let subtitle: String?
+    /// Lightest line, typically the venue.
+    let detail: String?
     let tint: Color
+    /// Insets from the card edge. Default to the game cards' panel, which reserves a
+    /// wide right-hand gutter; cards without one pass their own.
+    var leadingInset: CGFloat = CardGeometry.panelLeading + 16
+    var trailingInset: CGFloat = CardGeometry.panelTrailing + 16
+    var bottomInset: CGFloat = CardGeometry.panelBottom + 18
+    /// Type for the three lines. Defaults to the game cards' stepped scale; a card that
+    /// wants a flatter footer passes the same font for all three.
+    var titleFont: Font = .system(size: 12, weight: .heavy)
+    var subtitleFont: Font = .system(size: 10, weight: .medium)
+    var detailFont: Font = .system(size: 9, weight: .regular)
 
     var body: some View {
         VStack {
@@ -506,25 +524,25 @@ private struct ShareCardFooter: View {
                 // Date and venue are separate rows rather than one joined line: sharing
                 // the width with the brand block leaves too little for both on one line.
                 VStack(alignment: .leading, spacing: 2) {
-                    if let tournamentName = model.tournamentName, !tournamentName.isEmpty {
-                        Text(tournamentName.uppercased())
-                            .font(.system(size: 12, weight: .heavy))
+                    if let title, !title.isEmpty {
+                        Text(title.uppercased())
+                            .font(titleFont)
                             .foregroundStyle(tint)
                             .lineLimit(1)
                             .minimumScaleFactor(0.65)
                     }
 
-                    if let date = model.date {
-                        Text(ShareCardFormat.date(date))
-                            .font(.system(size: 10, weight: .medium))
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(subtitleFont)
                             .foregroundStyle(tint.opacity(0.7))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
 
-                    if let venueName = model.venueName, !venueName.isEmpty {
-                        Text(venueName)
-                            .font(.system(size: 9, weight: .regular))
+                    if let detail, !detail.isEmpty {
+                        Text(detail)
+                            .font(detailFont)
                             .foregroundStyle(tint.opacity(0.55))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
@@ -537,10 +555,22 @@ private struct ShareCardFooter: View {
             // Sits inside the panel: on the lime card the ink is black, so it would be
             // invisible if it dropped onto the dark ground below the panel. Uses the
             // panel's own insets, not the narrower content column.
-            .padding(.leading, CardGeometry.panelLeading + 16)
-            .padding(.trailing, CardGeometry.panelTrailing + 16)
-            .padding(.bottom, CardGeometry.panelBottom + 18)
+            .padding(.leading, leadingInset)
+            .padding(.trailing, trailingInset)
+            .padding(.bottom, bottomInset)
         }
+    }
+}
+
+extension ShareCardFooter {
+    /// The game cards' footer: tournament, date, venue.
+    static func game(_ model: ShareCardModel, tint: Color) -> ShareCardFooter {
+        ShareCardFooter(
+            title: model.tournamentName,
+            subtitle: model.date.map { ShareCardFormat.date($0) },
+            detail: model.venueName,
+            tint: tint
+        )
     }
 }
 

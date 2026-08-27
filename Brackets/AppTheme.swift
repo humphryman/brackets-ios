@@ -78,6 +78,13 @@ struct AppTheme {
         /// `color/gray-800` — card fill. Hex: #1A1A1A
         static let gray800 = Color(red: 26/255, green: 26/255, blue: 26/255)
 
+        /// `color/gray-900` — Hex: #0A0A0A
+        static let gray900 = Color(red: 10/255, green: 10/255, blue: 10/255)
+
+        /// `color/gray-950` — sheet background, a hair off the black screen behind it.
+        /// Hex: #0A0A12
+        static let gray950 = Color(red: 10/255, green: 10/255, blue: 18/255)
+
         /// `color/lime-400` — badge fill. Hex: #A3FF12, same value as `accent`.
         static let lime400 = accent
 
