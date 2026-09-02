@@ -168,11 +168,11 @@ struct ContentView: View {
 
                         VStack(spacing: 0) {
                             Text(winner.teamName.uppercased())
-                                .font(AppTheme.Typography.display(size: 22))
+                                .font(AppTheme.Typography.display(size: 26))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.5)
-                                .displayTightLeading(size: 22)
+                                .displayTightLeading(size: 26)
                             Text("CAMPEÓN")
                                 .font(AppTheme.Typography.display(size: 18))
                                 .foregroundStyle(.white)
