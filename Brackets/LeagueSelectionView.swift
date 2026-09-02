@@ -23,6 +23,14 @@ struct LeagueSelectionView: View {
 
     private let expandSpring = Animation.spring(response: 2.0, dampingFraction: 0.85)
 
+    private var activeCustomers: [Customer] {
+        customers.filter { !$0.isPast }
+    }
+
+    private var pastCustomers: [Customer] {
+        customers.filter { $0.isPast }
+    }
+
     var body: some View {
         GeometryReader { geo in
             let screenWidth = geo.size.width
@@ -74,26 +82,23 @@ struct LeagueSelectionView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
-                        // Header
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
-                            Text("Ligas Activas".uppercased())
-                                .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
-                                .foregroundStyle(AppTheme.Colors.primaryText)
+                        // Active leagues
+                        leagueSection(
+                            title: "Ligas Activas",
+                            subtitle: "Selecciona una liga para ver sus categorias.",
+                            customers: activeCustomers,
+                            topPadding: AppTheme.Layout.large
+                        )
 
-                            Text("Selecciona una liga para ver sus categorias.")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(AppTheme.Colors.secondaryText)
+                        // Past leagues
+                        if !pastCustomers.isEmpty {
+                            leagueSection(
+                                title: "Ligas Pasadas",
+                                subtitle: "Revisa los resultados de ligas anteriores.",
+                                customers: pastCustomers,
+                                topPadding: AppTheme.Layout.large
+                            )
                         }
-                        .padding(.horizontal, AppTheme.Layout.extraLarge)
-                        .padding(.top, AppTheme.Layout.large)
-
-                        // League cards
-                        VStack(spacing: AppTheme.Layout.itemSpacing) {
-                            ForEach(customers) { customer in
-                                leagueCard(for: customer)
-                            }
-                        }
-                        .padding(.horizontal, AppTheme.Layout.extraLarge)
 
                         Spacer(minLength: 40)
                     }
@@ -102,6 +107,38 @@ struct LeagueSelectionView: View {
         }
         .task {
             await loadCustomers()
+        }
+    }
+
+    // MARK: - League Section
+
+    private func leagueSection(
+        title: String,
+        subtitle: String,
+        customers: [Customer],
+        topPadding: CGFloat
+    ) -> some View {
+        VStack(alignment: .leading, spacing: AppTheme.Layout.extraLarge) {
+            // Header
+            VStack(alignment: .leading, spacing: AppTheme.Spacing.small) {
+                Text(title.uppercased())
+                    .font(AppTheme.Typography.condensed(.semibold, size: AppTheme.HeaderMetrics.titleSize))
+                    .foregroundStyle(AppTheme.Colors.primaryText)
+
+                Text(subtitle)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(AppTheme.Colors.secondaryText)
+            }
+            .padding(.horizontal, AppTheme.Layout.extraLarge)
+            .padding(.top, topPadding)
+
+            // League cards
+            VStack(spacing: AppTheme.Layout.itemSpacing) {
+                ForEach(customers) { customer in
+                    leagueCard(for: customer)
+                }
+            }
+            .padding(.horizontal, AppTheme.Layout.extraLarge)
         }
     }
 
