@@ -184,6 +184,16 @@ struct AppTheme {
         static let itemSpacing: CGFloat = 16
         static let large: CGFloat = 20
         static let extraLarge: CGFloat = 24
+
+        /// Gap from the bottom of a `ScreenHeader` block to the first content
+        /// element below it. One value for every screen, so the distance between
+        /// the title and whatever follows it reads the same everywhere.
+        static let headerGap: CGFloat = 24
+
+        /// The same optical gap above a `Tabs` rail. `Tabs` already carries 16pt
+        /// of padding above its labels (`Tabs.Metrics.paddingV`), so it needs
+        /// correspondingly less on top of it.
+        static let headerGapAboveTabs: CGFloat = headerGap - 16
     }
     
     // MARK: - Animation

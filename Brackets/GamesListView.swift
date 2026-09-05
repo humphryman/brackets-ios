@@ -184,7 +184,7 @@ struct GamesListView: View {
                         selection: $selectedFilter,
                         dot: { $0 == .live ? AppTheme.Colors.live : nil }
                     ) { $0.rawValue }
-                        .padding(.top, AppTheme.Spacing.medium)
+                        .padding(.top, AppTheme.Layout.headerGapAboveTabs)
                         .padding(.bottom, AppTheme.Spacing.small)
 
                     // Group / bracket carousel — takes no room when there is nothing

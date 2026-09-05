@@ -86,6 +86,7 @@ struct StatsLeadersView: View {
             // Page indicator dots — centered in the space between the card and the tab bar
             pageIndicator
         }
+        .padding(.top, AppTheme.Layout.headerGap)
         .padding(.bottom, AppTheme.Spacing.small)
     }
 

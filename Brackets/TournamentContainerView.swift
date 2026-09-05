@@ -61,10 +61,12 @@ struct TournamentContainerView: View {
 
             VStack(spacing: 0) {
                 // Header with back button and tournament name
+                // No bottom padding: the gap below the header is owned by each
+                // tab via AppTheme.Layout.headerGap, because a Tabs rail and a
+                // card need different raw values to land on the same optical gap.
                 AppTheme.ScreenHeader(title: tournament.name, onLeading: { dismiss() })
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-                    .padding(.bottom, 16)
 
                 // Content based on selected tab
                 ZStack {

@@ -194,7 +194,9 @@ struct LeagueSelectionView: View {
                 .opacity(isExpanded ? 1 : 0)
 
             // Content
-            let headerHeight: CGFloat = 64
+            // Height of the header block itself (top padding + title row); the
+            // category list starts right below it and adds its own headerGap.
+            let headerHeight: CGFloat = 48
             if showContent {
                 NavigationStack {
                     ContentView(leagueName: customer.name, embedded: true, sport: customer.sport, isBrowsingTournament: $isBrowsingTournament)

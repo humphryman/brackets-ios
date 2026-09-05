@@ -51,7 +51,7 @@ struct BracketView: View {
                     )
                 )
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
-                .padding(.vertical, AppTheme.Spacing.small)
+                .padding(.bottom, AppTheme.Spacing.small)
                 .onChange(of: selectedBracketName) {
                     windowProgress = 0
                 }
@@ -73,6 +73,7 @@ struct BracketView: View {
             }
             }
         }
+        .padding(.top, AppTheme.Layout.headerGap)
         .task {
             await loadGames()
             startLiveRefreshIfNeeded()
@@ -165,7 +166,9 @@ struct BracketView: View {
             VStack(spacing: 0) {
                 StageSelector(stages: stages, windowProgress: $windowProgress, maxWindow: maxWindow)
                     .padding(.horizontal, AppTheme.Layout.screenPadding)
-                    .padding(.top, AppTheme.Spacing.medium)
+                    // The screen gap is applied on the outer stack; only separate
+                    // from the bracket picker when that picker is shown.
+                    .padding(.top, brackets.count >= 2 ? AppTheme.Spacing.medium : 0)
                     .padding(.bottom, 12)
 
                 morphingBracket(pageWidth: geo.size.width)
