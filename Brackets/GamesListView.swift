@@ -204,26 +204,16 @@ struct GamesListView: View {
                         // Games List
                         ScrollViewReader { proxy in
                             ScrollView {
-                                VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
+                                // Pinned section headers keep the current date on screen
+                                // while its games scroll past; the next date's header
+                                // pushes it off and takes its place.
+                                LazyVStack(
+                                    alignment: .leading,
+                                    spacing: AppTheme.Spacing.medium,
+                                    pinnedViews: [.sectionHeaders]
+                                ) {
                                     ForEach(filteredGames, id: \.date) { dateGroup in
-                                        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                                            // Date Header with calendar icon + count
-                                            HStack(spacing: 8) {
-                                                Image(systemName: "calendar")
-                                                    .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundStyle(AppTheme.Colors.accent)
-
-                                                Text(formatDateHeader(dateGroup.date))
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .foregroundStyle(AppTheme.Colors.primaryText)
-
-                                                Badge(
-                                                    dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos",
-                                                    style: .gray
-                                                )
-                                            }
-                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
-
+                                        Section {
                                             // Games for this date
                                             ForEach(dateGroup.games) { game in
                                                 if game.isLive {
@@ -252,6 +242,8 @@ struct GamesListView: View {
                                                     .buttonStyle(.plain)
                                                 }
                                             }
+                                        } header: {
+                                            dateSectionHeader(for: dateGroup)
                                         }
                                         .id(dateGroup.date)
                                     }
@@ -394,6 +386,31 @@ struct GamesListView: View {
                 }
             }
         }
+    }
+
+    /// Date header for a games section. Opaque background so cards stay hidden
+    /// as they scroll underneath it while it is pinned to the top.
+    private func dateSectionHeader(for dateGroup: GamesResponse.DateGroup) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "calendar")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.accent)
+
+            Text(formatDateHeader(dateGroup.date))
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+
+            Badge(
+                dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos",
+                style: .gray
+            )
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, AppTheme.Layout.screenPadding)
+        .padding(.vertical, AppTheme.Spacing.small)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.Colors.background)
     }
 
     private func formatDateHeader(_ dateString: String) -> String {
