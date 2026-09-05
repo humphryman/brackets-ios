@@ -75,7 +75,12 @@ struct UpcomingGameView: View {
     // MARK: - Data Loading
 
     private func loadGameDetail() async {
-        isLoading = true
+        // Only show the spinner on a cold load. `.task` re-runs when the view
+        // re-appears, so flipping into the loading state on the way back from a
+        // player detail would tear the ScrollView down and lose the scroll
+        // position the user left the roster at.
+        let isColdLoad = gameDetail == nil
+        isLoading = isColdLoad
         errorMessage = nil
 
         do {
@@ -85,7 +90,8 @@ struct UpcomingGameView: View {
             )
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            // A failed refresh keeps the detail already on screen
+            if isColdLoad { errorMessage = error.localizedDescription }
             isLoading = false
         }
     }
