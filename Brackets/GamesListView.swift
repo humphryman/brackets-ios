@@ -54,6 +54,7 @@ struct GamesListView: View {
     @State private var selectedFilter: GameFilter = .upcoming
     @State private var selectedChip: GameGroupChip?
     @State private var didInitChip = false
+    @State private var didAutoScroll = false
     @State private var liveGameDetails: [Int: GameDetailResponse] = [:]
     @State private var liveRefreshTimer: Timer?
 
@@ -255,12 +256,17 @@ struct GamesListView: View {
                                         .id(dateGroup.date)
                                     }
                                 }
-                                .padding(.bottom, AppTheme.Layout.large)
+                                .padding(.bottom, AppTheme.Spacing.small)
                             }
                             .onChange(of: selectedFilter) {
                                 scrollToInitialPosition(proxy: proxy)
                             }
                             .onAppear {
+                                // First materialization only. Re-running this on every
+                                // appear re-snapped the list to today when the user came
+                                // back from a game detail, losing their scroll position.
+                                guard !didAutoScroll else { return }
+                                didAutoScroll = true
                                 scrollToInitialPosition(proxy: proxy)
                             }
                         }
@@ -346,9 +352,13 @@ struct GamesListView: View {
     }
     
     private func loadGames() async {
-        isLoading = true
+        // Only show the spinner on a cold load. Flipping into the loading state
+        // while the list is on screen destroys the ScrollView and its offset,
+        // which is what reset the scroll on every back-navigation.
+        let isColdLoad = gamesResponse == nil
+        isLoading = isColdLoad
         errorMessage = nil
-        
+
         do {
             gamesResponse = try await APIService.shared.fetchGamesResponse(for: tournament.id)
             if !didInitChip {
@@ -357,7 +367,8 @@ struct GamesListView: View {
             }
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            // A failed refresh keeps the games already on screen
+            if isColdLoad { errorMessage = error.localizedDescription }
             isLoading = false
         }
     }

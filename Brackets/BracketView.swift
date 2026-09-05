@@ -190,7 +190,7 @@ struct BracketView: View {
                 }
             }
             .frame(width: pageWidth, alignment: .leading)
-            .padding(.bottom, 100)
+            .padding(.bottom, AppTheme.Layout.large)
         }
         .frame(width: pageWidth)
         .clipped()
