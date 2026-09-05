@@ -307,6 +307,7 @@ struct TeamGamesTabView: View {
 struct TeamPlayersTabView: View {
     let players: [PlayerSeason]
     let tournamentId: Int
+    @State private var playerRoute: PlayerSeasonRoute?
 
     private let columns = [
         GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
@@ -324,8 +325,8 @@ struct TeamPlayersTabView: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: AppTheme.Spacing.medium) {
                     ForEach(players) { player in
-                        NavigationLink {
-                            PlayerDetailView(playerSeasonId: player.id, tournamentId: tournamentId)
+                        Button {
+                            playerRoute = PlayerSeasonRoute(id: player.id)
                         } label: {
                             playerCard(player: player)
                         }
@@ -335,6 +336,7 @@ struct TeamPlayersTabView: View {
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.bottom, AppTheme.Layout.large)
             }
+            .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId)
         }
     }
 

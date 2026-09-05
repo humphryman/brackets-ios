@@ -5,6 +5,22 @@
 
 import SwiftUI
 
+extension View {
+    /// Presents the athlete profile as a page sheet. Every entry point in the app
+    /// opens it this way, so the presentation is declared in exactly one place.
+    func athleteProfileSheet(
+        route: Binding<PlayerSeasonRoute?>,
+        tournamentId: Int
+    ) -> some View {
+        sheet(item: route) { route in
+            PlayerDetailView(playerSeasonId: route.id, tournamentId: tournamentId)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(AppTheme.Colors.background)
+        }
+    }
+}
+
 struct PlayerDetailView: View {
     let playerSeasonId: Int
     let tournamentId: Int
@@ -55,11 +71,19 @@ struct PlayerDetailView: View {
 
     // MARK: - Header
 
+    /// Presented as a sheet from every entry point, so the header carries a
+    /// trailing close control instead of a back chevron. The grabber sits just
+    /// above it, hence the smaller top padding than a pushed screen uses.
     private var header: some View {
-        AppTheme.ScreenHeader(title: "Perfil del Atleta", onLeading: { dismiss() })
-            .padding(.horizontal, AppTheme.Layout.screenPadding)
-            .padding(.top, AppTheme.Layout.large)
-            .padding(.bottom, AppTheme.Layout.itemSpacing)
+        AppTheme.ScreenHeader(
+            title: "Perfil del Atleta",
+            leadingIcon: nil,
+            trailingIcon: "xmark",
+            onTrailing: { dismiss() }
+        )
+        .padding(.horizontal, AppTheme.Layout.screenPadding)
+        .padding(.top, AppTheme.Spacing.medium)
+        .padding(.bottom, AppTheme.Layout.itemSpacing)
     }
 
     // MARK: - Content

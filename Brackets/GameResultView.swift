@@ -89,9 +89,7 @@ struct GameResultView: View {
                 .presentationDragIndicator(.visible)
                 .presentationBackground(AppTheme.Colors.gray950)
         }
-        .navigationDestination(item: $playerDetailRoute) { route in
-            PlayerDetailView(playerSeasonId: route.id, tournamentId: tournamentId)
-        }
+        .athleteProfileSheet(route: $playerDetailRoute, tournamentId: tournamentId)
     }
 
     /// Builds the per-game stats sheet from the currently selected team's data.
@@ -411,8 +409,8 @@ struct GameResultView: View {
         )
 
         if let psId = potg.playerSeasonId {
-            NavigationLink {
-                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+            Button {
+                playerDetailRoute = PlayerSeasonRoute(id: psId)
             } label: {
                 card
             }

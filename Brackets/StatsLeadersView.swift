@@ -25,6 +25,7 @@ struct StatsLeadersView: View {
     @State private var currentPage: Int? = 0
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var playerRoute: PlayerSeasonRoute?
 
     // Filter out categories with no stats
     private var activeCategories: [StatCategory] {
@@ -55,6 +56,7 @@ struct StatsLeadersView: View {
         .task {
             await loadStats()
         }
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournament.id)
     }
 
     // MARK: - Stats Content
@@ -184,8 +186,8 @@ struct StatsLeadersView: View {
     }
 
     private func statRowLink(stat: PlayerStatEntry, rank: Int) -> some View {
-        NavigationLink {
-            PlayerDetailView(stat: stat, tournamentId: tournament.id)
+        Button {
+            playerRoute = PlayerSeasonRoute(id: stat.playerSeasonId)
         } label: {
             statListRow(stat: stat, rank: rank)
         }
@@ -253,24 +255,24 @@ struct StatsLeadersView: View {
 
         return HStack(alignment: .bottom, spacing: 12) {
             // #2 — Left
-            NavigationLink {
-                PlayerDetailView(stat: second, tournamentId: tournament.id)
+            Button {
+                playerRoute = PlayerSeasonRoute(id: second.playerSeasonId)
             } label: {
                 podiumPlayer(stat: second, rank: 2, imageSize: 84, offsetY: 22)
             }
             .buttonStyle(.plain)
 
             // #1 — Center (tallest)
-            NavigationLink {
-                PlayerDetailView(stat: first, tournamentId: tournament.id)
+            Button {
+                playerRoute = PlayerSeasonRoute(id: first.playerSeasonId)
             } label: {
                 podiumPlayer(stat: first, rank: 1, imageSize: 108, offsetY: 0)
             }
             .buttonStyle(.plain)
 
             // #3 — Right
-            NavigationLink {
-                PlayerDetailView(stat: third, tournamentId: tournament.id)
+            Button {
+                playerRoute = PlayerSeasonRoute(id: third.playerSeasonId)
             } label: {
                 podiumPlayer(stat: third, rank: 3, imageSize: 72, offsetY: 30)
             }

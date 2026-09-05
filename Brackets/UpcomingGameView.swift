@@ -19,6 +19,7 @@ struct UpcomingGameView: View {
     @State private var errorMessage: String?
     @State private var selectedTeamIndex: Int = 0
     @State private var isSharePresented = false
+    @State private var playerRoute: PlayerSeasonRoute?
 
     var body: some View {
         ZStack {
@@ -70,6 +71,7 @@ struct UpcomingGameView: View {
                     .presentationBackground(AppTheme.Colors.background)
             }
         }
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId)
     }
 
     // MARK: - Data Loading
@@ -381,8 +383,8 @@ struct UpcomingGameView: View {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(players) { player in
                         if let psId = player.playerSeasonId {
-                            NavigationLink {
-                                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                            Button {
+                                playerRoute = PlayerSeasonRoute(id: psId)
                             } label: {
                                 playerCard(player: player)
                             }
