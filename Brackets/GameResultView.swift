@@ -11,6 +11,12 @@ struct GameResultView: View {
     var tournamentName: String? = nil
     /// Drives the share card's right-edge label; falls back to the stage when absent.
     var gender: Gender? = nil
+
+    /// Barlow Condensed reads narrower and optically smaller than the system font at
+    /// the same point size, so the score runs larger than the 24pt it replaced — the
+    /// same step the game cards and screen headers took.
+    private static let scoreSize: CGFloat = 32
+
     @Environment(\.dismiss) private var dismiss
 
     @State private var gameDetail: GameDetailResponse?
@@ -193,13 +199,13 @@ struct GameResultView: View {
                 VStack(spacing: 4) {
                     HStack(spacing: 8) {
                         Text("\(homeScore)")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                             .foregroundStyle(teamAWon ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                         Text("-")
                             .font(.system(size: 18))
                             .foregroundStyle(Color(white: 0.4))
                         Text("\(awayScore)")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                             .foregroundStyle(teamBWon ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                     }
                     .fixedSize()
@@ -213,7 +219,7 @@ struct GameResultView: View {
 
                     Text("Final")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.4))
+                        .foregroundStyle(AppTheme.Colors.gray400)
                 }
 
                 // Team B

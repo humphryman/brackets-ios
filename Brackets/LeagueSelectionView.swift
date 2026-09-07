@@ -154,12 +154,7 @@ struct LeagueSelectionView: View {
 
                 // Sport badge — top right
                 if let sport = customer.sport {
-                    Text(sport.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accentText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
+                    Badge(sport.uppercased(), style: .lime)
                         .padding(10)
                 }
             }
@@ -323,12 +318,7 @@ struct LeagueSelectionView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Text(sport.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accentText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
+                    Badge(sport.uppercased(), style: .lime)
                 }
                 Spacer()
             }
