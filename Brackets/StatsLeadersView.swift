@@ -27,6 +27,9 @@ struct StatsLeadersView: View {
     @State private var errorMessage: String?
     @State private var playerRoute: PlayerSeasonRoute?
     @Namespace private var athleteTransition
+    /// Bumped every time the athlete sheet closes, so the first-place glow replays
+    /// its delayed entrance instead of already being lit when the podium reappears.
+    @State private var glowRestart = 0
 
     // Filter out categories with no stats
     private var activeCategories: [StatCategory] {
@@ -58,6 +61,9 @@ struct StatsLeadersView: View {
             await loadStats()
         }
         .athleteProfileSheet(route: $playerRoute, tournamentId: tournament.id, in: athleteTransition)
+        .onChange(of: playerRoute?.id) { _, newValue in
+            if newValue == nil { glowRestart += 1 }
+        }
     }
 
     // MARK: - Stats Content
@@ -263,7 +269,7 @@ struct StatsLeadersView: View {
                 podiumPlayer(stat: second, rank: 2, imageSize: 84, offsetY: 22)
             }
             .buttonStyle(.plain)
-            .matchedTransitionSource(id: second.playerSeasonId, in: athleteTransition)
+            .podiumTransitionSource(id: second.playerSeasonId, in: athleteTransition)
 
             // #1 — Center (tallest)
             Button {
@@ -272,7 +278,7 @@ struct StatsLeadersView: View {
                 podiumPlayer(stat: first, rank: 1, imageSize: 108, offsetY: 0)
             }
             .buttonStyle(.plain)
-            .matchedTransitionSource(id: first.playerSeasonId, in: athleteTransition)
+            .podiumTransitionSource(id: first.playerSeasonId, in: athleteTransition)
 
             // #3 — Right
             Button {
@@ -281,7 +287,7 @@ struct StatsLeadersView: View {
                 podiumPlayer(stat: third, rank: 3, imageSize: 72, offsetY: 30)
             }
             .buttonStyle(.plain)
-            .matchedTransitionSource(id: third.playerSeasonId, in: athleteTransition)
+            .podiumTransitionSource(id: third.playerSeasonId, in: athleteTransition)
         }
         .padding(.top, 10)
         .padding(.bottom, 10)
@@ -356,7 +362,7 @@ struct StatsLeadersView: View {
         }
         .background {
             if metal.isGold {
-                GoldGlow()
+                GoldGlow(restartToken: glowRestart)
                     // Kept close to the photo so it never reaches the neighbouring
                     // places, and lifted slightly so it reads as light from above.
                     .frame(width: size * 1.34, height: size * 1.34)
@@ -437,19 +443,44 @@ private struct PodiumMetal {
 /// A soft gold halo that breathes behind the first-place photo: two offset radial
 /// gradients drifting against each other, so the light shifts instead of just pulsing.
 private struct GoldGlow: View {
+    /// Changing this replays the entrance — the podium is never torn down while the
+    /// athlete sheet covers it, so `onAppear` alone would only ever fire once.
+    var restartToken: Int
+
+    @State private var isLit = false
     @State private var isBreathing = false
+
+    /// Beat before the glow lights up, so the podium is read first and the light
+    /// then arrives on the winner.
+    private static let entranceDelay: Duration = .seconds(1.5)
 
     var body: some View {
         ZStack {
-            halo(opacity: 0.55, blur: 18)
-                .scaleEffect(isBreathing ? 1.06 : 0.92)
+            halo(opacity: 0.78, blur: 18)
+                .scaleEffect(isBreathing ? 1.12 : 0.88)
 
-            halo(opacity: 0.30, blur: 30)
-                .scaleEffect(isBreathing ? 0.94 : 1.10)
+            halo(opacity: 0.44, blur: 30)
+                .scaleEffect(isBreathing ? 0.90 : 1.18)
         }
-        .opacity(isBreathing ? 1.0 : 0.72)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
+        // Two layers so each animation owns its own value: the breath pulses the
+        // brightness forever, the entrance fades the whole thing in once.
+        .opacity(isBreathing ? 1.0 : 0.78)
+        .opacity(isLit ? 1 : 0)
+        .scaleEffect(isLit ? 1.0 : 0.82)
+        .task(id: restartToken) {
+            // Dark and settled while we wait, so a restart never flashes the old state.
+            var reset = Transaction()
+            reset.disablesAnimations = true
+            withTransaction(reset) {
+                isLit = false
+                isBreathing = false
+            }
+
+            try? await Task.sleep(for: Self.entranceDelay)
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.easeOut(duration: 0.7)) { isLit = true }
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                 isBreathing = true
             }
         }
@@ -468,6 +499,22 @@ private struct GoldGlow: View {
                 endRadius: proxy.size.width / 2
             )
             .blur(radius: blur)
+        }
+    }
+}
+
+// MARK: - Podium Zoom Source
+
+private extension View {
+    /// The podium buttons sit straight on the screen background, so the zoom
+    /// transition's default source backdrop — an opaque rounded card with a shadow —
+    /// flashes as a square behind the round photo while the sheet opens and closes.
+    /// The list rows hide it under their own `gray800` background; here we clear it.
+    func podiumTransitionSource(id: some Hashable, in namespace: Namespace.ID) -> some View {
+        matchedTransitionSource(id: id, in: namespace) { config in
+            config
+                .background(Color.clear)
+                .shadow(color: .clear, radius: 0)
         }
     }
 }
