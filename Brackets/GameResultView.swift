@@ -25,6 +25,7 @@ struct GameResultView: View {
     /// presenting a sheet and pushing in the same run loop drops the push.
     @State private var pendingPlayerDetail: PlayerSeasonRoute?
     @State private var playerDetailRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     var body: some View {
         ZStack {
@@ -85,11 +86,14 @@ struct GameResultView: View {
             }
         }) { player in
             playerStatsSheet(for: player)
-                .presentationDetents([.fraction(0.6), .large])
+                // A single detent: the layout is built so the stats card and both
+                // buttons clear 60% without a swipe, so there is nothing to reveal
+                // by dragging it up to full screen.
+                .presentationDetents([.fraction(0.6)])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(AppTheme.Colors.gray950)
         }
-        .athleteProfileSheet(route: $playerDetailRoute, tournamentId: tournamentId)
+        .athleteProfileSheet(route: $playerDetailRoute, tournamentId: tournamentId, in: athleteTransition)
     }
 
     /// Builds the per-game stats sheet from the currently selected team's data.
@@ -107,7 +111,13 @@ struct GameResultView: View {
                 tournamentName: tournamentName,
                 onOpenPlayerDetail: {
                     if let psId = player.playerSeasonId {
-                        pendingPlayerDetail = PlayerSeasonRoute(id: psId)
+                        // Opened from inside the stat sheet, which registers no
+                        // transition source, so this one slides up rather than zooms.
+                        pendingPlayerDetail = PlayerSeasonRoute(
+                            id: psId,
+                            imagePath: player.playerImage,
+                            zoomsFromSource: false
+                        )
                     }
                     statSheetPlayer = nil
                 }
@@ -410,11 +420,12 @@ struct GameResultView: View {
 
         if let psId = potg.playerSeasonId {
             Button {
-                playerDetailRoute = PlayerSeasonRoute(id: psId)
+                playerDetailRoute = PlayerSeasonRoute(id: psId, imagePath: potg.picture)
             } label: {
                 card
             }
             .buttonStyle(.plain)
+            .matchedTransitionSource(id: psId, in: athleteTransition)
         } else {
             card
         }

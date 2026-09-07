@@ -24,6 +24,7 @@ struct LiveGameDetailView: View {
     @State private var rosterGlowRed: Set<Int> = [] // players moved to bench
     @State private var endedGame: Game?
     @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     var body: some View {
         if let endedGame {
@@ -81,7 +82,7 @@ struct LiveGameDetailView: View {
         .onDisappear {
             stopRefreshTimer()
         }
-        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId)
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId, in: athleteTransition)
         }
     }
 
@@ -327,7 +328,7 @@ struct LiveGameDetailView: View {
                     ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
                         if let psId = player.playerSeasonId {
                             Button {
-                                playerRoute = PlayerSeasonRoute(id: psId)
+                                playerRoute = PlayerSeasonRoute(id: psId, imagePath: player.playerImage)
                             } label: {
                                 livePlayerRow(
                                     player: player,
@@ -338,6 +339,7 @@ struct LiveGameDetailView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .matchedTransitionSource(id: psId, in: athleteTransition)
                         } else {
                             livePlayerRow(
                                 player: player,

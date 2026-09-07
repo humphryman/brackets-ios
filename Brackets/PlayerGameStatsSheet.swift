@@ -5,9 +5,18 @@
 
 import SwiftUI
 
-/// Identifiable wrapper so a player-season id can drive `navigationDestination(item:)`.
+/// Identifiable wrapper so a player-season id can drive `sheet(item:)`.
 struct PlayerSeasonRoute: Identifiable, Hashable {
     let id: Int
+    /// Photo path of the row that was tapped. The profile paints its hero from
+    /// this before its own request answers, so the sheet expands into the player's
+    /// picture rather than into a spinner.
+    var imagePath: String? = nil
+    /// Whether the profile should grow out of a `matchedTransitionSource` carrying
+    /// this route's id. Routes opened from somewhere with no such source — the stat
+    /// sheet's "Perfil del Atleta" button — set this false, otherwise the zoom has
+    /// nothing to start from and expands out of the middle of the screen.
+    var zoomsFromSource: Bool = true
 }
 
 /// Bottom sheet shown when a player is tapped in the "Resultado" stats table.

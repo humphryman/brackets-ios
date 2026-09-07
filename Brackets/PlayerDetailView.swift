@@ -8,15 +8,31 @@ import SwiftUI
 extension View {
     /// Presents the athlete profile as a page sheet. Every entry point in the app
     /// opens it this way, so the presentation is declared in exactly one place.
+    /// `namespace` pairs with the `matchedTransitionSource` on the row that was
+    /// tapped, so the sheet grows out of that row's photo. Routes that set
+    /// `zoomsFromSource` false slide up from the bottom instead — the zoom is not
+    /// applied at all for them, because a zoom with no registered source does not
+    /// degrade to the normal presentation, it expands from the middle of the screen.
     func athleteProfileSheet(
         route: Binding<PlayerSeasonRoute?>,
-        tournamentId: Int
+        tournamentId: Int,
+        in namespace: Namespace.ID
     ) -> some View {
         sheet(item: route) { route in
-            PlayerDetailView(playerSeasonId: route.id, tournamentId: tournamentId)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(AppTheme.Colors.background)
+            let profile = PlayerDetailView(
+                playerSeasonId: route.id,
+                tournamentId: tournamentId,
+                seedImagePath: route.imagePath
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(AppTheme.Colors.background)
+
+            if route.zoomsFromSource {
+                profile.navigationTransition(.zoom(sourceID: route.id, in: namespace))
+            } else {
+                profile
+            }
         }
     }
 }
@@ -24,6 +40,9 @@ extension View {
 struct PlayerDetailView: View {
     let playerSeasonId: Int
     let tournamentId: Int
+    /// Photo the presenting row already had on screen. Used for the hero until the
+    /// profile request lands, so the view is never blank on its first frame.
+    var seedImagePath: String? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var detail: PlayerSeasonDetailResponse?
     @State private var teamLogoURL: URL?
@@ -36,11 +55,13 @@ struct PlayerDetailView: View {
     init(stat: PlayerStatEntry, tournamentId: Int) {
         self.playerSeasonId = stat.playerSeasonId
         self.tournamentId = tournamentId
+        self.seedImagePath = stat.player.picture
     }
 
-    init(playerSeasonId: Int, tournamentId: Int) {
+    init(playerSeasonId: Int, tournamentId: Int, seedImagePath: String? = nil) {
         self.playerSeasonId = playerSeasonId
         self.tournamentId = tournamentId
+        self.seedImagePath = seedImagePath
     }
 
     var body: some View {
@@ -50,19 +71,8 @@ struct PlayerDetailView: View {
 
             VStack(spacing: 0) {
                 header
-
-                Group {
-                    if isLoading {
-                        AppTheme.LoadingView(message: "Loading player stats...")
-                    } else if let error = errorMessage {
-                        AppTheme.ErrorView(message: error) {
-                            Task { await loadPlayerSeason() }
-                        }
-                    } else if let detail = detail {
-                        playerContent(detail)
-                    }
-                }
-                .frame(maxHeight: .infinity)
+                playerContent
+                    .frame(maxHeight: .infinity)
             }
         }
         .navigationBarHidden(true)
@@ -88,17 +98,31 @@ struct PlayerDetailView: View {
 
     // MARK: - Content
 
-    private func playerContent(_ detail: PlayerSeasonDetailResponse) -> some View {
+    /// The hero sits outside the loading branch on purpose: it can be drawn from
+    /// the seed photo immediately, and only the cards below it have to wait for
+    /// the request.
+    private var playerContent: some View {
         ScrollView {
             VStack(spacing: AppTheme.Spacing.large) {
                 heroCard(detail)
-                infoCard(detail)
-                totalStatsCard(detail)
-                if !detail.playerSeason.playoffsStats.isEmpty {
-                    opponentStatsCard(detail, stats: detail.playerSeason.playoffsStats, title: "Playoffs")
-                }
-                if !detail.playerSeason.stats.isEmpty {
-                    opponentStatsCard(detail, stats: detail.playerSeason.stats, title: "Stats")
+
+                if let detail {
+                    infoCard(detail)
+                    totalStatsCard(detail)
+                    if !detail.playerSeason.playoffsStats.isEmpty {
+                        opponentStatsCard(detail, stats: detail.playerSeason.playoffsStats, title: "Playoffs")
+                    }
+                    if !detail.playerSeason.stats.isEmpty {
+                        opponentStatsCard(detail, stats: detail.playerSeason.stats, title: "Stats")
+                    }
+                } else if let errorMessage {
+                    AppTheme.ErrorView(message: errorMessage) {
+                        Task { await loadPlayerSeason() }
+                    }
+                    .padding(.top, AppTheme.Layout.large)
+                } else {
+                    AppTheme.LoadingView(message: "Loading player stats...")
+                        .frame(height: 180)
                 }
             }
             .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -110,14 +134,14 @@ struct PlayerDetailView: View {
 
     /// Full-width square photo with the player name bottom-left and the team
     /// identity bottom-right, both sitting on a dark scrim for contrast.
-    private func heroCard(_ detail: PlayerSeasonDetailResponse) -> some View {
-        let info = detail.playerSeason
+    private func heroCard(_ detail: PlayerSeasonDetailResponse?) -> some View {
+        let info = detail?.playerSeason
 
         return Rectangle()
             .fill(AppTheme.Colors.surface)
             .aspectRatio(1, contentMode: .fit)
             .frame(maxWidth: .infinity)
-            .overlay { playerPhoto(info.player) }
+            .overlay { playerPhoto(info?.player) }
             .overlay {
                 LinearGradient(
                     colors: [
@@ -130,14 +154,18 @@ struct PlayerDetailView: View {
                 )
             }
             .overlay(alignment: .bottom) {
-                HStack(alignment: .bottom, spacing: 12) {
-                    nameBlock(info.player)
+                // Name and team only exist once the request lands; the photo alone
+                // carries the first frame.
+                if let info {
+                    HStack(alignment: .bottom, spacing: 12) {
+                        nameBlock(info.player)
 
-                    Spacer(minLength: 12)
+                        Spacer(minLength: 12)
 
-                    teamBadge(info.team)
+                        teamBadge(info.team)
+                    }
+                    .padding(16)
                 }
-                .padding(16)
             }
             .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.extraLarge))
             // strokeBorder (not stroke) so the 1pt line stays inside the clip
@@ -527,17 +555,35 @@ struct PlayerDetailView: View {
     // MARK: - Player Photo
 
     @ViewBuilder
-    private func playerPhoto(_ player: Player) -> some View {
-        if let picture = player.picture,
-           let url = URL(string: picture.hasPrefix("http") ? picture : "\(APIConfig.baseURL)/\(picture)") {
-            AsyncImage(url: url) { phase in
+    /// Path comes from the loaded profile when there is one and from the tapped
+    /// row before that, so the hero is populated from the first frame.
+    ///
+    /// This hero is the one place in the app that outgrows the `big_` size the API
+    /// sends: it draws full-width, about 1130pt on a 3x screen, where a 500pt image
+    /// is visibly soft. So it asks for the original and falls back to `big_` — which
+    /// the tapped row has already put in the URL cache, so it paints at once and the
+    /// original simply sharpens it a moment later.
+    private func playerPhoto(_ player: Player?) -> some View {
+        let picture = player?.picture ?? seedImagePath
+
+        if let picture, let sent = photoURL(picture) {
+            AsyncImage(url: photoURL(UploadVariant.original.path(picture)) ?? sent) { phase in
                 switch phase {
                 case .success(let image):
                     image
                         .resizable()
                         .scaledToFill()
                 default:
-                    playerInitialsSurface(player)
+                    AsyncImage(url: sent) { cached in
+                        switch cached {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        default:
+                            playerInitialsSurface(player)
+                        }
+                    }
                 }
             }
         } else {
@@ -545,11 +591,15 @@ struct PlayerDetailView: View {
         }
     }
 
+    private func photoURL(_ path: String) -> URL? {
+        URL(string: path.hasPrefix("http") ? path : "\(APIConfig.baseURL)/\(path)")
+    }
+
     /// Placeholder that fills the square so the hero layout never shifts between
     /// "no photo", "loading" and "loaded".
-    private func playerInitialsSurface(_ player: Player) -> some View {
-        let first = player.firstName.trimmingCharacters(in: .whitespaces)
-        let last = player.lastName.trimmingCharacters(in: .whitespaces)
+    private func playerInitialsSurface(_ player: Player?) -> some View {
+        let first = player?.firstName.trimmingCharacters(in: .whitespaces) ?? ""
+        let last = player?.lastName.trimmingCharacters(in: .whitespaces) ?? ""
         let initials = String(first.prefix(1) + last.prefix(1)).uppercased()
 
         return AppTheme.Colors.surface

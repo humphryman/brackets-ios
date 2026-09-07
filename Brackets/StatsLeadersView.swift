@@ -26,6 +26,7 @@ struct StatsLeadersView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     // Filter out categories with no stats
     private var activeCategories: [StatCategory] {
@@ -56,7 +57,7 @@ struct StatsLeadersView: View {
         .task {
             await loadStats()
         }
-        .athleteProfileSheet(route: $playerRoute, tournamentId: tournament.id)
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournament.id, in: athleteTransition)
     }
 
     // MARK: - Stats Content
@@ -187,11 +188,12 @@ struct StatsLeadersView: View {
 
     private func statRowLink(stat: PlayerStatEntry, rank: Int) -> some View {
         Button {
-            playerRoute = PlayerSeasonRoute(id: stat.playerSeasonId)
+            playerRoute = PlayerSeasonRoute(id: stat.playerSeasonId, imagePath: stat.player.picture)
         } label: {
             statListRow(stat: stat, rank: rank)
         }
         .buttonStyle(.plain)
+        .matchedTransitionSource(id: stat.playerSeasonId, in: athleteTransition)
     }
 
     private func statListRow(stat: PlayerStatEntry, rank: Int) -> some View {
@@ -256,27 +258,30 @@ struct StatsLeadersView: View {
         return HStack(alignment: .bottom, spacing: 12) {
             // #2 — Left
             Button {
-                playerRoute = PlayerSeasonRoute(id: second.playerSeasonId)
+                playerRoute = PlayerSeasonRoute(id: second.playerSeasonId, imagePath: second.player.picture)
             } label: {
                 podiumPlayer(stat: second, rank: 2, imageSize: 84, offsetY: 22)
             }
             .buttonStyle(.plain)
+            .matchedTransitionSource(id: second.playerSeasonId, in: athleteTransition)
 
             // #1 — Center (tallest)
             Button {
-                playerRoute = PlayerSeasonRoute(id: first.playerSeasonId)
+                playerRoute = PlayerSeasonRoute(id: first.playerSeasonId, imagePath: first.player.picture)
             } label: {
                 podiumPlayer(stat: first, rank: 1, imageSize: 108, offsetY: 0)
             }
             .buttonStyle(.plain)
+            .matchedTransitionSource(id: first.playerSeasonId, in: athleteTransition)
 
             // #3 — Right
             Button {
-                playerRoute = PlayerSeasonRoute(id: third.playerSeasonId)
+                playerRoute = PlayerSeasonRoute(id: third.playerSeasonId, imagePath: third.player.picture)
             } label: {
                 podiumPlayer(stat: third, rank: 3, imageSize: 72, offsetY: 30)
             }
             .buttonStyle(.plain)
+            .matchedTransitionSource(id: third.playerSeasonId, in: athleteTransition)
         }
         .padding(.top, 10)
         .padding(.bottom, 10)

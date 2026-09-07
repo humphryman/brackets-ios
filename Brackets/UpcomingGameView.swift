@@ -20,6 +20,7 @@ struct UpcomingGameView: View {
     @State private var selectedTeamIndex: Int = 0
     @State private var isSharePresented = false
     @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     var body: some View {
         ZStack {
@@ -71,7 +72,7 @@ struct UpcomingGameView: View {
                     .presentationBackground(AppTheme.Colors.background)
             }
         }
-        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId)
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId, in: athleteTransition)
     }
 
     // MARK: - Data Loading
@@ -384,11 +385,12 @@ struct UpcomingGameView: View {
                     ForEach(players) { player in
                         if let psId = player.playerSeasonId {
                             Button {
-                                playerRoute = PlayerSeasonRoute(id: psId)
+                                playerRoute = PlayerSeasonRoute(id: psId, imagePath: player.playerImage)
                             } label: {
                                 playerCard(player: player)
                             }
                             .buttonStyle(.plain)
+                            .matchedTransitionSource(id: psId, in: athleteTransition)
                         } else {
                             playerCard(player: player)
                         }

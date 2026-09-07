@@ -308,6 +308,7 @@ struct TeamPlayersTabView: View {
     let players: [PlayerSeason]
     let tournamentId: Int
     @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     private let columns = [
         GridItem(.flexible(), spacing: AppTheme.Spacing.medium),
@@ -326,17 +327,18 @@ struct TeamPlayersTabView: View {
                 LazyVGrid(columns: columns, spacing: AppTheme.Spacing.medium) {
                     ForEach(players) { player in
                         Button {
-                            playerRoute = PlayerSeasonRoute(id: player.id)
+                            playerRoute = PlayerSeasonRoute(id: player.id, imagePath: player.player.picture)
                         } label: {
                             playerCard(player: player)
                         }
                         .buttonStyle(.plain)
+                        .matchedTransitionSource(id: player.id, in: athleteTransition)
                     }
                 }
                 .padding(.horizontal, AppTheme.Layout.screenPadding)
                 .padding(.bottom, AppTheme.Layout.large)
             }
-            .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId)
+            .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId, in: athleteTransition)
         }
     }
 
