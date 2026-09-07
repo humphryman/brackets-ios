@@ -421,21 +421,21 @@ struct UpcomingGameView: View {
                             .aspectRatio(1, contentMode: .fill)
                             .clipped()
                     default:
-                        playerInitialsRect(name: player.playerName)
+                        playerInitialsRect(name: player.shortName)
                     }
                 }
             } else {
-                playerInitialsRect(name: player.playerName)
+                playerInitialsRect(name: player.shortName)
             }
 
             // Name + Number row
             HStack(alignment: .top, spacing: 4) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(player.playerFirstName)
+                    Text(player.shortFirstName)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
-                    Text(player.playerLastName)
+                    Text(player.shortLastName)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)

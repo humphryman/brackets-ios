@@ -99,11 +99,11 @@ struct PlayerGameStatsSheet: View {
                 }
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(player.playerFirstName.trimmingCharacters(in: .whitespaces))
+                Text(player.shortFirstName)
                     .font(ShareFont.condensed(.semibold, size: 34))
                     .foregroundStyle(AppTheme.Colors.primaryText)
 
-                Text(player.playerLastName.trimmingCharacters(in: .whitespaces))
+                Text(player.shortLastName)
                     .font(ShareFont.condensed(.semibold, size: 22))
                     .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.85))
 
@@ -162,7 +162,7 @@ struct PlayerGameStatsSheet: View {
     }
 
     private var playerInitials: some View {
-        let initials = String(player.playerFirstName.prefix(1) + player.playerLastName.prefix(1)).uppercased()
+        let initials = player.initials
 
         return ZStack {
             AppTheme.Colors.surface

@@ -35,7 +35,7 @@ extension PlayerStatsShareModel {
     static func preview(statCount: Int) -> PlayerStatsShareModel {
         var model = PlayerStatsShareModel()
         model.firstName = "Nicolás"
-        model.lastName = "Reyes Peña"
+        model.lastName = "Reyes"
         model.teamName = "WW LEONES 10-11"
         model.photo = sampleImage("person.crop.square.fill", tint: .systemTeal)
         model.stats = Array(sampleStats.prefix(statCount))
@@ -55,8 +55,8 @@ extension PlayerStatsShareModel {
     /// shrink the given name below the surname, inverting the card's hierarchy.
     static var previewLongName: PlayerStatsShareModel {
         var model = preview(statCount: 5)
-        model.firstName = "Aquiles Anhuar"
-        model.lastName = "Rodriguez Montoya"
+        model.firstName = "Aquiles"
+        model.lastName = "Rodriguez"
         model.teamName = "SAN LUIS POTOSI A"
         return model
     }
@@ -65,7 +65,7 @@ extension PlayerStatsShareModel {
     static var previewNoImages: PlayerStatsShareModel {
         var model = preview(statCount: 6)
         model.firstName = "Maximiliano"
-        model.lastName = "Hernández Villalobos"
+        model.lastName = "Hernández"
         model.photo = nil
         model.teamALogo = nil
         model.teamBLogo = nil

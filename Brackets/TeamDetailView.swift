@@ -367,11 +367,11 @@ struct TeamPlayersTabView: View {
             // Name + Number row
             HStack(alignment: .top, spacing: 4) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(player.firstName)
+                    Text(player.shortFirstName)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
-                    Text(player.lastName)
+                    Text(player.shortLastName)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
@@ -394,7 +394,7 @@ struct TeamPlayersTabView: View {
 
     @ViewBuilder
     private func playerInitialsRect(firstName: String, lastName: String) -> some View {
-        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        let initials = PlayerName.initials(first: firstName, last: lastName)
         Rectangle()
             .fill(Color(white: 0.22))
             .aspectRatio(1, contentMode: .fill)
@@ -486,10 +486,10 @@ struct TeamStatsTabView: View {
                     leaderHeroImage(entry: top, size: 120)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(top.firstName)
+                        Text(top.shortFirstName)
                             .font(.system(size: 24, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.primaryText)
-                        Text(top.lastName)
+                        Text(top.shortLastName)
                             .font(.system(size: 16))
                             .foregroundStyle(AppTheme.Colors.primaryText)
                     }
@@ -521,10 +521,10 @@ struct TeamStatsTabView: View {
                     leaderAvatarCircle(entry: entry, size: 44)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.firstName)
+                        Text(entry.shortFirstName)
                             .font(.system(size: 15, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.primaryText)
-                        Text(entry.lastName)
+                        Text(entry.shortLastName)
                             .font(.system(size: 12))
                             .foregroundStyle(AppTheme.Colors.gray400)
                     }
@@ -617,7 +617,7 @@ struct TeamStatsTabView: View {
 
     @ViewBuilder
     private func heroInitialsRect(firstName: String, lastName: String, size: CGFloat) -> some View {
-        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        let initials = PlayerName.initials(first: firstName, last: lastName)
         RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium)
             .fill(Color(white: 0.18))
             .frame(width: size, height: size)
@@ -630,7 +630,7 @@ struct TeamStatsTabView: View {
 
     @ViewBuilder
     private func initialsCircle(firstName: String, lastName: String, size: CGFloat) -> some View {
-        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        let initials = PlayerName.initials(first: firstName, last: lastName)
         Circle()
             .fill(Color(white: 0.15))
             .frame(width: size, height: size)

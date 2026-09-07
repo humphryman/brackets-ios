@@ -467,11 +467,11 @@ struct GameResultView: View {
             .overlay(alignment: .bottom) {
                 HStack(alignment: .bottom, spacing: 12) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(potg.firstName.trimmingCharacters(in: .whitespaces))
+                        Text(potg.shortFirstName)
                             .font(AppTheme.Typography.condensed(.semibold, size: 28))
                             .foregroundStyle(AppTheme.Colors.primaryText)
 
-                        Text(potg.lastName.trimmingCharacters(in: .whitespaces))
+                        Text(potg.shortLastName)
                             .font(AppTheme.Typography.condensed(.semibold, size: 18))
                             .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.85))
 
@@ -600,7 +600,7 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func potgInitials(firstName: String, lastName: String) -> some View {
-        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        let initials = PlayerName.initials(first: firstName, last: lastName)
         ZStack {
             Color(white: 0.18)
             Text(initials)
@@ -688,10 +688,10 @@ struct GameResultView: View {
 
                             // Name + Team
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(top.player.playerFirstName)
+                                Text(top.player.shortFirstName)
                                     .font(.system(size: 16))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
-                                Text(top.player.playerLastName)
+                                Text(top.player.shortLastName)
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                                 Text(top.teamName)
@@ -725,7 +725,7 @@ struct GameResultView: View {
                             playerAvatarCircle(player: entry.player, size: 44)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(entry.player.playerFirstName) \(entry.player.playerLastName)")
+                                Text(entry.player.shortName)
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                                     .lineLimit(1)
@@ -803,11 +803,11 @@ struct GameResultView: View {
             }
             playerAvatarCircle(player: player, size: 30)
             VStack(alignment: .leading, spacing: 1) {
-                Text(player.playerFirstName)
+                Text(player.shortFirstName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
                     .lineLimit(1)
-                Text(player.playerLastName)
+                Text(player.shortLastName)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
                     .lineLimit(1)
@@ -890,11 +890,11 @@ struct GameResultView: View {
                         .frame(width: size, height: size)
                         .clipShape(Circle())
                 default:
-                    initialsCircle(name: player.playerName, size: size)
+                    initialsCircle(name: player.shortName, size: size)
                 }
             }
         } else {
-            initialsCircle(name: player.playerName, size: size)
+            initialsCircle(name: player.shortName, size: size)
         }
     }
 
@@ -910,11 +910,11 @@ struct GameResultView: View {
                         .frame(width: size, height: size)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
                 default:
-                    heroInitialsRect(name: player.playerName, size: size)
+                    heroInitialsRect(name: player.shortName, size: size)
                 }
             }
         } else {
-            heroInitialsRect(name: player.playerName, size: size)
+            heroInitialsRect(name: player.shortName, size: size)
         }
     }
 

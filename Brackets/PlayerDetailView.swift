@@ -177,11 +177,11 @@ struct PlayerDetailView: View {
 
     private func nameBlock(_ player: Player) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(player.firstName.trimmingCharacters(in: .whitespaces))
+            Text(player.shortFirstName)
                 .font(ShareFont.condensed(.semibold, size: 34))
                 .foregroundStyle(AppTheme.Colors.primaryText)
 
-            Text(player.lastName.trimmingCharacters(in: .whitespaces))
+            Text(player.shortLastName)
                 .font(ShareFont.condensed(.semibold, size: 22))
                 .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.85))
         }
@@ -598,9 +598,7 @@ struct PlayerDetailView: View {
     /// Placeholder that fills the square so the hero layout never shifts between
     /// "no photo", "loading" and "loaded".
     private func playerInitialsSurface(_ player: Player?) -> some View {
-        let first = player?.firstName.trimmingCharacters(in: .whitespaces) ?? ""
-        let last = player?.lastName.trimmingCharacters(in: .whitespaces) ?? ""
-        let initials = String(first.prefix(1) + last.prefix(1)).uppercased()
+        let initials = player?.initials ?? ""
 
         return AppTheme.Colors.surface
             .overlay {

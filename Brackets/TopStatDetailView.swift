@@ -161,7 +161,7 @@ struct TopStatDetailView: View {
                 .frame(width: 28, alignment: .center)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.player.fullName)
+                Text(entry.player.shortName)
                     .font(AppTheme.Typography.bodyBold)
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .lineLimit(1)

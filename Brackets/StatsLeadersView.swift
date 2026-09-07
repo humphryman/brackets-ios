@@ -212,7 +212,7 @@ struct StatsLeadersView: View {
             circularAvatar(stat.player, size: 36)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(stat.player.fullName)
+                Text(stat.player.shortName)
                     .font(AppTheme.Typography.bodyBold)
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .lineLimit(1)
@@ -312,7 +312,7 @@ struct StatsLeadersView: View {
             }
 
             // Name
-            Text(stat.player.firstName)
+            Text(stat.player.shortFirstName)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .lineLimit(1)
@@ -378,7 +378,7 @@ struct StatsLeadersView: View {
             .fill(Color(white: 0.15))
             .frame(width: size, height: size)
             .overlay(
-                Text(playerInitials(player))
+                Text(player.initials)
                     .font(.system(size: size * 0.3, weight: .bold))
                     .foregroundStyle(Color(white: 0.4))
             )
@@ -389,16 +389,10 @@ struct StatsLeadersView: View {
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
                 .fill(Color(white: 0.25))
 
-            Text(playerInitials(player))
+            Text(player.initials)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.secondaryText)
         }
-    }
-
-    private func playerInitials(_ player: Player) -> String {
-        let first = player.firstName.prefix(1)
-        let last = player.lastName.prefix(1)
-        return "\(first)\(last)".uppercased()
     }
 
     // MARK: - Data Loading
