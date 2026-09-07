@@ -578,6 +578,11 @@ struct TeamSection: View {
 struct CenterSection: View {
     let game: Game
 
+    /// Barlow Condensed reads narrower and optically smaller than the system font at
+    /// the same point size, so the score runs larger than the 24pt it replaced — the
+    /// same 24 → 32 step the screen headers took.
+    private static let scoreSize: CGFloat = 32
+
     private var homeIsWinner: Bool { game.isFinished && game.winner?.id == game.homeTeam?.id }
     private var awayIsWinner: Bool { game.isFinished && game.winner?.id == game.awayTeam?.id }
 
@@ -585,13 +590,13 @@ struct CenterSection: View {
         if game.isFinished {
             HStack(spacing: 8) {
                 Text("\(game.homeScore ?? 0)")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                     .foregroundStyle(homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
                 Text("-")
                     .font(.system(size: 18, weight: .regular))
                     .foregroundStyle(Color(white: 0.45))
                 Text("\(game.awayScore ?? 0)")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                     .foregroundStyle(awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
             }
             .fixedSize()
