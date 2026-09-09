@@ -68,6 +68,12 @@ struct BracketView: View {
                     icon: "square.grid.2x2",
                     message: "No hay bracket disponible."
                 )
+            } else if activeType == "final" {
+                FinalBracketView(
+                    finalMatchup: finalTypeFinalMatchup(),
+                    thirdMatchup: finalTypeThirdMatchup(),
+                    tournament: tournament
+                )
             } else {
                 bracketContent()
             }
@@ -604,6 +610,14 @@ struct BracketView: View {
         )
     }
 
+    private func finalTypeFinalMatchup() -> BracketMatchup {
+        buildMatchup(stage: "Final", slot: 1, propagation: nil)
+    }
+
+    private func finalTypeThirdMatchup() -> BracketMatchup {
+        buildMatchup(stage: "Tercer Lugar", slot: 1, propagation: nil)
+    }
+
     // MARK: - Build Rounds
 
     private func buildRounds() -> [BracketRound] {
@@ -794,7 +808,7 @@ struct BracketRound: Identifiable {
 
 // MARK: - Live Badge
 
-private struct BracketLiveBadge: View {
+struct BracketLiveBadge: View {
     @State private var pulse: Bool = false
 
     var body: some View {

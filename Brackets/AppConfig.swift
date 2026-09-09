@@ -214,6 +214,15 @@ extension Color {
     
     /// Brackets card background (dark gray)
     static let bracketsCardBackground = AppConfig.Design.secondaryBackground
+
+    /// Creates an opaque color from a 24-bit RGB hex value, e.g. `Color(hex: 0x6b7280)`.
+    init(hex: UInt32) {
+        self.init(
+            red: Double((hex >> 16) & 0xFF) / 255.0,
+            green: Double((hex >> 8) & 0xFF) / 255.0,
+            blue: Double(hex & 0xFF) / 255.0
+        )
+    }
 }
 
 extension Animation {

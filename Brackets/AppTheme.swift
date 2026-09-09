@@ -91,6 +91,9 @@ struct AppTheme {
         /// `color/lime-900` — fill behind an outlined lime badge. Hex: #365314
         static let lime900 = Color(red: 54/255, green: 83/255, blue: 20/255)
 
+        /// `color/lime-950` — crestless fallback (second slot). Hex: #1a2e05
+        static let lime950 = Color(red: 26/255, green: 46/255, blue: 5/255)
+
         /// `color/orange/orange-500` — warning badge accent. Hex: #F97316
         static let orange500 = Color(red: 249/255, green: 115/255, blue: 22/255)
 
