@@ -63,7 +63,7 @@ struct BracketView: View {
                 AppTheme.ErrorView(message: errorMessage) {
                     Task { await loadGames() }
                 }
-            } else if games.isEmpty {
+            } else if games.isEmpty && brackets.allSatisfy({ ($0.gamePlaceholders?.isEmpty ?? true) }) {
                 AppTheme.EmptyStateView(
                     icon: "square.grid.2x2",
                     message: "No hay bracket disponible."
