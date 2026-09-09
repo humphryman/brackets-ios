@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// The four-layer animated card background: dark base, static team split,
 /// three screen-blended moving blobs, and a scrim. Honors reduced motion and
@@ -68,8 +69,17 @@ struct FinalCardBackground: View {
         let on = motionEnabled
         // Each blob rests off its own edge and drifts within ±95x / ±120y.
         let baseX: CGFloat = anchor == .leading ? -120 : anchor == .trailing ? 120 : 0
-        let dx: CGFloat = on ? (anchor == .trailing ? -95 : 95) : 0
-        let dy: CGFloat = on ? (phase == 1 ? 120 : -120) : 0
+        let dx: CGFloat
+        let dy: CGFloat
+        if on {
+            switch phase {
+            case 0:  dx = 95;  dy = -120   // leading blob drifts up-right
+            case 1:  dx = -95; dy = 120    // trailing blob drifts down-left
+            default: dx = 0;   dy = 0      // center blob pulses in place (scale/opacity only)
+            }
+        } else {
+            dx = 0; dy = 0
+        }
         return RadialGradient(
             colors: [color, .clear],
             center: .center, startRadius: 0, endRadius: 200

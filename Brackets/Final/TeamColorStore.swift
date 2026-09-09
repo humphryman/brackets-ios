@@ -19,19 +19,25 @@ final class TeamColorStore {
         if let task = inflight[id] { return await task.value }
 
         let task = Task<HSLColor?, Never> { [logoURL] in
-            guard let logoURL, let url = URL(string: logoURL) else { return nil }
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                guard let image = UIImage(data: data) else { return nil }
-                return TeamColorExtractor.extractDominant(image)
-            } catch {
-                return nil
-            }
+            guard let logoURL else { return nil }
+            return await TeamColorStore.fetchColor(logoURL: logoURL)
         }
         inflight[id] = task
         let result = await task.value
         cache[id] = result
         inflight[id] = nil
         return result
+    }
+
+    /// Runs the download + decode + extraction off the main actor.
+    nonisolated private static func fetchColor(logoURL: String) async -> HSLColor? {
+        guard let url = URL(string: logoURL) else { return nil }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let image = UIImage(data: data) else { return nil }
+            return TeamColorExtractor.extractDominant(image)
+        } catch {
+            return nil
+        }
     }
 }
