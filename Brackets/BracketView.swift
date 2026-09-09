@@ -794,7 +794,7 @@ struct BracketRound: Identifiable {
 
 // MARK: - Live Badge
 
-private struct BracketLiveBadge: View {
+struct BracketLiveBadge: View {
     @State private var pulse: Bool = false
 
     var body: some View {
