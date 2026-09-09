@@ -6,7 +6,7 @@ import SwiftUI
 final class TeamColorExtractorTests: XCTestCase {
 
     /// Draws a `side`×`side` image filled with `background`, with a centered
-    /// square of `foreground` covering ~1/3 of the area.
+    /// square of `foreground` (~1/9 of the area).
     private func swatch(background: UIColor, foreground: UIColor?, side: CGFloat = 64) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side))
         return renderer.image { ctx in

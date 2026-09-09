@@ -4,7 +4,7 @@ import CoreGraphics
 
 /// A color in HSL, the space the card design reasons in. `hue` is 0..360,
 /// `saturation` and `lightness` are 0..1.
-struct HSLColor: Equatable {
+struct HSLColor: Equatable, Sendable {
     var hue: Double
     var saturation: Double
     var lightness: Double
@@ -64,11 +64,13 @@ enum TeamColorExtractor {
             _ = h
         }
 
-        guard let best = buckets.values.max(by: { $0.count < $1.count }), best.count > 0 else {
+        guard let best = buckets.max(by: { a, b in
+            a.value.count != b.value.count ? a.value.count < b.value.count : a.key > b.key
+        }), best.value.count > 0 else {
             return nil
         }
-        let n = Double(best.count)
-        let (h, s, l) = rgbToHSL(best.r / n, best.g / n, best.b / n)
+        let n = Double(best.value.count)
+        let (h, s, l) = rgbToHSL(best.value.r / n, best.value.g / n, best.value.b / n)
 
         // Lift into the usable band. Sampled colors only — callers must not
         // lift the fallback palette values.
