@@ -167,9 +167,12 @@ struct FinalMatchCard: View {
     }
 
     private func scoreText(_ score: Int?, isWinner: Bool) -> some View {
-        Text(score.map(String.init) ?? "-")
+        let color: Color = isWinner
+            ? AppTheme.Colors.accent
+            : (decided ? Color(white: 0.5) : .white)
+        return Text(score.map(String.init) ?? "-")
             .font(AppTheme.Typography.condensed(.bold, size: size.timeSize))
-            .foregroundStyle(isWinner ? AppTheme.Colors.accent : .white)
+            .foregroundStyle(color)
     }
 
     private func countdownPill(_ text: String) -> some View {

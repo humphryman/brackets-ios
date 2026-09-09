@@ -2,7 +2,7 @@ import SwiftUI
 
 /// True when a matchup carries any information — a real game, or a placeholder
 /// that contributed a team name, a time, or a venue.
-func finalMatchupHasInfo(_ m: BracketMatchup) -> Bool {
+private func finalMatchupHasInfo(_ m: BracketMatchup) -> Bool {
     m.hasGame || m.homePlaceholder != nil || m.awayPlaceholder != nil || m.scheduledTime != nil || m.venue != nil
 }
 

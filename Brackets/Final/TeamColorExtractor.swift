@@ -51,7 +51,7 @@ enum TeamColorExtractor {
             let a = Double(pixels[o + 3]) / 255
             if a < 200.0 / 255.0 { continue }
 
-            let (h, s, l) = rgbToHSL(r, g, b)
+            let (_, s, l) = rgbToHSL(r, g, b)
             if l < 0.12 || l > 0.92 { continue }
             if s < 0.25 { continue }
 
@@ -61,7 +61,6 @@ enum TeamColorExtractor {
             entry.count += 1
             entry.r += r; entry.g += g; entry.b += b
             buckets[key] = entry
-            _ = h
         }
 
         guard let best = buckets.max(by: { a, b in
