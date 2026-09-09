@@ -116,3 +116,30 @@ enum TeamColorExtractor {
         return (h, s, l)
     }
 }
+
+/// Resolves the two colors a Final card paints with, applying the design's
+/// separation and crestless-fallback rules. Fallback values are used as-is
+/// (never lifted).
+func resolveFinalPair(a: HSLColor?, b: HSLColor?) -> (Color, Color) {
+    let fallback0 = Color(hex: 0x6b7280) // neutral gray
+    let fallback1 = Color(hex: 0x1a2e05) // lime-950
+
+    switch (a, b) {
+    case let (a?, b?):
+        var second = b
+        if hueDistance(a.hue, b.hue) < 25 {
+            second = HSLColor(
+                hue: (b.hue + 40).truncatingRemainder(dividingBy: 360),
+                saturation: b.saturation,
+                lightness: b.lightness
+            )
+        }
+        return (a.color, second.color)
+    case let (a?, nil):
+        return (a.color, fallback0)
+    case let (nil, b?):
+        return (fallback0, b.color)
+    case (nil, nil):
+        return (fallback0, fallback1)
+    }
+}
