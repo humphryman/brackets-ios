@@ -23,6 +23,8 @@ struct LiveGameDetailView: View {
     @State private var rosterGlowGreen: Set<Int> = [] // players added to starters
     @State private var rosterGlowRed: Set<Int> = [] // players moved to bench
     @State private var endedGame: Game?
+    @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     var body: some View {
         if let endedGame {
@@ -80,6 +82,7 @@ struct LiveGameDetailView: View {
         .onDisappear {
             stopRefreshTimer()
         }
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId, in: athleteTransition)
         }
     }
 
@@ -324,8 +327,8 @@ struct LiveGameDetailView: View {
 
                     ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
                         if let psId = player.playerSeasonId {
-                            NavigationLink {
-                                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                            Button {
+                                playerRoute = PlayerSeasonRoute(id: psId, imagePath: player.playerImage)
                             } label: {
                                 livePlayerRow(
                                     player: player,
@@ -336,6 +339,7 @@ struct LiveGameDetailView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .matchedTransitionSource(id: psId, in: athleteTransition)
                         } else {
                             livePlayerRow(
                                 player: player,
@@ -432,11 +436,11 @@ struct LiveGameDetailView: View {
             }
             livePlayerAvatar(player: player, size: 30)
             VStack(alignment: .leading, spacing: 1) {
-                Text(player.playerFirstName)
+                Text(player.shortFirstName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
                     .lineLimit(1)
-                Text(player.playerLastName)
+                Text(player.shortLastName)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
                     .lineLimit(1)
@@ -463,11 +467,11 @@ struct LiveGameDetailView: View {
                         .frame(width: size, height: size)
                         .clipShape(Circle())
                 default:
-                    livePlayerInitials(name: player.playerName, size: size)
+                    livePlayerInitials(name: player.shortName, size: size)
                 }
             }
         } else {
-            livePlayerInitials(name: player.playerName, size: size)
+            livePlayerInitials(name: player.shortName, size: size)
         }
     }
 

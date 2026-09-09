@@ -19,6 +19,8 @@ struct UpcomingGameView: View {
     @State private var errorMessage: String?
     @State private var selectedTeamIndex: Int = 0
     @State private var isSharePresented = false
+    @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     var body: some View {
         ZStack {
@@ -70,12 +72,18 @@ struct UpcomingGameView: View {
                     .presentationBackground(AppTheme.Colors.background)
             }
         }
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournamentId, in: athleteTransition)
     }
 
     // MARK: - Data Loading
 
     private func loadGameDetail() async {
-        isLoading = true
+        // Only show the spinner on a cold load. `.task` re-runs when the view
+        // re-appears, so flipping into the loading state on the way back from a
+        // player detail would tear the ScrollView down and lose the scroll
+        // position the user left the roster at.
+        let isColdLoad = gameDetail == nil
+        isLoading = isColdLoad
         errorMessage = nil
 
         do {
@@ -85,7 +93,8 @@ struct UpcomingGameView: View {
             )
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            // A failed refresh keeps the detail already on screen
+            if isColdLoad { errorMessage = error.localizedDescription }
             isLoading = false
         }
     }
@@ -375,12 +384,13 @@ struct UpcomingGameView: View {
                 LazyVGrid(columns: columns, spacing: 10) {
                     ForEach(players) { player in
                         if let psId = player.playerSeasonId {
-                            NavigationLink {
-                                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+                            Button {
+                                playerRoute = PlayerSeasonRoute(id: psId, imagePath: player.playerImage)
                             } label: {
                                 playerCard(player: player)
                             }
                             .buttonStyle(.plain)
+                            .matchedTransitionSource(id: psId, in: athleteTransition)
                         } else {
                             playerCard(player: player)
                         }
@@ -411,21 +421,21 @@ struct UpcomingGameView: View {
                             .aspectRatio(1, contentMode: .fill)
                             .clipped()
                     default:
-                        playerInitialsRect(name: player.playerName)
+                        playerInitialsRect(name: player.shortName)
                     }
                 }
             } else {
-                playerInitialsRect(name: player.playerName)
+                playerInitialsRect(name: player.shortName)
             }
 
             // Name + Number row
             HStack(alignment: .top, spacing: 4) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(player.playerFirstName)
+                    Text(player.shortFirstName)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)
-                    Text(player.playerLastName)
+                    Text(player.shortLastName)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.primaryText)
                         .lineLimit(1)

@@ -340,6 +340,14 @@ struct StandingsView: View {
                         standingsScroll(bundle.result)
                     }
                 }
+                // A sub-tab rail brings its own 16pt of internal padding, so it
+                // needs less on top to land on the same optical gap as a card.
+                .padding(
+                    .top,
+                    availableTabs.count > 1
+                        ? AppTheme.Layout.headerGapAboveTabs
+                        : AppTheme.Layout.headerGap
+                )
             } else {
                 AppTheme.EmptyStateView(
                     icon: "chart.bar",
@@ -418,7 +426,6 @@ struct StandingsView: View {
                     }
                 }
             }
-            .padding(.top, AppTheme.Spacing.small)
             .padding(.bottom, AppTheme.Layout.large)
         }
     }

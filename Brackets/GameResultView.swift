@@ -11,6 +11,12 @@ struct GameResultView: View {
     var tournamentName: String? = nil
     /// Drives the share card's right-edge label; falls back to the stage when absent.
     var gender: Gender? = nil
+
+    /// Barlow Condensed reads narrower and optically smaller than the system font at
+    /// the same point size, so the score runs larger than the 24pt it replaced — the
+    /// same step the game cards and screen headers took.
+    private static let scoreSize: CGFloat = 32
+
     @Environment(\.dismiss) private var dismiss
 
     @State private var gameDetail: GameDetailResponse?
@@ -25,6 +31,7 @@ struct GameResultView: View {
     /// presenting a sheet and pushing in the same run loop drops the push.
     @State private var pendingPlayerDetail: PlayerSeasonRoute?
     @State private var playerDetailRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
 
     var body: some View {
         ZStack {
@@ -85,13 +92,14 @@ struct GameResultView: View {
             }
         }) { player in
             playerStatsSheet(for: player)
-                .presentationDetents([.fraction(0.6), .large])
+                // A single detent: the layout is built so the stats card and both
+                // buttons clear 60% without a swipe, so there is nothing to reveal
+                // by dragging it up to full screen.
+                .presentationDetents([.fraction(0.6)])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(AppTheme.Colors.gray950)
         }
-        .navigationDestination(item: $playerDetailRoute) { route in
-            PlayerDetailView(playerSeasonId: route.id, tournamentId: tournamentId)
-        }
+        .athleteProfileSheet(route: $playerDetailRoute, tournamentId: tournamentId, in: athleteTransition)
     }
 
     /// Builds the per-game stats sheet from the currently selected team's data.
@@ -109,7 +117,13 @@ struct GameResultView: View {
                 tournamentName: tournamentName,
                 onOpenPlayerDetail: {
                     if let psId = player.playerSeasonId {
-                        pendingPlayerDetail = PlayerSeasonRoute(id: psId)
+                        // Opened from inside the stat sheet, which registers no
+                        // transition source, so this one slides up rather than zooms.
+                        pendingPlayerDetail = PlayerSeasonRoute(
+                            id: psId,
+                            imagePath: player.playerImage,
+                            zoomsFromSource: false
+                        )
                     }
                     statSheetPlayer = nil
                 }
@@ -120,7 +134,12 @@ struct GameResultView: View {
     // MARK: - Data Loading
 
     private func loadGameDetail() async {
-        isLoading = true
+        // Only show the spinner on a cold load. `.task` re-runs when the view
+        // re-appears, so flipping into the loading state on the way back from a
+        // player detail would tear the ScrollView down and lose the scroll
+        // position the user left the roster at.
+        let isColdLoad = gameDetail == nil
+        isLoading = isColdLoad
         errorMessage = nil
 
         do {
@@ -130,7 +149,8 @@ struct GameResultView: View {
             )
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            // A failed refresh keeps the detail already on screen
+            if isColdLoad { errorMessage = error.localizedDescription }
             isLoading = false
         }
     }
@@ -179,13 +199,13 @@ struct GameResultView: View {
                 VStack(spacing: 4) {
                     HStack(spacing: 8) {
                         Text("\(homeScore)")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                             .foregroundStyle(teamAWon ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                         Text("-")
                             .font(.system(size: 18))
                             .foregroundStyle(Color(white: 0.4))
                         Text("\(awayScore)")
-                            .font(.system(size: 24, weight: .bold))
+                            .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                             .foregroundStyle(teamBWon ? AppTheme.Colors.accent : AppTheme.Colors.secondaryText)
                     }
                     .fixedSize()
@@ -199,7 +219,7 @@ struct GameResultView: View {
 
                     Text("Final")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color(white: 0.4))
+                        .foregroundStyle(AppTheme.Colors.gray400)
                 }
 
                 // Team B
@@ -405,12 +425,13 @@ struct GameResultView: View {
         )
 
         if let psId = potg.playerSeasonId {
-            NavigationLink {
-                PlayerDetailView(playerSeasonId: psId, tournamentId: tournamentId)
+            Button {
+                playerDetailRoute = PlayerSeasonRoute(id: psId, imagePath: potg.picture)
             } label: {
                 card
             }
             .buttonStyle(.plain)
+            .matchedTransitionSource(id: psId, in: athleteTransition)
         } else {
             card
         }
@@ -452,11 +473,11 @@ struct GameResultView: View {
             .overlay(alignment: .bottom) {
                 HStack(alignment: .bottom, spacing: 12) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(potg.firstName.trimmingCharacters(in: .whitespaces))
+                        Text(potg.shortFirstName)
                             .font(AppTheme.Typography.condensed(.semibold, size: 28))
                             .foregroundStyle(AppTheme.Colors.primaryText)
 
-                        Text(potg.lastName.trimmingCharacters(in: .whitespaces))
+                        Text(potg.shortLastName)
                             .font(AppTheme.Typography.condensed(.semibold, size: 18))
                             .foregroundStyle(AppTheme.Colors.primaryText.opacity(0.85))
 
@@ -585,7 +606,7 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func potgInitials(firstName: String, lastName: String) -> some View {
-        let initials = String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        let initials = PlayerName.initials(first: firstName, last: lastName)
         ZStack {
             Color(white: 0.18)
             Text(initials)
@@ -673,10 +694,10 @@ struct GameResultView: View {
 
                             // Name + Team
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(top.player.playerFirstName)
+                                Text(top.player.shortFirstName)
                                     .font(.system(size: 16))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
-                                Text(top.player.playerLastName)
+                                Text(top.player.shortLastName)
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                                 Text(top.teamName)
@@ -710,7 +731,7 @@ struct GameResultView: View {
                             playerAvatarCircle(player: entry.player, size: 44)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(entry.player.playerFirstName) \(entry.player.playerLastName)")
+                                Text(entry.player.shortName)
                                     .font(.system(size: 15, weight: .bold))
                                     .foregroundStyle(AppTheme.Colors.primaryText)
                                     .lineLimit(1)
@@ -788,11 +809,11 @@ struct GameResultView: View {
             }
             playerAvatarCircle(player: player, size: 30)
             VStack(alignment: .leading, spacing: 1) {
-                Text(player.playerFirstName)
+                Text(player.shortFirstName)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
                     .lineLimit(1)
-                Text(player.playerLastName)
+                Text(player.shortLastName)
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
                     .lineLimit(1)
@@ -875,11 +896,11 @@ struct GameResultView: View {
                         .frame(width: size, height: size)
                         .clipShape(Circle())
                 default:
-                    initialsCircle(name: player.playerName, size: size)
+                    initialsCircle(name: player.shortName, size: size)
                 }
             }
         } else {
-            initialsCircle(name: player.playerName, size: size)
+            initialsCircle(name: player.shortName, size: size)
         }
     }
 
@@ -895,11 +916,11 @@ struct GameResultView: View {
                         .frame(width: size, height: size)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.CornerRadius.medium))
                 default:
-                    heroInitialsRect(name: player.playerName, size: size)
+                    heroInitialsRect(name: player.shortName, size: size)
                 }
             }
         } else {
-            heroInitialsRect(name: player.playerName, size: size)
+            heroInitialsRect(name: player.shortName, size: size)
         }
     }
 

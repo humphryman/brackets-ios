@@ -48,7 +48,7 @@ struct PlayerStatsShareModel {
     var supportingStats: [StatCell] { Array(stats.dropFirst()) }
 
     var initials: String {
-        String(firstName.prefix(1) + lastName.prefix(1)).uppercased()
+        PlayerName.initials(first: firstName, last: lastName)
     }
 
     var teamAWon: Bool {
@@ -79,8 +79,10 @@ struct PlayerStatsShareModel {
         let teamB = teams.count > 1 ? teams[1] : nil
 
         var model = PlayerStatsShareModel()
-        model.firstName = player.playerFirstName.trimmingCharacters(in: .whitespaces)
-        model.lastName = player.playerLastName.trimmingCharacters(in: .whitespaces)
+        // Shortened here so every share card inherits the app-wide "one given name,
+        // one surname" rule without each card having to trim it again.
+        model.firstName = player.shortFirstName
+        model.lastName = player.shortLastName
         model.teamName = teamName.trimmingCharacters(in: .whitespaces)
 
         model.stats = (game.activeStats ?? []).map { key in

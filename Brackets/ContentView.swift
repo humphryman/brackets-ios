@@ -100,7 +100,7 @@ struct ContentView: View {
                         options: viewModel.availableGenders,
                         selection: $viewModel.selectedGender
                     ) { $0.displayName }
-                    .padding(.top, 12)
+                    .padding(.top, AppTheme.Layout.headerGapAboveTabs)
                 }
 
                 ScrollView {

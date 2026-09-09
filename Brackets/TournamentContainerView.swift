@@ -61,10 +61,12 @@ struct TournamentContainerView: View {
 
             VStack(spacing: 0) {
                 // Header with back button and tournament name
+                // No bottom padding: the gap below the header is owned by each
+                // tab via AppTheme.Layout.headerGap, because a Tabs rail and a
+                // card need different raw values to land on the same optical gap.
                 AppTheme.ScreenHeader(title: tournament.name, onLeading: { dismiss() })
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-                    .padding(.bottom, 16)
 
                 // Content based on selected tab
                 ZStack {
@@ -79,16 +81,19 @@ struct TournamentContainerView: View {
                         BracketView(tournament: tournament)
                     }
                 }
+                // The floating bar is declared as a safe-area inset rather than an
+                // overlay so every tab's scroll view inherits the right bottom
+                // clearance automatically. Content still scrolls behind the blur,
+                // but the last row can now be scrolled clear of the bar.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    CustomTabBar(selectedTab: $selectedTab, tabs: availableTabs, namespace: animation)
+                        .padding(.horizontal, availableTabs.count > 3 ? 16 : 40)
+                        .padding(.bottom, 10)
+                }
             }
-
-            // Floating bottom tab bar
-            VStack {
-                Spacer()
-                CustomTabBar(selectedTab: $selectedTab, tabs: availableTabs, namespace: animation)
-                    .padding(.horizontal, availableTabs.count > 3 ? 16 : 40)
-                    .padding(.bottom, 10)
-            }
-            .ignoresSafeArea(edges: .bottom)
+            // Lets the stack reach the physical screen bottom so the bar keeps
+            // sitting 10pt above the edge, over the home-indicator strip.
+            .ignoresSafeArea(.container, edges: .bottom)
         }
         .navigationBarHidden(true)
     }

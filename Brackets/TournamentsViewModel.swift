@@ -29,7 +29,11 @@ class TournamentsViewModel {
     }
     
     func loadTournaments() async {
-        isLoading = true
+        // Only show the spinner on a cold load. A refresh that happens while the
+        // list is already on screen must not tear the ScrollView down, or the
+        // user's scroll position is lost on every back-navigation.
+        let isColdLoad = tournaments.isEmpty
+        isLoading = isColdLoad
         errorMessage = nil
 
         do {
@@ -38,9 +42,10 @@ class TournamentsViewModel {
             // Server returns non-200 for customers with no tournaments
             tournaments = []
         } catch let error as APIError {
-            errorMessage = error.localizedDescription
+            // A failed refresh keeps the list the user is looking at
+            if isColdLoad { errorMessage = error.localizedDescription }
         } catch {
-            errorMessage = "An unexpected error occurred"
+            if isColdLoad { errorMessage = "An unexpected error occurred" }
         }
 
         isLoading = false

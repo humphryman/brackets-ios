@@ -25,6 +25,11 @@ struct StatsLeadersView: View {
     @State private var currentPage: Int? = 0
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
+    /// Bumped every time the athlete sheet closes, so the first-place glow replays
+    /// its delayed entrance instead of already being lit when the podium reappears.
+    @State private var glowRestart = 0
 
     // Filter out categories with no stats
     private var activeCategories: [StatCategory] {
@@ -54,6 +59,10 @@ struct StatsLeadersView: View {
         }
         .task {
             await loadStats()
+        }
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournament.id, in: athleteTransition)
+        .onChange(of: playerRoute?.id) { _, newValue in
+            if newValue == nil { glowRestart += 1 }
         }
     }
 
@@ -86,7 +95,8 @@ struct StatsLeadersView: View {
             // Page indicator dots — centered in the space between the card and the tab bar
             pageIndicator
         }
-        .padding(.bottom, 60) // clear the floating bottom tab bar so the dots stay visible
+        .padding(.top, AppTheme.Layout.headerGap)
+        .padding(.bottom, AppTheme.Spacing.small)
     }
 
     // MARK: - Page Indicator
@@ -183,12 +193,13 @@ struct StatsLeadersView: View {
     }
 
     private func statRowLink(stat: PlayerStatEntry, rank: Int) -> some View {
-        NavigationLink {
-            PlayerDetailView(stat: stat, tournamentId: tournament.id)
+        Button {
+            playerRoute = PlayerSeasonRoute(id: stat.playerSeasonId, imagePath: stat.player.picture)
         } label: {
             statListRow(stat: stat, rank: rank)
         }
         .buttonStyle(.plain)
+        .matchedTransitionSource(id: stat.playerSeasonId, in: athleteTransition)
     }
 
     private func statListRow(stat: PlayerStatEntry, rank: Int) -> some View {
@@ -201,7 +212,7 @@ struct StatsLeadersView: View {
             circularAvatar(stat.player, size: 36)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(stat.player.fullName)
+                Text(stat.player.shortName)
                     .font(AppTheme.Typography.bodyBold)
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .lineLimit(1)
@@ -252,28 +263,31 @@ struct StatsLeadersView: View {
 
         return HStack(alignment: .bottom, spacing: 12) {
             // #2 — Left
-            NavigationLink {
-                PlayerDetailView(stat: second, tournamentId: tournament.id)
+            Button {
+                playerRoute = PlayerSeasonRoute(id: second.playerSeasonId, imagePath: second.player.picture)
             } label: {
                 podiumPlayer(stat: second, rank: 2, imageSize: 84, offsetY: 22)
             }
             .buttonStyle(.plain)
+            .podiumTransitionSource(id: second.playerSeasonId, in: athleteTransition)
 
             // #1 — Center (tallest)
-            NavigationLink {
-                PlayerDetailView(stat: first, tournamentId: tournament.id)
+            Button {
+                playerRoute = PlayerSeasonRoute(id: first.playerSeasonId, imagePath: first.player.picture)
             } label: {
                 podiumPlayer(stat: first, rank: 1, imageSize: 108, offsetY: 0)
             }
             .buttonStyle(.plain)
+            .podiumTransitionSource(id: first.playerSeasonId, in: athleteTransition)
 
             // #3 — Right
-            NavigationLink {
-                PlayerDetailView(stat: third, tournamentId: tournament.id)
+            Button {
+                playerRoute = PlayerSeasonRoute(id: third.playerSeasonId, imagePath: third.player.picture)
             } label: {
                 podiumPlayer(stat: third, rank: 3, imageSize: 72, offsetY: 30)
             }
             .buttonStyle(.plain)
+            .podiumTransitionSource(id: third.playerSeasonId, in: athleteTransition)
         }
         .padding(.top, 10)
         .padding(.bottom, 10)
@@ -298,7 +312,7 @@ struct StatsLeadersView: View {
             }
 
             // Name
-            Text(stat.player.firstName)
+            Text(stat.player.shortFirstName)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.primaryText)
                 .lineLimit(1)
@@ -348,7 +362,7 @@ struct StatsLeadersView: View {
         }
         .background {
             if metal.isGold {
-                GoldGlow()
+                GoldGlow(restartToken: glowRestart)
                     // Kept close to the photo so it never reaches the neighbouring
                     // places, and lifted slightly so it reads as light from above.
                     .frame(width: size * 1.34, height: size * 1.34)
@@ -364,7 +378,7 @@ struct StatsLeadersView: View {
             .fill(Color(white: 0.15))
             .frame(width: size, height: size)
             .overlay(
-                Text(playerInitials(player))
+                Text(player.initials)
                     .font(.system(size: size * 0.3, weight: .bold))
                     .foregroundStyle(Color(white: 0.4))
             )
@@ -375,16 +389,10 @@ struct StatsLeadersView: View {
             RoundedRectangle(cornerRadius: AppTheme.CornerRadius.small)
                 .fill(Color(white: 0.25))
 
-            Text(playerInitials(player))
+            Text(player.initials)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(AppTheme.Colors.secondaryText)
         }
-    }
-
-    private func playerInitials(_ player: Player) -> String {
-        let first = player.firstName.prefix(1)
-        let last = player.lastName.prefix(1)
-        return "\(first)\(last)".uppercased()
     }
 
     // MARK: - Data Loading
@@ -429,19 +437,44 @@ private struct PodiumMetal {
 /// A soft gold halo that breathes behind the first-place photo: two offset radial
 /// gradients drifting against each other, so the light shifts instead of just pulsing.
 private struct GoldGlow: View {
+    /// Changing this replays the entrance — the podium is never torn down while the
+    /// athlete sheet covers it, so `onAppear` alone would only ever fire once.
+    var restartToken: Int
+
+    @State private var isLit = false
     @State private var isBreathing = false
+
+    /// Beat before the glow lights up, so the podium is read first and the light
+    /// then arrives on the winner.
+    private static let entranceDelay: Duration = .seconds(1.5)
 
     var body: some View {
         ZStack {
-            halo(opacity: 0.55, blur: 18)
-                .scaleEffect(isBreathing ? 1.06 : 0.92)
+            halo(opacity: 0.78, blur: 18)
+                .scaleEffect(isBreathing ? 1.12 : 0.88)
 
-            halo(opacity: 0.30, blur: 30)
-                .scaleEffect(isBreathing ? 0.94 : 1.10)
+            halo(opacity: 0.44, blur: 30)
+                .scaleEffect(isBreathing ? 0.90 : 1.18)
         }
-        .opacity(isBreathing ? 1.0 : 0.72)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 3.2).repeatForever(autoreverses: true)) {
+        // Two layers so each animation owns its own value: the breath pulses the
+        // brightness forever, the entrance fades the whole thing in once.
+        .opacity(isBreathing ? 1.0 : 0.78)
+        .opacity(isLit ? 1 : 0)
+        .scaleEffect(isLit ? 1.0 : 0.82)
+        .task(id: restartToken) {
+            // Dark and settled while we wait, so a restart never flashes the old state.
+            var reset = Transaction()
+            reset.disablesAnimations = true
+            withTransaction(reset) {
+                isLit = false
+                isBreathing = false
+            }
+
+            try? await Task.sleep(for: Self.entranceDelay)
+            guard !Task.isCancelled else { return }
+
+            withAnimation(.easeOut(duration: 0.7)) { isLit = true }
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                 isBreathing = true
             }
         }
@@ -460,6 +493,22 @@ private struct GoldGlow: View {
                 endRadius: proxy.size.width / 2
             )
             .blur(radius: blur)
+        }
+    }
+}
+
+// MARK: - Podium Zoom Source
+
+private extension View {
+    /// The podium buttons sit straight on the screen background, so the zoom
+    /// transition's default source backdrop — an opaque rounded card with a shadow —
+    /// flashes as a square behind the round photo while the sheet opens and closes.
+    /// The list rows hide it under their own `gray800` background; here we clear it.
+    func podiumTransitionSource(id: some Hashable, in namespace: Namespace.ID) -> some View {
+        matchedTransitionSource(id: id, in: namespace) { config in
+            config
+                .background(Color.clear)
+                .shadow(color: .clear, radius: 0)
         }
     }
 }

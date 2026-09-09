@@ -154,12 +154,7 @@ struct LeagueSelectionView: View {
 
                 // Sport badge — top right
                 if let sport = customer.sport {
-                    Text(sport.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accentText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
+                    Badge(sport.uppercased(), style: .lime)
                         .padding(10)
                 }
             }
@@ -194,7 +189,9 @@ struct LeagueSelectionView: View {
                 .opacity(isExpanded ? 1 : 0)
 
             // Content
-            let headerHeight: CGFloat = 64
+            // Height of the header block itself (top padding + title row); the
+            // category list starts right below it and adds its own headerGap.
+            let headerHeight: CGFloat = 48
             if showContent {
                 NavigationStack {
                     ContentView(leagueName: customer.name, embedded: true, sport: customer.sport, isBrowsingTournament: $isBrowsingTournament)
@@ -321,12 +318,7 @@ struct LeagueSelectionView: View {
             VStack {
                 HStack {
                     Spacer()
-                    Text(sport.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.accentText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(AppTheme.Colors.accent))
+                    Badge(sport.uppercased(), style: .lime)
                 }
                 Spacer()
             }

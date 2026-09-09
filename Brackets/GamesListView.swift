@@ -54,6 +54,7 @@ struct GamesListView: View {
     @State private var selectedFilter: GameFilter = .upcoming
     @State private var selectedChip: GameGroupChip?
     @State private var didInitChip = false
+    @State private var didAutoScroll = false
     @State private var liveGameDetails: [Int: GameDetailResponse] = [:]
     @State private var liveRefreshTimer: Timer?
 
@@ -183,7 +184,7 @@ struct GamesListView: View {
                         selection: $selectedFilter,
                         dot: { $0 == .live ? AppTheme.Colors.live : nil }
                     ) { $0.rawValue }
-                        .padding(.top, AppTheme.Spacing.medium)
+                        .padding(.top, AppTheme.Layout.headerGapAboveTabs)
                         .padding(.bottom, AppTheme.Spacing.small)
 
                     // Group / bracket carousel — takes no room when there is nothing
@@ -203,26 +204,16 @@ struct GamesListView: View {
                         // Games List
                         ScrollViewReader { proxy in
                             ScrollView {
-                                VStack(alignment: .leading, spacing: AppTheme.Spacing.large) {
+                                // Pinned section headers keep the current date on screen
+                                // while its games scroll past; the next date's header
+                                // pushes it off and takes its place.
+                                LazyVStack(
+                                    alignment: .leading,
+                                    spacing: AppTheme.Spacing.medium,
+                                    pinnedViews: [.sectionHeaders]
+                                ) {
                                     ForEach(filteredGames, id: \.date) { dateGroup in
-                                        VStack(alignment: .leading, spacing: AppTheme.Spacing.medium) {
-                                            // Date Header with calendar icon + count
-                                            HStack(spacing: 8) {
-                                                Image(systemName: "calendar")
-                                                    .font(.system(size: 14, weight: .semibold))
-                                                    .foregroundStyle(AppTheme.Colors.accent)
-
-                                                Text(formatDateHeader(dateGroup.date))
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .foregroundStyle(AppTheme.Colors.primaryText)
-
-                                                Badge(
-                                                    dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos",
-                                                    style: .gray
-                                                )
-                                            }
-                                            .padding(.horizontal, AppTheme.Layout.screenPadding)
-
+                                        Section {
                                             // Games for this date
                                             ForEach(dateGroup.games) { game in
                                                 if game.isLive {
@@ -251,16 +242,23 @@ struct GamesListView: View {
                                                     .buttonStyle(.plain)
                                                 }
                                             }
+                                        } header: {
+                                            dateSectionHeader(for: dateGroup)
                                         }
                                         .id(dateGroup.date)
                                     }
                                 }
-                                .padding(.bottom, AppTheme.Layout.large)
+                                .padding(.bottom, AppTheme.Spacing.small)
                             }
                             .onChange(of: selectedFilter) {
                                 scrollToInitialPosition(proxy: proxy)
                             }
                             .onAppear {
+                                // First materialization only. Re-running this on every
+                                // appear re-snapped the list to today when the user came
+                                // back from a game detail, losing their scroll position.
+                                guard !didAutoScroll else { return }
+                                didAutoScroll = true
                                 scrollToInitialPosition(proxy: proxy)
                             }
                         }
@@ -346,9 +344,13 @@ struct GamesListView: View {
     }
     
     private func loadGames() async {
-        isLoading = true
+        // Only show the spinner on a cold load. Flipping into the loading state
+        // while the list is on screen destroys the ScrollView and its offset,
+        // which is what reset the scroll on every back-navigation.
+        let isColdLoad = gamesResponse == nil
+        isLoading = isColdLoad
         errorMessage = nil
-        
+
         do {
             gamesResponse = try await APIService.shared.fetchGamesResponse(for: tournament.id)
             if !didInitChip {
@@ -357,7 +359,8 @@ struct GamesListView: View {
             }
             isLoading = false
         } catch {
-            errorMessage = error.localizedDescription
+            // A failed refresh keeps the games already on screen
+            if isColdLoad { errorMessage = error.localizedDescription }
             isLoading = false
         }
     }
@@ -383,6 +386,31 @@ struct GamesListView: View {
                 }
             }
         }
+    }
+
+    /// Date header for a games section. Opaque background so cards stay hidden
+    /// as they scroll underneath it while it is pinned to the top.
+    private func dateSectionHeader(for dateGroup: GamesResponse.DateGroup) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "calendar")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.accent)
+
+            Text(formatDateHeader(dateGroup.date))
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+
+            Badge(
+                dateGroup.games.count == 1 ? "1 Juego" : "\(dateGroup.games.count) Juegos",
+                style: .gray
+            )
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, AppTheme.Layout.screenPadding)
+        .padding(.vertical, AppTheme.Spacing.small)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.Colors.background)
     }
 
     private func formatDateHeader(_ dateString: String) -> String {
@@ -550,6 +578,11 @@ struct TeamSection: View {
 struct CenterSection: View {
     let game: Game
 
+    /// Barlow Condensed reads narrower and optically smaller than the system font at
+    /// the same point size, so the score runs larger than the 24pt it replaced — the
+    /// same 24 → 32 step the screen headers took.
+    private static let scoreSize: CGFloat = 32
+
     private var homeIsWinner: Bool { game.isFinished && game.winner?.id == game.homeTeam?.id }
     private var awayIsWinner: Bool { game.isFinished && game.winner?.id == game.awayTeam?.id }
 
@@ -557,13 +590,13 @@ struct CenterSection: View {
         if game.isFinished {
             HStack(spacing: 8) {
                 Text("\(game.homeScore ?? 0)")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                     .foregroundStyle(homeIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
                 Text("-")
                     .font(.system(size: 18, weight: .regular))
                     .foregroundStyle(Color(white: 0.45))
                 Text("\(game.awayScore ?? 0)")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(AppTheme.Typography.condensed(.semibold, size: Self.scoreSize))
                     .foregroundStyle(awayIsWinner ? AppTheme.Colors.accent : AppTheme.Colors.primaryText)
             }
             .fixedSize()

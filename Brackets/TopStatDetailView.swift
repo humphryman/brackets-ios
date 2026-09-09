@@ -15,6 +15,8 @@ struct TopStatDetailView: View {
     @State private var errorMessage: String?
     @State private var search = ""
     @State private var selectedTeam = "Todos"
+    @State private var playerRoute: PlayerSeasonRoute?
+    @Namespace private var athleteTransition
     @Environment(\.dismiss) private var dismiss
 
     private var players: [PlayerStatEntry] { detail?.players ?? [] }
@@ -60,12 +62,13 @@ struct TopStatDetailView: View {
                         ScrollView {
                             LazyVStack(spacing: AppTheme.Spacing.small) {
                                 ForEach(filteredPlayers) { entry in
-                                    NavigationLink {
-                                        PlayerDetailView(stat: entry, tournamentId: tournament.id)
+                                    Button {
+                                        playerRoute = PlayerSeasonRoute(id: entry.playerSeasonId, imagePath: entry.player.picture)
                                     } label: {
                                         row(entry)
                                     }
                                     .buttonStyle(.plain)
+                                    .matchedTransitionSource(id: entry.playerSeasonId, in: athleteTransition)
                                 }
                             }
                             .padding(.horizontal, AppTheme.Layout.screenPadding)
@@ -80,6 +83,7 @@ struct TopStatDetailView: View {
         .background(AppTheme.Colors.background.ignoresSafeArea())
         .navigationBarHidden(true)
         .task { await load() }
+        .athleteProfileSheet(route: $playerRoute, tournamentId: tournament.id, in: athleteTransition)
     }
 
     // MARK: - Header
@@ -157,7 +161,7 @@ struct TopStatDetailView: View {
                 .frame(width: 28, alignment: .center)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(entry.player.fullName)
+                Text(entry.player.shortName)
                     .font(AppTheme.Typography.bodyBold)
                     .foregroundStyle(AppTheme.Colors.primaryText)
                     .lineLimit(1)
