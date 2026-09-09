@@ -25,36 +25,39 @@ struct FinalBracketView: View {
             if showsThird {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 16) {
-                        finalCard(size: .compact)
-                        thirdCard(size: .compact)
+                        finalCard(size: .prominent, dense: true)
+                        thirdCard(size: .compact, dense: true)
                     }
                     .padding(.horizontal, AppTheme.Layout.screenPadding)
                     .padding(.bottom, 24)
                 }
             } else {
-                finalCard(size: .prominent)
-                    .padding(.horizontal, AppTheme.Layout.screenPadding)
-                    .padding(.bottom, 24)
+                VStack(spacing: 0) {
+                    finalCard(size: .prominent)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+                .padding(.bottom, 24)
             }
         }
         .task { await resolveColors() }
     }
 
-    private func finalCard(size: FinalCardSize) -> some View {
+    private func finalCard(size: FinalCardSize, dense: Bool = false) -> some View {
         let pair = resolveFinalPair(a: finalA, b: finalB)
         return FinalMatchCard(
             matchup: finalMatchup, stageLabel: "FINAL", size: size,
-            colorA: pair.0, colorB: pair.1, tournament: tournament
+            colorA: pair.0, colorB: pair.1, tournament: tournament, dense: dense
         )
         .animation(.easeInOut(duration: 0.4), value: finalA)
         .animation(.easeInOut(duration: 0.4), value: finalB)
     }
 
-    private func thirdCard(size: FinalCardSize) -> some View {
+    private func thirdCard(size: FinalCardSize, dense: Bool = false) -> some View {
         let pair = resolveFinalPair(a: thirdA, b: thirdB)
         return FinalMatchCard(
             matchup: thirdMatchup, stageLabel: "TERCER LUGAR", size: size,
-            colorA: pair.0, colorB: pair.1, tournament: tournament
+            colorA: pair.0, colorB: pair.1, tournament: tournament, dense: dense
         )
         .animation(.easeInOut(duration: 0.4), value: thirdA)
         .animation(.easeInOut(duration: 0.4), value: thirdB)

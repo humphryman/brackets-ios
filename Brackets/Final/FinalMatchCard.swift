@@ -4,12 +4,11 @@ enum FinalCardSize {
     case prominent
     case compact
 
-    var crestDiameter: CGFloat { self == .prominent ? 132 : 84 }
-    var timeSize: CGFloat { self == .prominent ? 60 : 34 }
     var dateSize: CGFloat { self == .prominent ? 15 : 12 }
-    var nameSize: CGFloat { self == .prominent ? 20 : 15 }
-    var showsCountdown: Bool { self == .prominent }
-    var verticalPadding: CGFloat { self == .prominent ? 28 : 18 }
+    var nameSize: CGFloat { self == .prominent ? 15 : 13 }
+    var vsSize: CGFloat { self == .prominent ? 18 : 15 }
+    var venueSize: CGFloat { self == .prominent ? 15 : 13 }
+    var verticalPadding: CGFloat { self == .prominent ? 26 : 16 }
 }
 
 /// One Final (or Tercer Lugar) card: animated background + crest row + result
@@ -21,12 +20,24 @@ struct FinalMatchCard: View {
     let colorA: Color
     let colorB: Color
     let tournament: Tournament
+    /// Tightens the vertical rhythm so both cards fit on screen when the Final
+    /// and Tercer Lugar cards are shown together.
+    var dense: Bool = false
 
     @Environment(\.openURL) private var openURL
 
     private var isLive: Bool { matchup.game?.isLive ?? false }
     private var isFinished: Bool { matchup.game?.isFinished ?? false }
     private var decided: Bool { matchup.homeIsWinner || matchup.awayIsWinner }
+
+    // Crest and time dominate card height, so `dense` (two-card layout) shrinks
+    // them further on top of the base per-size values.
+    private var crestDiameter: CGFloat {
+        size == .prominent ? (dense ? 74 : 88) : (dense ? 60 : 72)
+    }
+    private var timeSize: CGFloat {
+        size == .prominent ? (dense ? 46 : 58) : (dense ? 28 : 34)
+    }
 
     var body: some View {
         let content = card
@@ -52,37 +63,39 @@ struct FinalMatchCard: View {
     }
 
     private var card: some View {
-        VStack(spacing: size == .prominent ? 22 : 12) {
+        let prominent = size == .prominent
+        // Gaps: pill→crest, crest→date, time→divider. `dense` tightens all three
+        // (and the card padding) so Final + Tercer Lugar fit on one screen.
+        let topGap: CGFloat = dense ? (prominent ? 26 : 16) : (prominent ? 50 : 26)
+        let midGap: CGFloat = dense ? (prominent ? 22 : 14) : (prominent ? 46 : 22)
+        let belowGap: CGFloat = dense ? (prominent ? 26 : 16) : (prominent ? 58 : 30)
+        let vPad: CGFloat = dense ? (prominent ? 18 : 14) : size.verticalPadding
+        return VStack(spacing: 0) {
             stagePill
+            Spacer().frame(height: topGap)
             crestRow
+            Spacer().frame(height: midGap)
             resultRegion
-            if size.showsCountdown, let text = FinalCountdown.label(until: matchup.scheduledTime, isLiveOrFinished: isLive || isFinished) {
-                countdownPill(text)
-            }
-            Spacer(minLength: 0)
-            if let venue = matchup.venue {
-                divider
-                venueFooter(venue)
-            }
+            Spacer().frame(height: belowGap)
+            divider
+            Spacer().frame(height: dense ? 12 : 14)
+            venueFooter(matchup.venue)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, size.verticalPadding)
+        .padding(.vertical, vPad)
         .padding(.horizontal, 18)
-        .frame(maxWidth: .infinity, maxHeight: size == .prominent ? .infinity : nil)
         .background(FinalCardBackground(colorA: colorA, colorB: colorB))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
         .overlay(alignment: .top) {
             if isLive { BracketLiveBadge().offset(y: -9) }
         }
     }
 
     private var stagePill: some View {
-        Text(stageLabel.uppercased())
-            .font(AppTheme.Typography.condensed(.semibold, size: 14))
-            .tracking(1)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-            .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1))
+        Badge(stageLabel.uppercased(), style: .gray)
     }
 
     private var crestRow: some View {
@@ -90,9 +103,9 @@ struct FinalMatchCard: View {
             teamColumn(team: matchup.homeTeam, placeholder: matchup.homePlaceholder, isWinner: matchup.homeIsWinner)
             VStack {
                 Text("VS")
-                    .font(AppTheme.Typography.condensed(.bold, size: size == .prominent ? 22 : 16))
+                    .font(AppTheme.Typography.condensed(.bold, size: size.vsSize))
                     .foregroundStyle(.white)
-                    .frame(height: size.crestDiameter)
+                    .frame(height: crestDiameter)
             }
             teamColumn(team: matchup.awayTeam, placeholder: matchup.awayPlaceholder, isWinner: matchup.awayIsWinner)
         }
@@ -114,33 +127,32 @@ struct FinalMatchCard: View {
 
     @ViewBuilder
     private func crest(team: Team?, name: String) -> some View {
-        let d = size.crestDiameter
-        let gray700 = Color(white: 0.28)
+        let d = crestDiameter
         if let urlString = team?.fullImageURL, let url = URL(string: urlString) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image): image.resizable().scaledToFit()
-                default: initialChip(name: name, diameter: d, fill: gray700)
+                default: initialChip(name: name, diameter: d)
                 }
             }
             .frame(width: d, height: d)
             .clipShape(Circle())
-            .overlay(Circle().stroke(gray700, lineWidth: 1))
+            .overlay(Circle().stroke(AppTheme.Colors.gray700, lineWidth: 1))
         } else {
-            initialChip(name: name, diameter: d, fill: gray700)
+            initialChip(name: name, diameter: d)
         }
     }
 
-    private func initialChip(name: String, diameter: CGFloat, fill: Color) -> some View {
+    private func initialChip(name: String, diameter: CGFloat) -> some View {
         Circle()
-            .fill(fill)
+            .fill(AppTheme.Colors.gray700)
             .frame(width: diameter, height: diameter)
             .overlay(
                 Text(String(name.first.map(String.init) ?? "?").uppercased())
                     .font(AppTheme.Typography.condensed(.bold, size: diameter * 0.46))
                     .foregroundStyle(.white)
             )
-            .overlay(Circle().stroke(Color(white: 0.28), lineWidth: 1))
+            .overlay(Circle().stroke(AppTheme.Colors.gray700, lineWidth: 1))
     }
 
     @ViewBuilder
@@ -148,19 +160,27 @@ struct FinalMatchCard: View {
         if isLive || isFinished {
             HStack(spacing: 18) {
                 scoreText(matchup.homeScore, isWinner: matchup.homeIsWinner)
-                Text("-").font(AppTheme.Typography.condensed(.bold, size: size.timeSize)).foregroundStyle(.white.opacity(0.5))
+                Text("-").font(AppTheme.Typography.condensed(.bold, size: timeSize)).foregroundStyle(.white.opacity(0.5))
                 scoreText(matchup.awayScore, isWinner: matchup.awayIsWinner)
             }
         } else {
             VStack(spacing: 4) {
                 if let time = matchup.scheduledTime {
                     Text(Self.dateFormatter.string(from: time).uppercased())
-                        .font(AppTheme.Typography.condensed(.medium, size: size.dateSize))
+                        .font(AppTheme.Typography.condensed(.semibold, size: size.dateSize))
                         .tracking(2)
                         .foregroundStyle(.white.opacity(0.8))
                     Text(Self.timeFormatter.string(from: time))
-                        .font(AppTheme.Typography.condensed(.bold, size: size.timeSize))
+                        .font(AppTheme.Typography.condensed(.semibold, size: timeSize))
                         .foregroundStyle(.white)
+                } else {
+                    Text("SIN AGENDAR")
+                        .font(AppTheme.Typography.condensed(.bold, size: size == .prominent ? 34 : 22))
+                        .tracking(1)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .padding(.top, size == .prominent ? 20 : 10)
                 }
             }
         }
@@ -171,18 +191,8 @@ struct FinalMatchCard: View {
             ? AppTheme.Colors.accent
             : (decided ? Color(white: 0.5) : .white)
         return Text(score.map(String.init) ?? "-")
-            .font(AppTheme.Typography.condensed(.bold, size: size.timeSize))
+            .font(AppTheme.Typography.condensed(.bold, size: timeSize))
             .foregroundStyle(color)
-    }
-
-    private func countdownPill(_ text: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "clock").font(.system(size: 11))
-            Text(text).font(AppTheme.Typography.condensed(.semibold, size: 13)).tracking(1)
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 14).padding(.vertical, 7)
-        .overlay(Capsule().stroke(Color.white.opacity(0.25), lineWidth: 1))
     }
 
     private var divider: some View {
@@ -190,17 +200,25 @@ struct FinalMatchCard: View {
     }
 
     @ViewBuilder
-    private func venueFooter(_ venue: Venue) -> some View {
-        let row = HStack(spacing: 5) {
-            Image(systemName: "mappin.and.ellipse").font(.system(size: 12))
-            Text(venue.name).font(AppTheme.Typography.condensed(.medium, size: 15))
-        }
-        .foregroundStyle(.white.opacity(0.85))
+    private func venueFooter(_ venue: Venue?) -> some View {
+        if let venue {
+            let row = HStack(spacing: 6) {
+                Image(systemName: "mappin.and.ellipse").font(.system(size: 13))
+                Text(venue.name).font(.system(size: size.venueSize, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(0.9))
 
-        if let mapsURL = venue.googleMapsURL {
-            Button { openURL(mapsURL) } label: { row }.buttonStyle(.plain)
+            if let mapsURL = venue.googleMapsURL {
+                Button { openURL(mapsURL) } label: { row }.buttonStyle(.plain)
+            } else {
+                row
+            }
         } else {
-            row
+            HStack(spacing: 6) {
+                Image(systemName: "mappin.and.ellipse").font(.system(size: 13))
+                Text("Ubicación por definir").font(.system(size: size.venueSize, weight: .medium))
+            }
+            .foregroundStyle(.white.opacity(0.55))
         }
     }
 

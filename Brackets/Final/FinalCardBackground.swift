@@ -16,22 +16,28 @@ struct FinalCardBackground: View {
     private var motionEnabled: Bool { !reduceMotion && scenePhase == .active && animate }
 
     var body: some View {
-        ZStack {
-            // Layers 1–3 composite together so `.screen` adds light onto the base.
-            ZStack {
-                base                      // layer 1
-                staticSplit               // layer 2
-                if !reduceMotion {        // layer 3 (skipped under reduced motion)
-                    blobs
+        // Color.clear takes exactly the proposed (card) size, so the clip region
+        // matches the card. The fixed-size blurred blobs overflow this frame and
+        // are clipped instead of inflating the layout and bleeding past the edges.
+        Color.clear
+            .overlay {
+                ZStack {
+                    // Layers 1–3 composite together so `.screen` adds light onto the base.
+                    ZStack {
+                        base                      // layer 1
+                        staticSplit               // layer 2
+                        if !reduceMotion {        // layer 3 (skipped under reduced motion)
+                            blobs
+                        }
+                    }
+                    .compositingGroup()
+
+                    scrim                          // layer 4
                 }
             }
-            .compositingGroup()
-
-            scrim                          // layer 4
-        }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .onAppear { animate = true }
-        .onDisappear { animate = false }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .onAppear { animate = true }
+            .onDisappear { animate = false }
     }
 
     // Layer 1 — near-black radial base.
