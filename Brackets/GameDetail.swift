@@ -93,6 +93,8 @@ struct GameDetail: Identifiable, Sendable {
     let playerOfTheGame: PlayerOfTheGame?
     let periodFormat: String?
     let periodColumns: [PeriodColumn]?
+    /// Chronological log of in-game events (newest first). Present only for some games.
+    let playByPlay: [PlayByPlayEvent]?
 
     enum CodingKeys: String, CodingKey {
         case id, played, phase, period, round, stage, venue
@@ -103,6 +105,7 @@ struct GameDetail: Identifiable, Sendable {
         case playerOfTheGame = "player_of_the_game"
         case periodFormat = "period_format"
         case periodColumns = "period_columns"
+        case playByPlay = "play_by_play"
     }
 }
 
@@ -130,6 +133,8 @@ extension GameDetail: Codable {
         playerOfTheGame = try? container.decodeIfPresent(PlayerOfTheGame.self, forKey: .playerOfTheGame)
         periodFormat = try container.decodeIfPresent(String.self, forKey: .periodFormat)
         periodColumns = try container.decodeIfPresent([PeriodColumn].self, forKey: .periodColumns)
+        // play_by_play may be absent, null, or an empty array — all decode to nil/empty.
+        playByPlay = try? container.decodeIfPresent([PlayByPlayEvent].self, forKey: .playByPlay)
     }
 }
 
@@ -406,6 +411,61 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         // Decode dynamic_stats: { "points": null, "tr": 0, ... }
         let statsContainer = try container.decode([String: Int?].self, forKey: .dynamicStats)
         dynamicStats = statsContainer
+    }
+}
+
+// MARK: - Play-by-play event
+
+/// A single logged in-game action (a basket, a foul, a substitution). The feed is
+/// ordered newest-first. `score_a`/`score_b` are running totals after the action but
+/// are NOT aligned to `team_stats` order — see `PlayByPlayBuilder.sideByTeam`.
+struct PlayByPlayEvent: Codable, Sendable, Identifiable {
+    let id: Int
+    let statName: String
+    let period: String
+    let scoreA: Int
+    let scoreB: Int
+    let playerFirst: String
+    let playerLast: String
+    let playerNumber: Int?
+    let teamName: String
+    let teamLogo: String?
+    let teamStatId: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case statName = "stat_name"
+        case period
+        case scoreA = "score_a"
+        case scoreB = "score_b"
+        case playerFirst = "player_first"
+        case playerLast = "player_last"
+        case playerNumber = "player_number"
+        case teamName = "team_name"
+        case teamLogo = "team_logo"
+        case teamStatId = "team_stat_id"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        statName = try c.decodeIfPresent(String.self, forKey: .statName) ?? ""
+        period = try c.decodeIfPresent(String.self, forKey: .period) ?? ""
+        scoreA = try c.decodeIfPresent(Int.self, forKey: .scoreA) ?? 0
+        scoreB = try c.decodeIfPresent(Int.self, forKey: .scoreB) ?? 0
+        playerFirst = try c.decodeIfPresent(String.self, forKey: .playerFirst) ?? ""
+        playerLast = try c.decodeIfPresent(String.self, forKey: .playerLast) ?? ""
+        playerNumber = try c.decodeIfPresent(Int.self, forKey: .playerNumber)
+        teamName = try c.decodeIfPresent(String.self, forKey: .teamName) ?? ""
+        teamLogo = try c.decodeIfPresent(String.self, forKey: .teamLogo)
+        teamStatId = try c.decodeIfPresent(Int.self, forKey: .teamStatId) ?? 0
+    }
+
+    var fullTeamLogoURL: String? {
+        guard let logo = teamLogo else { return nil }
+        if logo.lowercased().hasPrefix("http") { return logo }
+        let path = logo.hasPrefix("/") ? String(logo.dropFirst()) : logo
+        return "\(APIConfig.baseURL)/\(path)"
     }
 }
 

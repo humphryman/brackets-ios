@@ -24,6 +24,8 @@ struct GameResultView: View {
     @State private var errorMessage: String?
     @State private var selectedTeamIndex: Int = 0
     @State private var selectedStatIndex: Int = 0
+    /// 0 = Stats, 1 = Play by play. Only shown when the game has a play-by-play feed.
+    @State private var selectedSection: Int = 0
     @State private var isSharePresented = false
     /// Player whose per-game stats sheet is open, tapped from the stats table.
     @State private var statSheetPlayer: PlayerGameStat?
@@ -61,12 +63,22 @@ struct GameResultView: View {
                     ScrollView {
                         VStack(spacing: AppTheme.Spacing.large) {
                             scoreCard(detail: detail)
-                            playerStatsCard(detail: detail)
-                            if let potg = detail.game.playerOfTheGame {
-                                playerOfTheGameCard(potg: potg, detail: detail)
+                                .padding(.horizontal, AppTheme.Layout.screenPadding)
+
+                            if hasPlayByPlay(detail) {
+                                // Tabs are full-bleed (they manage their own inset); the
+                                // rest keep screen padding.
+                                Tabs(segments: ["Stats", "Play by play"], selection: $selectedSection)
+
+                                if selectedSection == 0 {
+                                    statsTabContent(detail: detail)
+                                } else {
+                                    playByPlaySection(detail: detail)
+                                }
+                            } else {
+                                statsTabContent(detail: detail)
                             }
                         }
-                        .padding(.horizontal, AppTheme.Layout.screenPadding)
                         .padding(.bottom, AppTheme.Layout.large)
                     }
                 } else {
@@ -153,6 +165,46 @@ struct GameResultView: View {
             if isColdLoad { errorMessage = error.localizedDescription }
             isLoading = false
         }
+    }
+
+    // MARK: - Section content routing
+
+    private func hasPlayByPlay(_ detail: GameDetailResponse) -> Bool {
+        !(detail.game.playByPlay ?? []).isEmpty
+    }
+
+    /// The default content: player stats table + Jugador del Partido. Rendered both when
+    /// there is no play-by-play and when the "Stats" tab is selected.
+    @ViewBuilder
+    private func statsTabContent(detail: GameDetailResponse) -> some View {
+        playerStatsCard(detail: detail)
+            .padding(.horizontal, AppTheme.Layout.screenPadding)
+        if let potg = detail.game.playerOfTheGame {
+            playerOfTheGameCard(potg: potg, detail: detail)
+                .padding(.horizontal, AppTheme.Layout.screenPadding)
+        }
+    }
+
+    @ViewBuilder
+    private func playByPlaySection(detail: GameDetailResponse) -> some View {
+        let teams = detail.game.teamStats ?? []
+        let sets = detail.game.gameSets
+        let teamA = teams.first
+        let teamB = teams.count > 1 ? teams[1] : nil
+        let periods = PlayByPlayBuilder.build(
+            events: detail.game.playByPlay ?? [],
+            teams: teams.map { PlayByPlayTeam(id: $0.id, score: $0.score) },
+            longNameStats: detail.longNameStats
+        )
+        PlayByPlayView(
+            periods: periods,
+            leftName: sets?.teamA ?? teamA?.teamName ?? "TBD",
+            leftLogoURL: sets?.teamAFullImageURL ?? teamA?.fullImageURL,
+            rightName: sets?.teamB ?? teamB?.teamName ?? "TBD",
+            rightLogoURL: sets?.teamBFullImageURL ?? teamB?.fullImageURL,
+            leftScore: teamA?.score ?? sets?.teamAScore ?? 0,
+            rightScore: teamB?.score ?? sets?.teamBScore ?? 0
+        )
     }
 
     // MARK: - Section 1: Score Card
