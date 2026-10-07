@@ -388,8 +388,6 @@ struct BracketView: View {
         let scoreColor: Color = isWinner ? AppTheme.Colors.accent : (score != nil ? Color(white: 0.5) : Color(white: 0.3))
 
         return HStack(spacing: 8) {
-            teamAvatar(name: displayName, isWinner: isWinner, hasTeam: hasTeam)
-
             Text(displayName)
                 .font(.system(size: 12, weight: isWinner ? .bold : .semibold))
                 .foregroundStyle(nameColor)
@@ -409,21 +407,6 @@ struct BracketView: View {
                 .fill(isWinner ? AppTheme.Colors.accent.opacity(0.10) : Color.clear)
                 .padding(.horizontal, 4)
         )
-    }
-
-    private func teamAvatar(name: String, isWinner: Bool, hasTeam: Bool) -> some View {
-        let words = name.split(separator: " ")
-        let initials: String = words.count >= 2
-            ? String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
-            : String(name.prefix(2)).uppercased()
-        return Circle()
-            .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.18))
-            .frame(width: 22, height: 22)
-            .overlay(
-                Text(initials)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : Color(white: 0.5))
-            )
     }
 
     @ViewBuilder
