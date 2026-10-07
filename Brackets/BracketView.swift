@@ -388,6 +388,8 @@ struct BracketView: View {
         let scoreColor: Color = isWinner ? AppTheme.Colors.accent : (score != nil ? Color(white: 0.5) : Color(white: 0.3))
 
         return HStack(spacing: 8) {
+            teamAvatar(name: displayName, logoURL: team?.fullImageURL, isWinner: isWinner)
+
             Text(displayName)
                 .font(.system(size: 12, weight: isWinner ? .bold : .semibold))
                 .foregroundStyle(nameColor)
@@ -407,6 +409,46 @@ struct BracketView: View {
                 .fill(isWinner ? AppTheme.Colors.accent.opacity(0.10) : Color.clear)
                 .padding(.horizontal, 4)
         )
+    }
+
+    /// The team's logo when it has one, otherwise its initials. The winner gets a lime
+    /// ring around the logo (or a lime fill behind the initials).
+    @ViewBuilder
+    private func teamAvatar(name: String, logoURL: String?, isWinner: Bool) -> some View {
+        let size: CGFloat = 22
+        if let logoURL, let url = URL(string: logoURL) {
+            AsyncImage(url: url) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                        .frame(width: size, height: size)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle().stroke(isWinner ? AppTheme.Colors.accent : Color(white: 0.2),
+                                            lineWidth: isWinner ? 1.5 : 1)
+                        )
+                } else {
+                    initialsAvatar(name: name, size: size, isWinner: isWinner)
+                }
+            }
+            .frame(width: size, height: size)
+        } else {
+            initialsAvatar(name: name, size: size, isWinner: isWinner)
+        }
+    }
+
+    private func initialsAvatar(name: String, size: CGFloat, isWinner: Bool) -> some View {
+        let words = name.split(separator: " ")
+        let initials: String = words.count >= 2
+            ? String(words[0].prefix(1) + words[1].prefix(1)).uppercased()
+            : String(name.prefix(2)).uppercased()
+        return Circle()
+            .fill(isWinner ? AppTheme.Colors.accent : Color(white: 0.18))
+            .frame(width: size, height: size)
+            .overlay(
+                Text(initials)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(isWinner ? AppTheme.Colors.accentText : Color(white: 0.5))
+            )
     }
 
     @ViewBuilder
