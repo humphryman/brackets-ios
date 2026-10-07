@@ -62,6 +62,14 @@ struct GamesListView: View {
         gamesResponse?.allGames.contains { $0.isLive } ?? false
     }
 
+    /// En Vivo when a game is live, else Próximos, unless there's nothing left to
+    /// play — then Resultados.
+    private var defaultFilter: GameFilter {
+        if hasLiveGames { return .live }
+        let hasUpcoming = gamesResponse?.allGames.contains { !$0.isFinished && !$0.isLive } ?? false
+        return hasUpcoming ? .upcoming : .completed
+    }
+
     private var availableFilters: [GameFilter] {
         var filters: [GameFilter] = []
         if hasLiveGames { filters.append(.live) }
@@ -332,7 +340,7 @@ struct GamesListView: View {
                     gamesResponse = response
                     if !hasLiveGames {
                         if selectedFilter == .live {
-                            selectedFilter = .upcoming
+                            selectedFilter = defaultFilter
                         }
                         stopLiveRefresh()
                     }
@@ -354,6 +362,8 @@ struct GamesListView: View {
         do {
             gamesResponse = try await APIService.shared.fetchGamesResponse(for: tournament.id)
             if !didInitChip {
+                // Chips depend on the active tab, so pick the tab first.
+                if selectedFilter == .upcoming { selectedFilter = defaultFilter }
                 ensureValidChip()
                 didInitChip = true
             }
