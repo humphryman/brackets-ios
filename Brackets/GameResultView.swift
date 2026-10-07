@@ -193,7 +193,17 @@ struct GameResultView: View {
         let teamB = teams.count > 1 ? teams[1] : nil
         let periods = PlayByPlayBuilder.build(
             events: detail.game.playByPlay ?? [],
-            teams: teams.map { PlayByPlayTeam(id: $0.id, score: $0.score) },
+            teams: teams.map { team in
+                PlayByPlayTeam(
+                    id: team.id,
+                    score: team.score,
+                    // The "Equipo" totals row carries the team logo as its image; skip it.
+                    players: (team.playerStats ?? []).filter { !$0.isTeamEntry }.map {
+                        PlayByPlayPlayer(number: $0.playerNumber, firstName: $0.playerFirstName,
+                                         lastName: $0.playerLastName, image: $0.playerImage)
+                    }
+                )
+            },
             longNameStats: detail.longNameStats
         )
         PlayByPlayView(

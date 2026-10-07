@@ -19,10 +19,20 @@ enum PlayByPlayActionKind: Equatable { case scoring, entra, salePerdida, neutral
 /// team order (`left` = teams[0]). `none` hides the score entirely.
 enum PlayByPlayEmphasis: Equatable { case left, right, none }
 
-/// Minimal team input for side inference (id + final score).
+/// Minimal team input for side inference (id + final score), plus the roster used to
+/// look up each row's player photo (the feed itself carries no player image).
 struct PlayByPlayTeam {
     let id: Int
     let score: Int?
+    var players: [PlayByPlayPlayer] = []
+}
+
+/// A roster entry from the game's player stats, used only to resolve photos.
+struct PlayByPlayPlayer {
+    let number: Int?
+    let firstName: String
+    let lastName: String
+    let image: String?
 }
 
 /// A single rendered play-by-play row.
@@ -32,7 +42,7 @@ struct PlayByPlayRow: Identifiable {
     let playerFirstName: String
     let playerLastName: String
     let teamName: String
-    let teamLogo: String?
+    let playerImage: String?
     let actionLabel: String
     let actionKind: PlayByPlayActionKind
     /// Running scores oriented to the header's team order (left = teams[0]).
@@ -42,11 +52,21 @@ struct PlayByPlayRow: Identifiable {
 
     var showsScore: Bool { emphasis != .none }
 
-    var fullTeamLogoURL: String? {
-        guard let logo = teamLogo else { return nil }
-        if logo.lowercased().hasPrefix("http") { return logo }
-        let path = logo.hasPrefix("/") ? String(logo.dropFirst()) : logo
+    var fullPlayerImageURL: String? {
+        guard let img = playerImage, !img.isEmpty else { return nil }
+        if img.lowercased().hasPrefix("http") { return img }
+        let path = img.hasPrefix("/") ? String(img.dropFirst()) : img
         return "\(APIConfig.baseURL)/\(path)"
+    }
+
+    /// First letter of the first name + first letter of the last name ("Carlos Emiliano
+    /// Oyervides" -> "CE"); empty when the feed has no name.
+    var playerInitials: String {
+        [playerFirstName, playerLastName]
+            .compactMap { $0.split(separator: " ").first?.first }
+            .map(String.init)
+            .joined()
+            .uppercased()
     }
 }
 
@@ -129,6 +149,26 @@ enum PlayByPlayBuilder {
         return counts
     }
 
+    /// The photo of the event's player from its team's roster. Matches on full name first
+    /// (numbers can repeat, e.g. several #0), then on a jersey number that is unique on
+    /// the team. Nil when the player can't be resolved or has no photo.
+    static func playerImage(for event: PlayByPlayEvent, teams: [PlayByPlayTeam]) -> String? {
+        guard let roster = teams.first(where: { $0.id == event.teamStatId })?.players else { return nil }
+        func norm(_ s: String) -> String {
+            s.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+                .split(separator: " ").joined(separator: " ")
+        }
+        let first = norm(event.playerFirst), last = norm(event.playerLast)
+        let match = roster.first { norm($0.firstName) == first && norm($0.lastName) == last }
+            ?? {
+                guard let n = event.playerNumber else { return nil }
+                let byNumber = roster.filter { $0.number == n }
+                return byNumber.count == 1 ? byNumber[0] : nil
+            }()
+        guard let image = match?.image, !image.isEmpty else { return nil }
+        return image
+    }
+
     /// Builds the period-grouped rows, preserving the feed's period order (newest first).
     static func build(
         events: [PlayByPlayEvent],
@@ -158,7 +198,7 @@ enum PlayByPlayBuilder {
                 playerFirstName: e.playerFirst,
                 playerLastName: e.playerLast,
                 teamName: e.teamName,
-                teamLogo: e.teamLogo,
+                playerImage: playerImage(for: e, teams: teams),
                 actionLabel: label,
                 actionKind: kind,
                 leftScore: leftScore,

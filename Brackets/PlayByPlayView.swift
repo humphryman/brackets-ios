@@ -184,7 +184,7 @@ private struct PlayByPlayRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            logoAvatar(size: 36)
+            playerAvatar(size: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -244,9 +244,10 @@ private struct PlayByPlayRowView: View {
         .monospacedDigit()
     }
 
+    /// The player's photo when the roster has one, otherwise their initials.
     @ViewBuilder
-    private func logoAvatar(size: CGFloat) -> some View {
-        if let urlString = row.fullTeamLogoURL, let url = URL(string: urlString) {
+    private func playerAvatar(size: CGFloat) -> some View {
+        if let urlString = row.fullPlayerImageURL, let url = URL(string: urlString) {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
@@ -268,8 +269,8 @@ private struct PlayByPlayRowView: View {
             .fill(Color(white: 0.15))
             .frame(width: size, height: size)
             .overlay(
-                Text(row.playerNumber.map { "\($0)" } ?? "?")
-                    .font(.system(size: size * 0.4, weight: .bold))
+                Text(row.playerInitials.isEmpty ? "?" : row.playerInitials)
+                    .font(.system(size: size * 0.36, weight: .bold))
                     .foregroundStyle(Color(white: 0.5))
             )
     }
@@ -280,24 +281,24 @@ private struct PlayByPlayRowView: View {
 #Preview {
     let rows2P = [
         PlayByPlayRow(id: 1, playerNumber: 3, playerFirstName: "Mateo", playerLastName: "Ruiz",
-                      teamName: "Eagles", teamLogo: nil, actionLabel: "3 puntos", actionKind: .scoring,
+                      teamName: "Eagles", playerImage: nil, actionLabel: "3 puntos", actionKind: .scoring,
                       leftScore: 28, rightScore: 40, emphasis: .right),
         PlayByPlayRow(id: 2, playerNumber: 7, playerFirstName: "Pedro", playerLastName: "Orozco",
-                      teamName: "Lions", teamLogo: nil, actionLabel: "2 puntos", actionKind: .scoring,
+                      teamName: "Lions", playerImage: nil, actionLabel: "2 puntos", actionKind: .scoring,
                       leftScore: 28, rightScore: 37, emphasis: .left),
         PlayByPlayRow(id: 3, playerNumber: 21, playerFirstName: "Carlos", playerLastName: "Nieto",
-                      teamName: "Eagles", teamLogo: nil, actionLabel: "Sale", actionKind: .salePerdida,
+                      teamName: "Eagles", playerImage: nil, actionLabel: "Sale", actionKind: .salePerdida,
                       leftScore: 28, rightScore: 37, emphasis: .none),
         PlayByPlayRow(id: 4, playerNumber: 3, playerFirstName: "Mateo", playerLastName: "Ruiz",
-                      teamName: "Eagles", teamLogo: nil, actionLabel: "Entra", actionKind: .entra,
+                      teamName: "Eagles", playerImage: nil, actionLabel: "Entra", actionKind: .entra,
                       leftScore: 28, rightScore: 37, emphasis: .none),
         PlayByPlayRow(id: 5, playerNumber: 12, playerFirstName: "David", playerLastName: "Grados",
-                      teamName: "Lions", teamLogo: nil, actionLabel: "Falta personal (2)", actionKind: .neutral,
+                      teamName: "Lions", playerImage: nil, actionLabel: "Falta personal (2)", actionKind: .neutral,
                       leftScore: 26, rightScore: 37, emphasis: .none)
     ]
     let rows1P = [
         PlayByPlayRow(id: 6, playerNumber: 33, playerFirstName: "Andrés", playerLastName: "Meza",
-                      teamName: "Lions", teamLogo: nil, actionLabel: "Tiro libre", actionKind: .scoring,
+                      teamName: "Lions", playerImage: nil, actionLabel: "Tiro libre", actionKind: .scoring,
                       leftScore: 14, rightScore: 16, emphasis: .left)
     ]
     return ScrollView {

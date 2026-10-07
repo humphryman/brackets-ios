@@ -117,4 +117,42 @@ final class PlayByPlayTests: XCTestCase {
         XCTAssertEqual(map[100], .a) // score 4 == final score_a
         XCTAssertEqual(map[200], .b) // score 9 == final score_b
     }
+
+    // MARK: Player photo lookup
+
+    private let roster = [
+        PlayByPlayTeam(id: 100, score: 3, players: [
+            PlayByPlayPlayer(number: 10, firstName: "F", lastName: "L", image: "/uploads/ten.jpg"),
+            PlayByPlayPlayer(number: 0, firstName: "Ana", lastName: "Cero", image: "/uploads/a.jpg"),
+            PlayByPlayPlayer(number: 0, firstName: "Bea", lastName: "Cero", image: "/uploads/b.jpg"),
+            PlayByPlayPlayer(number: 11, firstName: "Sin", lastName: "Foto", image: nil)
+        ])
+    ]
+
+    func test_playerImage_matchesByName() {
+        let e = event(1, "two_pm", "1P", a: 2, b: 0, team: 100, number: 99, last: "L")
+        XCTAssertEqual(PlayByPlayBuilder.playerImage(for: e, teams: roster), "/uploads/ten.jpg")
+    }
+
+    func test_playerImage_fallsBackToUniqueNumber() {
+        let e = event(1, "two_pm", "1P", a: 2, b: 0, team: 100, number: 10, last: "Otro")
+        XCTAssertEqual(PlayByPlayBuilder.playerImage(for: e, teams: roster), "/uploads/ten.jpg")
+    }
+
+    func test_playerImage_nilForAmbiguousNumber_wrongTeam_orNoPhoto() {
+        let dupNumber = event(1, "two_pm", "1P", a: 2, b: 0, team: 100, number: 0, last: "Nadie")
+        XCTAssertNil(PlayByPlayBuilder.playerImage(for: dupNumber, teams: roster))
+        let otherTeam = event(2, "two_pm", "1P", a: 2, b: 0, team: 200, number: 10, last: "L")
+        XCTAssertNil(PlayByPlayBuilder.playerImage(for: otherTeam, teams: roster))
+        let noPhoto = event(3, "two_pm", "1P", a: 2, b: 0, team: 100, number: 11, last: "Foto")
+        XCTAssertNil(PlayByPlayBuilder.playerImage(for: noPhoto, teams: roster))
+    }
+
+    func test_rowInitials_useFirstWordOfEachName() {
+        let row = PlayByPlayBuilder.build(
+            events: [event(1, "entra", "1P", a: 0, b: 0, team: 100, number: 10, last: "Emiliano Oyervides")],
+            teams: roster, longNameStats: [:]
+        )[0].rows[0]
+        XCTAssertEqual(row.playerInitials, "FE")
+    }
 }
