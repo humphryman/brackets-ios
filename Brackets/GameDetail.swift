@@ -369,6 +369,12 @@ struct PlayerGameStat: Identifiable, Codable, Sendable {
         playerFirstName == "Equipo"
     }
 
+    /// Value for a stats-table cell. The team entry only surfaces its points.
+    func tableValue(for statKey: String) -> Int? {
+        if isTeamEntry && statKey != "points" { return nil }
+        return dynamicStats[statKey] ?? nil
+    }
+
     var fullImageURL: String? {
         guard let img = playerImage else { return nil }
         if img.lowercased().hasPrefix("http") { return img }

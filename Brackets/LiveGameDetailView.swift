@@ -226,9 +226,13 @@ struct LiveGameDetailView: View {
         if teams.count >= 2 {
             let safeIndex = min(selectedTeamIndex, teams.count - 1)
             let selectedTeam = teams[safeIndex]
-            let allPlayers = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }
-            let starters = allPlayers.filter { $0.starter }
-            let bench = allPlayers.filter { !$0.starter }
+            let allStats = selectedTeam.playerStats ?? []
+            let teamEntries = allStats.filter(\.isTeamEntry)
+            let allPlayers = allStats.filter { !$0.isTeamEntry }
+            let benchPlayers = allPlayers.filter { !$0.starter }
+            // The team row closes whichever table renders last
+            let starters = allPlayers.filter { $0.starter } + (benchPlayers.isEmpty ? teamEntries : [])
+            let bench = benchPlayers + (benchPlayers.isEmpty ? [] : teamEntries)
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
@@ -370,7 +374,7 @@ struct LiveGameDetailView: View {
                     ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
                         HStack(spacing: 0) {
                             ForEach(activeStats, id: \.self) { statKey in
-                                let value = player.dynamicStats[statKey] ?? nil
+                                let value = player.tableValue(for: statKey)
                                 let cellKey = "\(player.id)-\(statKey)"
                                 let isPulsing = pulsingCells.contains(cellKey)
 
@@ -425,32 +429,44 @@ struct LiveGameDetailView: View {
 
     @ViewBuilder
     private func livePlayerRow(player: PlayerGameStat, index: Int, rowHeight: CGFloat, isHighlighted: Bool = false, rosterGlow: Color? = nil) -> some View {
-        HStack(spacing: 6) {
-            if let number = player.playerNumber, number > 0 {
-                Text("#\(number)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(white: 0.4))
-                    .frame(width: 30, alignment: .center)
-            } else {
-                Spacer().frame(width: 28)
+        if player.isTeamEntry {
+            // Team totals row: plain label, aligned with the column header
+            Text(player.playerFirstName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .padding(.leading, 12)
+                .frame(height: rowHeight)
+                .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
+        } else {
+            HStack(spacing: 6) {
+                if let number = player.playerNumber, number > 0 {
+                    Text("#\(number)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color(white: 0.4))
+                        .frame(width: 30, alignment: .center)
+                } else {
+                    Spacer().frame(width: 28)
+                }
+                livePlayerAvatar(player: player, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(player.shortFirstName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                        .lineLimit(1)
+                    Text(player.shortLastName)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
+                        .lineLimit(1)
+                }
             }
-            livePlayerAvatar(player: player, size: 30)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(player.shortFirstName)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
-                    .lineLimit(1)
-                Text(player.shortLastName)
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
-                    .lineLimit(1)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: rowHeight)
+            .padding(.leading, 6)
+            .opacity(player.played ? 1.0 : 0.5)
+            .background(rosterGlow ?? (isHighlighted ? AppTheme.Colors.accent.opacity(0.1) : (index % 2 == 0 ? Color(white: 0.14) : Color.clear)))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: rowHeight)
-        .padding(.leading, 6)
-        .opacity(player.played ? 1.0 : 0.5)
-        .background(rosterGlow ?? (isHighlighted ? AppTheme.Colors.accent.opacity(0.1) : (index % 2 == 0 ? Color(white: 0.14) : Color.clear)))
     }
 
     // MARK: - Player Avatar

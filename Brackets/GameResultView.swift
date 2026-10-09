@@ -361,7 +361,9 @@ struct GameResultView: View {
         if teams.count >= 2 {
             let safeIndex = min(selectedTeamIndex, teams.count - 1)
             let selectedTeam = teams[safeIndex]
-            let players = (selectedTeam.playerStats ?? []).filter { !$0.isTeamEntry }.sorted { $0.played && !$1.played }
+            let allStats = selectedTeam.playerStats ?? []
+            let players = allStats.filter { !$0.isTeamEntry }.sorted { $0.played && !$1.played }
+                + allStats.filter(\.isTeamEntry)
 
             VStack(spacing: AppTheme.Spacing.large) {
                 // Title
@@ -428,7 +430,7 @@ struct GameResultView: View {
                         ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
                             HStack(spacing: 0) {
                                 ForEach(activeStats, id: \.self) { statKey in
-                                    let value = player.dynamicStats[statKey] ?? nil
+                                    let value = player.tableValue(for: statKey)
                                     Text(value.map { "\($0)" } ?? "-")
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
@@ -860,32 +862,44 @@ struct GameResultView: View {
 
     @ViewBuilder
     private func playerRow(player: PlayerGameStat, index: Int, rowHeight: CGFloat) -> some View {
-        HStack(spacing: 6) {
-            if let number = player.playerNumber, number > 0 {
-                Text("#\(number)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(white: 0.4))
-                    .frame(width: 30, alignment: .center)
-            } else {
-                Spacer().frame(width: 28)
+        if player.isTeamEntry {
+            // Team totals row: plain label, aligned with the column header
+            Text(player.playerFirstName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.primaryText)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .padding(.leading, 12)
+                .frame(height: rowHeight)
+                .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
+        } else {
+            HStack(spacing: 6) {
+                if let number = player.playerNumber, number > 0 {
+                    Text("#\(number)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color(white: 0.4))
+                        .frame(width: 30, alignment: .center)
+                } else {
+                    Spacer().frame(width: 28)
+                }
+                playerAvatarCircle(player: player, size: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(player.shortFirstName)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
+                        .lineLimit(1)
+                    Text(player.shortLastName)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
+                        .lineLimit(1)
+                }
             }
-            playerAvatarCircle(player: player, size: 30)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(player.shortFirstName)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(player.played ? AppTheme.Colors.primaryText : Color(white: 0.3))
-                    .lineLimit(1)
-                Text(player.shortLastName)
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(player.played ? Color(white: 0.5) : Color(white: 0.25))
-                    .lineLimit(1)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: rowHeight)
+            .padding(.leading, 6)
+            .opacity(player.played ? 1.0 : 0.5)
+            .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: rowHeight)
-        .padding(.leading, 6)
-        .opacity(player.played ? 1.0 : 0.5)
-        .background(index % 2 == 0 ? Color(white: 0.14) : Color.clear)
     }
 
     private struct RankedPlayer {
